@@ -6,7 +6,8 @@
 #include "parquet/arrow/reader.h"
 #include <parquet/exception.h>
 
-int main() {
+int main()
+{
     std::cout << "Hello world" << std::endl;
 
     // Ok. Let's try to read from disk
@@ -21,9 +22,10 @@ int main() {
     std::shared_ptr<arrow::Table> table;
     PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
     std::cout << "Loaded " << table->num_rows() << " rows in " << table->num_columns()
-            << " columns." << std::endl;
+              << " columns." << std::endl;
 
-    for(auto& c : table->schema()->fields() ) {
+    for (auto &c : table->schema()->fields())
+    {
         std::cout << "Column: " << c->name() << std::endl;
     }
 
