@@ -6,6 +6,38 @@
 #include "parquet/arrow/reader.h"
 #include <parquet/exception.h>
 
+struct data_row
+{
+    std::string location_cbg;
+    std::string visit_cbg;
+    // arrow::date32 date;
+    std::vector<int32_t> visits;
+    double distance;
+};
+
+arrow::Status
+TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct data_row> &rows)
+{
+
+    auto location_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(4)->chunk(0));
+    auto visit_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(0)->chunk(0));
+    auto distance = std::static_pointer_cast<arrow::DoubleArray>(table->column(10)->chunk(0));
+    auto visits = std::static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
+
+    for (int64_t i = 0; i < table->num_rows(); i++)
+    {
+        std::string cbg = location_cbg->GetString(i);
+        std::string visit = visit_cbg->GetString(i);
+        double d = distance->Value(i);
+        std::string visit_str = visits->GetString(i);
+        std::vector<int32_t> visits;
+        // std::cout << "CBG: " << cbg << std::endl;
+        rows.push_back({cbg, visit, visits, d});
+    }
+
+    return arrow::Status::OK();
+}
+
 int main()
 {
     std::cout << "Hello world" << std::endl;
@@ -26,8 +58,19 @@ int main()
 
     for (auto &c : table->schema()->fields())
     {
-        std::cout << "Column: " << c->name() << std::endl;
+        std::cout << "Column: " << c->name() << " Type: " << c->type()->ToString() << std::endl;
     }
+
+    std::vector<struct data_row> rows;
+    rows.reserve(table->num_rows());
+
+    auto resp = TableToVector(table, rows);
+    if (!resp.ok())
+    {
+        std::cout << "Problem! " << resp.ToString() << std::endl;
+    }
+
+    std::cout << "Rows of everything: " << rows.size() << std::endl;
 
     return 0;
 }
