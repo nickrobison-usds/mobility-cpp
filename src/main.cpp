@@ -6,10 +6,10 @@
 #include "parquet.hpp"
 
 #include <boost/filesystem.hpp>
-#include <range/v3/view/group_by.hpp>
-#include <range/v3/view/all.hpp>
-#include <range/v3/action/sort.hpp>
-#include <range/v3/range/conversion.hpp>
+// #include <range/v3/view/group_by.hpp>
+// #include <range/v3/view/all.hpp>
+// #include <range/v3/action/sort.hpp>
+// #include <range/v3/range/conversion.hpp>
 #include <CLI/CLI.hpp>
 #include "pstl/execution"
 #include "pstl/algorithm"
@@ -17,7 +17,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
-using namespace ranges;
+// using namespace ranges;
 namespace fs = boost::filesystem;
 
 bool IsParenthesesOrDash(char c)
@@ -124,11 +124,11 @@ int main(int argc, char **argv)
         return lhs.location_cbg == rhs.location_cbg;
     };
 
-    auto grouped = rows | views::group_by(group_location); //; // | ranges::;
+    // auto grouped = rows | views::group_by(group_location); //; // | ranges::;
 
-    auto transformed = to_vector(grouped);
+    // auto transformed = to_vector(grouped);
 
-    fmt::print("I have {} groups.", transformed.size());
+    // fmt::print("I have {} groups.", transformed.size());
 
     // Now, expand everything
     std::vector<const visit_row> output = std::transform_reduce(
