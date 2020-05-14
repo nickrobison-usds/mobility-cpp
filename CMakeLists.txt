@@ -13,9 +13,10 @@ find_package(arrow REQUIRED)
 # find_package(range-v3 CONFIG REQUIRED)
 find_package(TBB CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
+find_package(HPX CONFIG REQUIRED)
 
 add_executable(mobility-cpp src/main.cpp src/parquet.cpp)
-target_link_libraries(mobility-cpp PRIVATE arrow parquet TBB::tbb Boost::filesystem spdlog::spdlog CLI11::CLI11)
+target_link_libraries(mobility-cpp PRIVATE arrow parquet TBB::tbb Boost::filesystem spdlog::spdlog hpx)
 target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")

@@ -17,7 +17,6 @@ std::shared_ptr<arrow::Table> Parquet::read() const
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
     PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-    reader->set_use_threads(5);
 
     std::shared_ptr<arrow::Table> table;
     PARQUET_THROW_NOT_OK(reader->ReadTable(&table));

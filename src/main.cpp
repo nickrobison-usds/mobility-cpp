@@ -6,7 +6,8 @@
 
 #include "parquet.hpp"
 
-#include <boost/filesystem.hpp>
+#include <hpx/hpx_init.hpp>
+#include <hpx/hpx.hpp>
 // #include <range/v3/view/group_by.hpp>
 // #include <range/v3/view/all.hpp>
 // #include <range/v3/action/sort.hpp>
@@ -47,9 +48,11 @@ std::vector<int16_t> split(const std::string &str, char delim)
     return strings;
 }
 
-arrow::Status
-TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct data_row> &rows)
+std::vector<const data_row>
+TableToVector(const std::shared_ptr<arrow::Table> &table)
 {
+    std::vector<const data_row> rows;
+    rows.reserve(table->num_rows());
 
     auto location_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(4)->chunk(0));
     auto visit_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(0)->chunk(0));
@@ -76,40 +79,58 @@ TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct dat
         rows.push_back({cbg, visit, d2, visits, d});
     }
 
-    return arrow::Status::OK();
+    return rows;
 }
 
-int main(int argc, char **argv)
+int hpx_main(hpx::program_options::variables_map &vm)
 {
-    std::string input_dir = "data/";
-    std::string output_file = "./out.parquet";
-
-    CLI::App app;
-    app.add_option("input", input_dir, "Input directory");
-    app.add_option("output", output_file, "Output file to write");
-    CLI11_PARSE(app, argc, argv);
+    std::string input_dir = vm["input_dir"].as<std::string>();
+    std::string output_file = vm["output_file"].as<std::string>();
 
     spdlog::set_level(spdlog::level::debug);
     spdlog::info("Mobilizing");
 
-    std::vector<struct data_row> rows;
-
     // Ok. Let's try to read from disk
-
-    for (auto &p : fs::directory_iterator(input_dir))
+    // Iterate through all the files and dump them to a vector, so we can parallel reduce them
+    const auto dir_iter = fs::directory_iterator(input_dir);
+    std::vector<const boost::filesystem::directory_entry> files;
+    for (const auto &p : dir_iter)
     {
-        const Parquet parquet_reader(p.path().string());
-        auto table = parquet_reader.read();
+        files.push_back(p);
+    };
 
-        spdlog::debug("Reserving an additional {} rows.", table->num_rows());
-        rows.reserve(rows.size() + table->num_rows());
+    std::vector<const data_row> rows = std::transform_reduce(
+        pstl::execution::par_unseq,
+        files.begin(),
+        files.end(),
+        std::vector<const data_row>(),
+        [](std::vector<const data_row> acc, std::vector<const data_row> v) {
+            std::move(v.begin(), v.end(), std::back_inserter(acc));
+            return acc;
+        },
+        [](const auto &p) {
+            const Parquet parquet_reader(p.path().string());
+            auto table = parquet_reader.read();
 
-        auto resp = TableToVector(table, rows);
-        if (!resp.ok())
-        {
-            spdlog::critical("Problem: {}\n", resp.ToString());
-        }
-    }
+            // spdlog::debug("Reserving an additional {} rows.", table->num_rows());
+            // rows.reserve(rows.size() + table->num_rows());
+            return TableToVector(table);
+        });
+
+    // for (auto &p :)
+    // {
+    //     const Parquet parquet_reader(p.path().string());
+    //     auto table = parquet_reader.read();
+
+    //     spdlog::debug("Reserving an additional {} rows.", table->num_rows());
+    //     rows.reserve(rows.size() + table->num_rows());
+
+    //     auto resp = TableToVector(table, rows);
+    //     if (!resp.ok())
+    //     {
+    //         spdlog::critical("Problem: {}\n", resp.ToString());
+    //     }
+    // }
 
     spdlog::info("Rows of everything: {}\n", rows.size());
 
@@ -204,5 +225,15 @@ int main(int argc, char **argv)
         spdlog::critical("Unable to write file: {}", status.CodeAsString());
     }
 
-    return 0;
+    return hpx::finalize();
+}
+
+int main(int argc, char **argv)
+{
+    using namespace hpx::program_options;
+
+    options_description desc_commandline;
+    desc_commandline.add_options()("input_dir", value<std::string>()->default_value("data"), "Input directory to parse")("output_file", value<std::string>()->default_value("./wrong.parquet"), "output file to write");
+
+    return hpx::init(desc_commandline, argc, argv);
 }
