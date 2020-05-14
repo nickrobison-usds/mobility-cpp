@@ -3,16 +3,13 @@
 #include <algorithm>
 #include <string>
 
-#include <arrow/api.h>
-#include <arrow/io/api.h>
-#include <parquet/arrow/reader.h>
-#include <parquet/arrow/writer.h>
-#include <parquet/exception.h>
+#include "parquet.hpp"
+
+#include <boost/filesystem.hpp>
 #include <range/v3/view/group_by.hpp>
 #include <range/v3/view/all.hpp>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/range/conversion.hpp>
-#include <boost/filesystem.hpp>
 #include <CLI/CLI.hpp>
 #include "pstl/execution"
 #include "pstl/algorithm"
@@ -22,34 +19,6 @@
 
 using namespace ranges;
 namespace fs = boost::filesystem;
-
-using ArrowDate = arrow::Date32Type::c_type;
-
-struct data_row
-{
-    const std::string location_cbg;
-    const std::string visit_cbg;
-    const ArrowDate date;
-    std::vector<int16_t> visits;
-    const double distance;
-};
-
-struct visit_row
-{
-    const std::string location_cbg;
-    const std::string visit_cbg;
-    const ArrowDate date;
-    const int16_t visits;
-    const double distance;
-    const double weighted_total;
-};
-
-std::ostream &
-operator<<(std::ostream &o, const data_row &dr)
-{
-    auto msg = fmt::format("Location: {}\n", dr.location_cbg);
-    return o << msg;
-}
 
 bool IsParenthesesOrDash(char c)
 {
@@ -112,19 +81,6 @@ TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct dat
     return arrow::Status::OK();
 }
 
-void write_parquet_file(const arrow::Table &table, const std::string &filename)
-{
-    std::shared_ptr<arrow::io::FileOutputStream> outfile;
-    PARQUET_ASSIGN_OR_THROW(
-        outfile,
-        arrow::io::FileOutputStream::Open(filename));
-    // The last argument to the function call is the size of the RowGroup in
-    // the parquet file. Normally you would choose this to be rather large but
-    // for the example, we use a small value to have multiple RowGroups.
-    PARQUET_THROW_NOT_OK(
-        parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3));
-}
-
 int main(int argc, char **argv)
 {
     std::string input_dir = "data/";
@@ -144,22 +100,8 @@ int main(int argc, char **argv)
 
     for (auto &p : fs::directory_iterator(input_dir))
     {
-        spdlog::info("Reading {}", p.path().string());
-        std::shared_ptr<arrow::io::ReadableFile> infile;
-        PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(p.path().string(), arrow::default_memory_pool()));
-
-        std::unique_ptr<parquet::arrow::FileReader> reader;
-        PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-        reader->set_use_threads(5);
-
-        std::shared_ptr<arrow::Table> table;
-        PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
-        spdlog::debug("Loaded {} columns and {} rows.", table->num_columns(), table->num_rows());
-
-        for (auto &c : table->schema()->fields())
-        {
-            spdlog::debug("Column {}. Type: {}", c->name(), c->type()->ToString());
-        }
+        const Parquet parquet_reader(p.path().string());
+        auto table = parquet_reader.read();
 
         spdlog::debug("Reserving an additional {} rows.", table->num_rows());
         rows.reserve(rows.size() + table->num_rows());
@@ -256,7 +198,13 @@ int main(int argc, char **argv)
 
     auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array});
 
-    write_parquet_file(*data_table, output_file);
+    const Parquet parquet_writer(output_file);
+
+    status = parquet_writer.write(*data_table);
+    if (!status.ok())
+    {
+        spdlog::critical("Unable to write file: {}", status.CodeAsString());
+    }
 
     return 0;
 }

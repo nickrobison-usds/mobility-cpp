@@ -14,7 +14,7 @@ find_package(range-v3 CONFIG REQUIRED)
 find_package(TBB CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 
-add_executable(mobility-cpp src/main.cpp)
+add_executable(mobility-cpp src/main.cpp src/parquet.cpp)
 target_link_libraries(mobility-cpp PRIVATE arrow parquet range-v3 TBB::tbb Boost::filesystem spdlog::spdlog CLI11::CLI11)
 target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 
