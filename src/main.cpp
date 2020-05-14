@@ -12,13 +12,13 @@
 #include <range/v3/view/all.hpp>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/range/conversion.hpp>
-#include <fmt/core.h>
 #include <boost/filesystem.hpp>
 #include <CLI/CLI.hpp>
 #include "pstl/execution"
 #include "pstl/algorithm"
 #include "pstl/numeric"
 #include "spdlog/spdlog.h"
+#include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
 using namespace ranges;
 namespace fs = boost::filesystem;

@@ -6,16 +6,16 @@ set(CMAKE_CXX_STANDARD 17)
 include(CTest)
 enable_testing()
 
+add_subdirectory(extern/spdlog)
+add_subdirectory(extern/CLI11)
+
 find_package(arrow REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
-find_package(ParallelSTL CONFIG REQUIRED)
+find_package(TBB CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-find_package(CLI11 CONFIG REQUIRED)
 
 add_executable(mobility-cpp src/main.cpp)
-target_link_libraries(mobility-cpp PRIVATE arrow parquet range-v3 fmt::fmt pstl::ParallelSTL Boost::filesystem spdlog::spdlog_header_only CLI11::CLI11)
+target_link_libraries(mobility-cpp PRIVATE arrow parquet range-v3 TBB::tbb Boost::filesystem spdlog::spdlog CLI11::CLI11)
 target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

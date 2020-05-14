@@ -1,0 +1,6 @@
+[submodule "extern/CLI11"]
+	path = extern/CLI11
+	url = ../../CLIUtils/CLI11.git
+[submodule "extern/spdlog"]
+	path = extern/spdlog
+	url = ../../gabime/spdlog.git
