@@ -13,8 +13,13 @@
 #include <range/v3/action/sort.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <fmt/core.h>
+#include <boost/filesystem.hpp>
+#include "pstl/execution"
+#include "pstl/algorithm"
+#include "pstl/numeric"
 
 using namespace ranges;
+namespace fs = boost::filesystem;
 
 using ArrowDate = arrow::Date32Type::c_type;
 
@@ -34,6 +39,7 @@ struct visit_row
     const ArrowDate date;
     const int16_t visits;
     const double distance;
+    const double weighted_total;
 };
 
 std::ostream &
@@ -121,31 +127,37 @@ int main()
 {
     fmt::print("Hello world.\n");
 
-    // Ok. Let's try to read from disk
-    auto filename = std::string("/Users/raac/Development/covid/mobility-analysis/data/output/SG-April-weekly-summary.parquet/part.0.parquet");
-
-    std::shared_ptr<arrow::io::ReadableFile> infile;
-    PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(filename, arrow::default_memory_pool()));
-
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-
-    std::shared_ptr<arrow::Table> table;
-    PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
-    fmt::print("Loaded {} columns and {} rows.\n", table->num_columns(), table->num_rows());
-
-    for (auto &c : table->schema()->fields())
-    {
-        fmt::print("Column {}. Type: {}\n", c->name(), c->type()->ToString());
-    }
-
     std::vector<struct data_row> rows;
-    rows.reserve(table->num_rows());
 
-    auto resp = TableToVector(table, rows);
-    if (!resp.ok())
+    // Ok. Let's try to read from disk
+    const auto directory = std::string("/Users/raac/Development/covid/mobility-analysis/data/output/SG-April-weekly-summary.parquet");
+    for (auto &p : fs::directory_iterator(directory))
     {
-        fmt::print(stderr, "Problem: {}\n", resp.ToString());
+        fmt::print("Reading {}\n", p.path().string());
+        std::shared_ptr<arrow::io::ReadableFile> infile;
+        PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(p.path().string(), arrow::default_memory_pool()));
+
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
+        reader->set_use_threads(5);
+
+        std::shared_ptr<arrow::Table> table;
+        PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
+        fmt::print("Loaded {} columns and {} rows.\n", table->num_columns(), table->num_rows());
+
+        for (auto &c : table->schema()->fields())
+        {
+            fmt::print("Column {}. Type: {}\n", c->name(), c->type()->ToString());
+        }
+
+        fmt::print("Reserving and additional {} rows.", table->num_rows());
+        rows.reserve(rows.size() + table->num_rows());
+
+        auto resp = TableToVector(table, rows);
+        if (!resp.ok())
+        {
+            fmt::print(stderr, "Problem: {}\n", resp.ToString());
+        }
     }
 
     fmt::print("Rows of everything: {}\n", rows.size());
@@ -166,18 +178,25 @@ int main()
     fmt::print("I have {} groups.", transformed.size());
 
     // Now, expand everything
-    std::vector<const visit_row> output;
-
-    for (auto g : grouped)
-    {
-        for (auto row : g)
-        {
+    std::vector<const visit_row> output = std::transform_reduce(
+        pstl::execution::par_unseq,
+        rows.begin(),
+        rows.end(),
+        std::vector<const visit_row>(),
+        [](std::vector<const visit_row> acc, std::vector<const visit_row> v) {
+            std::move(v.begin(), v.end(), std::back_inserter(acc));
+            return acc;
+        },
+        [](const data_row &row) {
+            std::vector<const visit_row> out;
+            out.reserve(row.visits.size());
             for (int i = 0; i < row.visits.size(); i++)
             {
-                output.push_back({row.location_cbg, row.visit_cbg, row.date + 1, row.visits[i], row.distance});
+                const auto visit = row.visits[i];
+                out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance, visit * row.distance});
             }
-        }
-    }
+            return out;
+        });
 
     fmt::print("I had {} rows. Now I have {}\n", rows.size(), output.size());
 
@@ -189,14 +208,16 @@ int main()
     arrow::Date32Builder visit_date_builder;
     arrow::Int16Builder visit_count_builder;
     arrow::DoubleBuilder distance_builder;
+    arrow::DoubleBuilder weight_builder;
 
-    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder](const visit_row &row) {
+    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](const visit_row &row) {
         arrow::Status status;
         status = loc_cbg_builder.Append(row.location_cbg);
         status = visit_cbg_builder.Append(row.visit_cbg);
         status = visit_date_builder.Append(row.date);
         status = visit_count_builder.Append(row.visits);
         status = distance_builder.Append(row.distance);
+        status = weight_builder.Append(row.weighted_total);
     });
 
     arrow::Status status;
@@ -211,15 +232,16 @@ int main()
     status = visit_count_builder.Finish(&visit_count_array);
     std::shared_ptr<arrow::Array> distance_array;
     status = distance_builder.Finish(&distance_array);
+    std::shared_ptr<arrow::Array> weight_array;
+    status = weight_builder.Finish(&weight_array);
 
     auto schema = arrow::schema(
-        {
-            arrow::field("location_cbg", arrow::utf8()),
-            arrow::field("visit", arrow::utf8()),
-            arrow::field("visit_date", arrow::date32()),
-            arrow::field("visit_count", arrow::int16()),
-            arrow::field("distance", arrow::float64()),
-        });
+        {arrow::field("location_cbg", arrow::utf8()),
+         arrow::field("visit", arrow::utf8()),
+         arrow::field("visit_date", arrow::date32()),
+         arrow::field("visit_count", arrow::int16()),
+         arrow::field("distance", arrow::float64()),
+         arrow::field("weighted_total", arrow::float64())});
 
     auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array});
 
