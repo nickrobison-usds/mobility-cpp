@@ -5,7 +5,8 @@
 
 #include <arrow/api.h>
 #include <arrow/io/api.h>
-#include "parquet/arrow/reader.h"
+#include <parquet/arrow/reader.h>
+#include <parquet/arrow/writer.h>
 #include <parquet/exception.h>
 #include <range/v3/view/group_by.hpp>
 #include <range/v3/view/all.hpp>
@@ -103,6 +104,19 @@ TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct dat
     return arrow::Status::OK();
 }
 
+void write_parquet_file(const arrow::Table &table, const std::string &filename)
+{
+    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    PARQUET_ASSIGN_OR_THROW(
+        outfile,
+        arrow::io::FileOutputStream::Open(filename));
+    // The last argument to the function call is the size of the RowGroup in
+    // the parquet file. Normally you would choose this to be rather large but
+    // for the example, we use a small value to have multiple RowGroups.
+    PARQUET_THROW_NOT_OK(
+        parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3));
+}
+
 int main()
 {
     fmt::print("Hello world.\n");
@@ -166,5 +180,50 @@ int main()
     }
 
     fmt::print("I had {} rows. Now I have {}\n", rows.size(), output.size());
+
+    // Write it to a new Parquet file
+    // We want the cbg pair, the date, the total visits and the distance
+
+    arrow::StringBuilder loc_cbg_builder;
+    arrow::StringBuilder visit_cbg_builder;
+    arrow::Date32Builder visit_date_builder;
+    arrow::Int16Builder visit_count_builder;
+    arrow::DoubleBuilder distance_builder;
+
+    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder](const visit_row &row) {
+        arrow::Status status;
+        status = loc_cbg_builder.Append(row.location_cbg);
+        status = visit_cbg_builder.Append(row.visit_cbg);
+        status = visit_date_builder.Append(row.date);
+        status = visit_count_builder.Append(row.visits);
+        status = distance_builder.Append(row.distance);
+    });
+
+    arrow::Status status;
+
+    std::shared_ptr<arrow::Array> loc_cbg_array;
+    status = loc_cbg_builder.Finish(&loc_cbg_array);
+    std::shared_ptr<arrow::Array> visit_cbg_array;
+    status = visit_cbg_builder.Finish(&visit_cbg_array);
+    std::shared_ptr<arrow::Array> visit_date_array;
+    status = visit_date_builder.Finish(&visit_date_array);
+    std::shared_ptr<arrow::Array> visit_count_array;
+    status = visit_count_builder.Finish(&visit_count_array);
+    std::shared_ptr<arrow::Array> distance_array;
+    status = distance_builder.Finish(&distance_array);
+
+    auto schema = arrow::schema(
+        {
+            arrow::field("location_cbg", arrow::utf8()),
+            arrow::field("visit", arrow::utf8()),
+            arrow::field("visit_date", arrow::date32()),
+            arrow::field("visit_count", arrow::int16()),
+            arrow::field("distance", arrow::float64()),
+        });
+
+    auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array});
+
+    write_parquet_file(*data_table, "./test.parquet");
+
     return 0;
 }
