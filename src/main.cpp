@@ -92,10 +92,19 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
     // Ok. Let's try to read from disk
     // Iterate through all the files and dump them to a vector, so we can parallel reduce them
+    const boost::regex my_filter(".*\.parquet");
     const auto dir_iter = fs::directory_iterator(input_dir);
     std::vector<const boost::filesystem::directory_entry> files;
     for (const auto &p : dir_iter)
     {
+        // Skip if not a file
+        if (!boost::filesystem::is_regular_file(p.status()))
+            continue;
+
+        boost::smatch what;
+        if (!boost::regex_match(p.path().filename().string(), what, my_filter))
+            continue;
+
         files.push_back(p);
     };
 
