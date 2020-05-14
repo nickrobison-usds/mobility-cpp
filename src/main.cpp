@@ -14,9 +14,11 @@
 #include <range/v3/range/conversion.hpp>
 #include <fmt/core.h>
 #include <boost/filesystem.hpp>
+#include <CLI/CLI.hpp>
 #include "pstl/execution"
 #include "pstl/algorithm"
 #include "pstl/numeric"
+#include "spdlog/spdlog.h"
 
 using namespace ranges;
 namespace fs = boost::filesystem;
@@ -102,7 +104,7 @@ TableToVector(const std::shared_ptr<arrow::Table> &table, std::vector<struct dat
         }
         catch (const std::invalid_argument &e)
         {
-            fmt::print(stderr, "Problem doing conversion: {}\n{}\n", e.what(), visit_str);
+            spdlog::critical("Problem doing conversion: {}\n{}", e.what(), visit_str);
         }
         rows.push_back({cbg, visit, d2, visits, d});
     }
@@ -123,17 +125,26 @@ void write_parquet_file(const arrow::Table &table, const std::string &filename)
         parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3));
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    fmt::print("Hello world.\n");
+    std::string input_dir = "data/";
+    std::string output_file = "./out.parquet";
+
+    CLI::App app;
+    app.add_option("input", input_dir, "Input directory");
+    app.add_option("output", output_file, "Output file to write");
+    CLI11_PARSE(app, argc, argv);
+
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Mobilizing");
 
     std::vector<struct data_row> rows;
 
     // Ok. Let's try to read from disk
-    const auto directory = std::string("/Users/raac/Development/covid/mobility-analysis/data/output/SG-April-weekly-summary.parquet");
-    for (auto &p : fs::directory_iterator(directory))
+
+    for (auto &p : fs::directory_iterator(input_dir))
     {
-        fmt::print("Reading {}\n", p.path().string());
+        spdlog::info("Reading {}", p.path().string());
         std::shared_ptr<arrow::io::ReadableFile> infile;
         PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(p.path().string(), arrow::default_memory_pool()));
 
@@ -143,24 +154,24 @@ int main()
 
         std::shared_ptr<arrow::Table> table;
         PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
-        fmt::print("Loaded {} columns and {} rows.\n", table->num_columns(), table->num_rows());
+        spdlog::debug("Loaded {} columns and {} rows.", table->num_columns(), table->num_rows());
 
         for (auto &c : table->schema()->fields())
         {
-            fmt::print("Column {}. Type: {}\n", c->name(), c->type()->ToString());
+            spdlog::debug("Column {}. Type: {}", c->name(), c->type()->ToString());
         }
 
-        fmt::print("Reserving and additional {} rows.", table->num_rows());
+        spdlog::debug("Reserving an additional {} rows.", table->num_rows());
         rows.reserve(rows.size() + table->num_rows());
 
         auto resp = TableToVector(table, rows);
         if (!resp.ok())
         {
-            fmt::print(stderr, "Problem: {}\n", resp.ToString());
+            spdlog::critical("Problem: {}\n", resp.ToString());
         }
     }
 
-    fmt::print("Rows of everything: {}\n", rows.size());
+    spdlog::info("Rows of everything: {}\n", rows.size());
 
     // Now, sort and group
     auto sorted = [](auto lhs, auto rhs) {
@@ -198,7 +209,7 @@ int main()
             return out;
         });
 
-    fmt::print("I had {} rows. Now I have {}\n", rows.size(), output.size());
+    spdlog::info("Expanded {} rows to {} rows.", rows.size(), output.size());
 
     // Write it to a new Parquet file
     // We want the cbg pair, the date, the total visits and the distance
@@ -245,7 +256,7 @@ int main()
 
     auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array});
 
-    write_parquet_file(*data_table, "./test.parquet");
+    write_parquet_file(*data_table, output_file);
 
     return 0;
 }
