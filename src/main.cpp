@@ -8,6 +8,8 @@
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
+#include <hpx/parallel/execution.hpp>
+#include <hpx/parallel/algorithms/transform_reduce.hpp>
 // #include <range/v3/view/group_by.hpp>
 // #include <range/v3/view/all.hpp>
 // #include <range/v3/action/sort.hpp>
@@ -17,6 +19,7 @@
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
 // using namespace ranges;
+using namespace hpx::parallel;
 namespace fs = boost::filesystem;
 
 bool IsParenthesesOrDash(char c)
@@ -108,38 +111,22 @@ int hpx_main(hpx::program_options::variables_map &vm)
         files.push_back(p);
     };
 
-    std::vector<const data_row> rows = std::transform_reduce(
-        pstl::execution::par_unseq,
+    std::vector<const data_row> rows = transform_reduce(
+        execution::par_unseq,
         files.begin(),
         files.end(),
         std::vector<const data_row>(),
         [](std::vector<const data_row> acc, std::vector<const data_row> v) {
+            spdlog::debug("Reserving an additional {} rows.", v.size());
+            acc.reserve(acc.size() + v.size());
             std::move(v.begin(), v.end(), std::back_inserter(acc));
             return acc;
         },
         [](const auto &p) {
             const Parquet parquet_reader(p.path().string());
             auto table = parquet_reader.read();
-
-            // spdlog::debug("Reserving an additional {} rows.", table->num_rows());
-            // rows.reserve(rows.size() + table->num_rows());
             return TableToVector(table);
         });
-
-    // for (auto &p :)
-    // {
-    //     const Parquet parquet_reader(p.path().string());
-    //     auto table = parquet_reader.read();
-
-    //     spdlog::debug("Reserving an additional {} rows.", table->num_rows());
-    //     rows.reserve(rows.size() + table->num_rows());
-
-    //     auto resp = TableToVector(table, rows);
-    //     if (!resp.ok())
-    //     {
-    //         spdlog::critical("Problem: {}\n", resp.ToString());
-    //     }
-    // }
 
     spdlog::info("Rows of everything: {}\n", rows.size());
 
@@ -159,8 +146,8 @@ int hpx_main(hpx::program_options::variables_map &vm)
     // fmt::print("I have {} groups.", transformed.size());
 
     // Now, expand everything
-    std::vector<visit_row> output = std::transform_reduce(
-        std::execution::par_unseq,
+    std::vector<const visit_row> output = transform_reduce(
+        execution::par_unseq,
         rows.begin(),
         rows.end(),
         std::vector<visit_row>(),
