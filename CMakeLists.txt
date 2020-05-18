@@ -9,7 +9,7 @@ enable_testing()
 add_subdirectory(extern/spdlog)
 add_subdirectory(extern/CLI11)
 
-find_package(arrow REQUIRED)
+find_package(Arrow REQUIRED)
 # find_package(range-v3 CONFIG REQUIRED)
 find_package(TBB CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem regex REQUIRED)
