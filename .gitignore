@@ -1,3 +1,5 @@
 .vscode/
 build/
 *.parquet
+cmake-build-debug/
+.idea/
