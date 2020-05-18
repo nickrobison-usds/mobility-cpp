@@ -7,7 +7,6 @@ include(CTest)
 enable_testing()
 
 add_subdirectory(extern/spdlog)
-add_subdirectory(extern/CLI11)
 
 find_package(Arrow REQUIRED)
 # find_package(range-v3 CONFIG REQUIRED)
