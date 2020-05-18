@@ -18,6 +18,12 @@ add_executable(mobility-cpp src/main.cpp src/parquet.cpp)
 target_link_libraries(mobility-cpp PRIVATE arrow parquet TBB::tbb Boost::filesystem spdlog::spdlog CLI11::CLI11)
 target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    message("Linking to parallel stl")
+    find_package(ParallelSTL CONFIG REQUIRED)
+    target_link_libraries(mobility-cpp PRIVATE pstl::ParallelSTL)
+endif()
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

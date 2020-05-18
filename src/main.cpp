@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <execution>
 #include <string>
 
 #include "parquet.hpp"
@@ -11,9 +12,6 @@
 // #include <range/v3/action/sort.hpp>
 // #include <range/v3/range/conversion.hpp>
 #include <CLI/CLI.hpp>
-#include "pstl/execution"
-#include "pstl/algorithm"
-#include "pstl/numeric"
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
@@ -120,7 +118,7 @@ int main(int argc, char **argv)
         return lhs.location_cbg.compare(rhs.location_cbg);
     };
 
-    auto group_location = [](const data_row &lhs, const data_row &rhs) {
+    auto group_location = [](data_row &lhs, data_row &rhs) {
         return lhs.location_cbg == rhs.location_cbg;
     };
 
@@ -131,17 +129,17 @@ int main(int argc, char **argv)
     // fmt::print("I have {} groups.", transformed.size());
 
     // Now, expand everything
-    std::vector<const visit_row> output = std::transform_reduce(
-        pstl::execution::par_unseq,
+    std::vector<visit_row> output = std::transform_reduce(
+        std::execution::par_unseq,
         rows.begin(),
         rows.end(),
-        std::vector<const visit_row>(),
-        [](std::vector<const visit_row> acc, std::vector<const visit_row> v) {
+        std::vector<visit_row>(),
+        [](std::vector<visit_row> acc, std::vector<visit_row> v) {
             std::move(v.begin(), v.end(), std::back_inserter(acc));
             return acc;
         },
-        [](const data_row &row) {
-            std::vector<const visit_row> out;
+        [](data_row &row) {
+            std::vector<visit_row> out;
             out.reserve(row.visits.size());
             for (int i = 0; i < row.visits.size(); i++)
             {
