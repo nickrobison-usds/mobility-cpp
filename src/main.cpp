@@ -10,16 +10,12 @@
 #include <hpx/hpx.hpp>
 #include <hpx/parallel/execution.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
-// #include <range/v3/view/group_by.hpp>
-// #include <range/v3/view/all.hpp>
-// #include <range/v3/action/sort.hpp>
-// #include <range/v3/range/conversion.hpp>
 #include <CLI/CLI.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
 // using namespace ranges;
-using namespace hpx::parallel;
+namespace par = hpx::parallel;
 namespace fs = boost::filesystem;
 
 bool IsParenthesesOrDash(char c)
@@ -94,10 +90,12 @@ int hpx_main(hpx::program_options::variables_map &vm)
     spdlog::info("Mobilizing");
 
     // Ok. Let's try to read from disk
-    // Iterate through all the files and dump them to a vector, so we can parallel reduce them
-    const boost::regex my_filter(".*\.parquet");
+    // Iterate through all the files and do async things
+    const boost::regex my_filter(".*\\.parquet");
     const auto dir_iter = fs::directory_iterator(input_dir);
     std::vector<const boost::filesystem::directory_entry> files;
+
+    // We have to do this loop because the directory iterator doesn't seem to work correctly.
     for (const auto &p : dir_iter)
     {
         // Skip if not a file
@@ -111,24 +109,44 @@ int hpx_main(hpx::program_options::variables_map &vm)
         files.push_back(p);
     };
 
-    std::vector<const data_row> rows = transform_reduce(
-        execution::par_unseq,
-        files.begin(),
-        files.end(),
-        std::vector<const data_row>(),
-        [](std::vector<const data_row> acc, std::vector<const data_row> v) {
-            spdlog::debug("Reserving an additional {} rows.", v.size());
-            acc.reserve(acc.size() + v.size());
-            std::move(v.begin(), v.end(), std::back_inserter(acc));
-            return acc;
-        },
-        [](const auto &p) {
-            const Parquet parquet_reader(p.path().string());
+    std::vector<hpx::shared_future<std::vector<const visit_row>>> rows;
+
+    for (const auto &f : files)
+    {
+        hpx::shared_future<std::vector<const data_row>> a = hpx::async([&f]() {
+            const Parquet parquet_reader(f.path().string());
             auto table = parquet_reader.read();
             return TableToVector(table);
         });
 
-    spdlog::info("Rows of everything: {}\n", rows.size());
+        hpx::shared_future<std::vector<const visit_row>> a2 = a.then([](hpx::shared_future<std::vector<const data_row>> rf) {
+            const auto rows = rf.get();
+            std::vector<const visit_row> ret = par::transform_reduce(
+                par::execution::seq,
+                rows.begin(),
+                rows.end(),
+                std::vector<const visit_row>(),
+                [](std::vector<const visit_row> acc, std::vector<const visit_row> v) {
+                    std::move(v.begin(), v.end(), std::back_inserter(acc));
+                    return acc;
+                },
+                [](const data_row &row) {
+                    std::vector<const visit_row> out;
+                    out.reserve(row.visits.size());
+                    for (int i = 0; i < row.visits.size(); i++)
+                    {
+                        const auto visit = row.visits[i];
+                        out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance, visit * row.distance});
+                    }
+                    return out;
+                });
+            return ret;
+        });
+        rows.push_back(a2);
+    }
+
+    std::vector<hpx::shared_future<std::vector<const visit_row>>> output = hpx::when_all(rows.begin(), rows.end()).get();
+    spdlog::info("Finished parsing and expanding Parquet file");
 
     // Now, sort and group
     auto sorted = [](auto lhs, auto rhs) {
@@ -138,35 +156,6 @@ int hpx_main(hpx::program_options::variables_map &vm)
     auto group_location = [](data_row &lhs, data_row &rhs) {
         return lhs.location_cbg == rhs.location_cbg;
     };
-
-    // auto grouped = rows | views::group_by(group_location); //; // | ranges::;
-
-    // auto transformed = to_vector(grouped);
-
-    // fmt::print("I have {} groups.", transformed.size());
-
-    // Now, expand everything
-    std::vector<const visit_row> output = transform_reduce(
-        execution::par_unseq,
-        rows.begin(),
-        rows.end(),
-        std::vector<visit_row>(),
-        [](std::vector<visit_row> acc, std::vector<visit_row> v) {
-            std::move(v.begin(), v.end(), std::back_inserter(acc));
-            return acc;
-        },
-        [](data_row &row) {
-            std::vector<visit_row> out;
-            out.reserve(row.visits.size());
-            for (int i = 0; i < row.visits.size(); i++)
-            {
-                const auto visit = row.visits[i];
-                out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance, visit * row.distance});
-            }
-            return out;
-        });
-
-    spdlog::info("Expanded {} rows to {} rows.", rows.size(), output.size());
 
     // Write it to a new Parquet file
     // We want the cbg pair, the date, the total visits and the distance
@@ -178,14 +167,17 @@ int hpx_main(hpx::program_options::variables_map &vm)
     arrow::DoubleBuilder distance_builder;
     arrow::DoubleBuilder weight_builder;
 
-    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](const visit_row &row) {
-        arrow::Status status;
-        status = loc_cbg_builder.Append(row.location_cbg);
-        status = visit_cbg_builder.Append(row.visit_cbg);
-        status = visit_date_builder.Append(row.date);
-        status = visit_count_builder.Append(row.visits);
-        status = distance_builder.Append(row.distance);
-        status = weight_builder.Append(row.weighted_total);
+    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](hpx::shared_future<std::vector<const visit_row>> &rf) {
+        auto rows = rf.get();
+        std::for_each(rows.begin(), rows.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](const visit_row &row) {
+            arrow::Status status;
+            status = loc_cbg_builder.Append(row.location_cbg);
+            status = visit_cbg_builder.Append(row.visit_cbg);
+            status = visit_date_builder.Append(row.date);
+            status = visit_count_builder.Append(row.visits);
+            status = distance_builder.Append(row.distance);
+            status = weight_builder.Append(row.weighted_total);
+        });
     });
 
     arrow::Status status;
