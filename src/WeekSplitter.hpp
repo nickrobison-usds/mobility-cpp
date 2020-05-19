@@ -20,7 +20,7 @@ namespace components {
         class WeekSplitter : public hpx::components::component_base<WeekSplitter> {
 
         public:
-            explicit WeekSplitter(std::string filename);
+            explicit WeekSplitter(std::vector<std::string> filenames);
 
             std::vector<visit_row> invoke() const;
 
@@ -35,13 +35,15 @@ namespace components {
             template<typename Archive>
             void serialize(Archive &ar, unsigned int version) const;
 
+            static std::vector<visit_row> handleFile(std::string const &filename);
+
             static std::vector<data_row> tableToVector(std::shared_ptr<arrow::Table> table) ;
 
             static std::vector<int16_t> split(std::string const &str, char delim);
 
             static bool IsParenthesesOrDash(char c);
 
-            std::string const file;
+            std::vector<std::string> const files;
         };
     }
 

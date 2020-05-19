@@ -14,8 +14,28 @@
 
 namespace fs = boost::filesystem;
 
-int hpx_main(hpx::program_options::variables_map &vm)
-{
+template<typename T>
+std::vector<std::vector<T>> SplitVector(const std::vector<T> &vec, size_t n) {
+    std::vector<std::vector<T>> outVec;
+
+    size_t length = vec.size() / n;
+    size_t remain = vec.size() % n;
+
+    size_t begin = 0;
+    size_t end = 0;
+
+    for (size_t i = 0; i < std::min(n, vec.size()); ++i) {
+        end += (remain > 0) ? (length + !!(remain--)) : length;
+
+        outVec.push_back(std::vector<T>(vec.begin() + begin, vec.begin() + end));
+
+        begin = end;
+    }
+
+    return outVec;
+}
+
+int hpx_main(hpx::program_options::variables_map &vm) {
     std::string input_dir = vm["input_dir"].as<std::string>();
     std::string output_file = vm["output_file"].as<std::string>();
 
@@ -29,8 +49,7 @@ int hpx_main(hpx::program_options::variables_map &vm)
     std::vector<boost::filesystem::directory_entry> files;
 
     // We have to do this loop because the directory iterator doesn't seem to work correctly.
-    for (auto &p : dir_iter)
-    {
+    for (auto &p : dir_iter) {
         // Skip if not a file
         if (!boost::filesystem::is_regular_file(p.status()))
             continue;
@@ -42,11 +61,19 @@ int hpx_main(hpx::program_options::variables_map &vm)
         files.push_back(p);
     };
 
+    auto locals = hpx::find_all_localities();
+    auto splits = SplitVector(files, locals.size());
     std::vector<hpx::shared_future<std::vector<visit_row>>> rows;
 
-    for (const auto &f : files)
-    {
-        const auto client = hpx::new_<components::WeekSplitter>(hpx::find_here(), f.path().string());
+    for (int i = 0; i < locals.size(); i++) {
+        const auto l = locals[i];
+        const auto s = splits[i];
+        spdlog::debug("Launching on: {}", l);
+        std::vector<std::string> f;
+        std::transform(s.begin(), s.end(), std::back_inserter(f), [](const auto p) {
+            return p.path().string();
+        });
+        const auto client = hpx::new_<components::WeekSplitter>(l, f);
         rows.emplace_back(client.invoke(hpx::launch::async));
     }
 
@@ -62,18 +89,22 @@ int hpx_main(hpx::program_options::variables_map &vm)
     arrow::DoubleBuilder distance_builder;
     arrow::DoubleBuilder weight_builder;
 
-    std::for_each(output.begin(), output.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](hpx::shared_future<std::vector<visit_row>> &rf) {
-        auto rows = rf.get();
-        std::for_each(rows.begin(), rows.end(), [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](visit_row &row) {
-            arrow::Status status;
-            status = loc_cbg_builder.Append(row.location_cbg);
-            status = visit_cbg_builder.Append(row.visit_cbg);
-            status = visit_date_builder.Append(row.date);
-            status = visit_count_builder.Append(row.visits);
-            status = distance_builder.Append(row.distance);
-            status = weight_builder.Append(row.weighted_total);
-        });
-    });
+    std::for_each(output.begin(), output.end(),
+                  [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](
+                          hpx::shared_future<std::vector<visit_row>> &rf) {
+                      auto rows = rf.get();
+                      std::for_each(rows.begin(), rows.end(),
+                                    [&loc_cbg_builder, &visit_cbg_builder, &visit_date_builder, &visit_count_builder, &distance_builder, &weight_builder](
+                                            visit_row &row) {
+                                        arrow::Status status;
+                                        status = loc_cbg_builder.Append(row.location_cbg);
+                                        status = visit_cbg_builder.Append(row.visit_cbg);
+                                        status = visit_date_builder.Append(row.date);
+                                        status = visit_count_builder.Append(row.visits);
+                                        status = distance_builder.Append(row.distance);
+                                        status = weight_builder.Append(row.weighted_total);
+                                    });
+                  });
 
     arrow::Status status;
 
@@ -91,32 +122,34 @@ int hpx_main(hpx::program_options::variables_map &vm)
     status = weight_builder.Finish(&weight_array);
 
     auto schema = arrow::schema(
-        {arrow::field("location_cbg", arrow::utf8()),
-         arrow::field("visit", arrow::utf8()),
-         arrow::field("visit_date", arrow::date32()),
-         arrow::field("visit_count", arrow::int16()),
-         arrow::field("distance", arrow::float64()),
-         arrow::field("weighted_total", arrow::float64())});
+            {arrow::field("location_cbg", arrow::utf8()),
+             arrow::field("visit", arrow::utf8()),
+             arrow::field("visit_date", arrow::date32()),
+             arrow::field("visit_count", arrow::int16()),
+             arrow::field("distance", arrow::float64()),
+             arrow::field("weighted_total", arrow::float64())});
 
-    auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array, weight_array});
+    auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array,
+                                                  distance_array, weight_array});
 
     const Parquet parquet_writer(output_file);
 
     status = parquet_writer.write(*data_table);
-    if (!status.ok())
-    {
+    if (!status.ok()) {
         spdlog::critical("Unable to write file: {}", status.CodeAsString());
     }
 
     return hpx::finalize();
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     using namespace hpx::program_options;
 
     options_description desc_commandline;
-    desc_commandline.add_options()("input_dir", value<std::string>()->default_value("data"), "Input directory to parse")("output_file", value<std::string>()->default_value("./wrong.parquet"), "output file to write");
+    desc_commandline.add_options()("input_dir", value<std::string>()->default_value("data"),
+                                   "Input directory to parse")("output_file",
+                                                               value<std::string>()->default_value("./wrong.parquet"),
+                                                               "output file to write");
 
     return hpx::init(desc_commandline, argc, argv);
 }

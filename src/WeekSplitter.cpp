@@ -13,11 +13,22 @@ namespace par = hpx::parallel;
 
 namespace components {
     namespace server {
-        WeekSplitter::WeekSplitter(std::string filename) : file(std::move(filename)) {}
+        WeekSplitter::WeekSplitter(std::vector<std::string> filenames) : files(std::move(filenames)) {}
 
         std::vector<visit_row> WeekSplitter::invoke() const {
             spdlog::debug("Invoking week splitter on {}", this->get_id());
-            const auto parquet = Parquet(file);
+            return std::transform_reduce(files.begin(), files.end(), std::vector<visit_row>(), [](std::vector<visit_row> acc, std::vector<visit_row> v) {
+                acc.reserve(acc.size() + v.size());
+                std::move(v.begin(), v.end(), std::back_inserter(acc));
+                return acc;
+            }, [] (const auto f){
+                return WeekSplitter::handleFile(f);
+            });
+        }
+
+        std::vector<visit_row> WeekSplitter::handleFile(std::string const &filename) {
+            spdlog::debug("Reading file: {}", filename);
+            const auto parquet = Parquet(filename);
             const auto table = parquet.read();
             const auto rows = WeekSplitter::tableToVector(table);
 
@@ -88,7 +99,7 @@ namespace components {
 
         template<typename Archive>
         void WeekSplitter::serialize(Archive &ar, const unsigned int version) const {
-            return ar & file;
+            return ar & files;
         }
 
         bool WeekSplitter::IsParenthesesOrDash(char c) {
