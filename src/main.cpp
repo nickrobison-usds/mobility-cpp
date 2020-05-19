@@ -1,7 +1,5 @@
 
 #include <algorithm>
-#include <execution>
-#include <string>
 
 #include "parquet.hpp"
 #include "data.hpp"
@@ -100,7 +98,7 @@ int hpx_main(hpx::program_options::variables_map &vm)
          arrow::field("distance", arrow::float64()),
          arrow::field("weighted_total", arrow::float64())});
 
-    auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array});
+    auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array, distance_array, weight_array});
 
     const Parquet parquet_writer(output_file);
 
