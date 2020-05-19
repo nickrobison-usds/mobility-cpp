@@ -15,14 +15,15 @@ namespace components {
     namespace server {
         WeekSplitter::WeekSplitter(std::string filename) : file(std::move(filename)) {}
 
-        std::vector<visit_row> WeekSplitter::invoke() {
-            spdlog::debug("Invoking week splitter");
+        std::vector<visit_row> WeekSplitter::invoke() const {
+            spdlog::debug("Invoking week splitter on {}", this->get_id());
             const auto parquet = Parquet(file);
             const auto table = parquet.read();
             const auto rows = WeekSplitter::tableToVector(table);
 
+            spdlog::debug("Beginning expand {} rows to {}", rows.size(), rows.size() * 7);
             return par::transform_reduce(
-                    par::execution::seq,
+                    par::execution::par_unseq,
                     rows.begin(),
                     rows.end(),
                     std::vector<visit_row>(),
@@ -43,7 +44,7 @@ namespace components {
                     });
         }
 
-        std::vector<data_row> WeekSplitter::tableToVector(std::shared_ptr<arrow::Table> const table) const {
+        std::vector<data_row> WeekSplitter::tableToVector(std::shared_ptr<arrow::Table> const table) {
             std::vector<data_row> rows;
             rows.reserve(table->num_rows());
 
@@ -107,7 +108,7 @@ namespace components {
 
     WeekSplitter::WeekSplitter(hpx::naming::id_type &&f) : client_base(std::move(f)) {}
 
-   hpx::future<std::vector<visit_row>> WeekSplitter::invoke(hpx::launch::async_policy) {
+   hpx::future<std::vector<visit_row>> WeekSplitter::invoke(hpx::launch::async_policy) const {
         return hpx::async<server::WeekSplitter::invoke_action>(hpx::launch::async, this->get_id());
     }
 }

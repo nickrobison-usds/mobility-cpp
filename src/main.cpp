@@ -8,79 +8,13 @@
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
-#include <hpx/parallel/execution.hpp>
-#include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 #include "WeekSplitter.hpp"
 
-namespace par = hpx::parallel;
 namespace fs = boost::filesystem;
-
-bool IsParenthesesOrDash(char c)
-{
-    switch (c)
-    {
-    case '[':
-    case ']':
-    case ' ':
-    case '-':
-        return true;
-    default:
-        return false;
-    }
-}
-
-std::vector<int16_t> split(const std::string &str, char delim)
-{
-    std::vector<int16_t> strings;
-    size_t start;
-    size_t end = 0;
-    while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
-    {
-        end = str.find(delim, start);
-        auto base = str.substr(start, end - start);
-        base.erase(std::remove_if(base.begin(), base.end(), &IsParenthesesOrDash), base.end());
-        strings.push_back(std::stoi(base));
-    }
-    return strings;
-}
-
-std::vector<data_row>
-TableToVector(const std::shared_ptr<arrow::Table> &table)
-{
-    std::vector<data_row> rows;
-    rows.reserve(table->num_rows());
-
-    auto location_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(4)->chunk(0));
-    auto visit_cbg = std::static_pointer_cast<arrow::StringArray>(table->column(0)->chunk(0));
-    auto date = std::static_pointer_cast<arrow::Date32Array>(table->column(1)->chunk(0));
-    auto distance = std::static_pointer_cast<arrow::DoubleArray>(table->column(10)->chunk(0));
-    auto visits = std::static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
-
-    for (int64_t i = 0; i < table->num_rows(); i++)
-    {
-        const std::string cbg = location_cbg->GetString(i);
-        const std::string visit = visit_cbg->GetString(i);
-        const ArrowDate d2 = date->Value(i);
-        const double d = distance->Value(i);
-        const std::string visit_str = visits->GetString(i);
-        std::vector<int16_t> visits;
-        try
-        {
-            visits = split(visit_str, ',');
-        }
-        catch (const std::invalid_argument &e)
-        {
-            spdlog::critical("Problem doing conversion: {}\n{}", e.what(), visit_str);
-        }
-        rows.push_back({cbg, visit, d2, visits, d});
-    }
-
-    return rows;
-}
 
 int hpx_main(hpx::program_options::variables_map &vm)
 {
@@ -114,54 +48,15 @@ int hpx_main(hpx::program_options::variables_map &vm)
 
     for (const auto &f : files)
     {
-        hpx::shared_future<std::vector<data_row>> a = hpx::async([&f]() {
-            const Parquet parquet_reader(f.path().string());
-            auto table = parquet_reader.read();
-            return TableToVector(table);
-        });
-
-        hpx::shared_future<std::vector<visit_row>> a2 = a.then([](hpx::shared_future<std::vector<data_row>> rf) {
-            auto rows = rf.get();
-            std::vector<visit_row> ret = par::transform_reduce(
-                par::execution::seq,
-                rows.begin(),
-                rows.end(),
-                std::vector<visit_row>(),
-                [](std::vector<visit_row> acc, std::vector<visit_row> v) {
-                    acc.reserve(acc.size() + v.size());
-                    std::move(v.begin(), v.end(), std::back_inserter(acc));
-                    return acc;
-                },
-                [](data_row row) {
-                    std::vector<visit_row> out;
-                    out.reserve(row.visits.size());
-                    for (int i = 0; i < row.visits.size(); i++)
-                    {
-                        auto visit = row.visits[i];
-                        out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance, visit * row.distance});
-                    }
-                    return out;
-                });
-            return ret;
-        });
-        rows.push_back(a2);
+        const auto client = hpx::new_<components::WeekSplitter>(hpx::find_here(), f.path().string());
+        rows.emplace_back(client.invoke(hpx::launch::async));
     }
 
     std::vector<hpx::shared_future<std::vector<visit_row>>> output = hpx::when_all(rows.begin(), rows.end()).get();
     spdlog::info("Finished parsing and expanding Parquet file");
 
-    // Now, sort and group
-    auto sorted = [](auto lhs, auto rhs) {
-        return lhs.location_cbg.compare(rhs.location_cbg);
-    };
-
-    auto group_location = [](data_row &lhs, data_row &rhs) {
-        return lhs.location_cbg == rhs.location_cbg;
-    };
-
     // Write it to a new Parquet file
     // We want the cbg pair, the date, the total visits and the distance
-
     arrow::StringBuilder loc_cbg_builder;
     arrow::StringBuilder visit_cbg_builder;
     arrow::Date32Builder visit_date_builder;

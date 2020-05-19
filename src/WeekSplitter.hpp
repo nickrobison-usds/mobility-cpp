@@ -22,7 +22,7 @@ namespace components {
         public:
             explicit WeekSplitter(std::string filename);
 
-            std::vector<visit_row> invoke();
+            std::vector<visit_row> invoke() const;
 
             HPX_DEFINE_COMPONENT_ACTION(WeekSplitter, invoke);
 
@@ -35,7 +35,7 @@ namespace components {
             template<typename Archive>
             void serialize(Archive &ar, unsigned int version) const;
 
-            std::vector<data_row> tableToVector(std::shared_ptr<arrow::Table> table) const;
+            static std::vector<data_row> tableToVector(std::shared_ptr<arrow::Table> table) ;
 
             static std::vector<int16_t> split(std::string const &str, char delim);
 
@@ -52,7 +52,7 @@ namespace components {
 
         WeekSplitter(hpx::naming::id_type &&f);
 
-        hpx::future<std::vector<visit_row>> invoke(hpx::launch::async_policy);
+        hpx::future<std::vector<visit_row>> invoke(hpx::launch::async_policy) const;
     };
 }
 
