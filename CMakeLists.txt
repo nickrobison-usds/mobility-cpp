@@ -13,7 +13,7 @@ find_package(Arrow REQUIRED)
 find_package(Boost COMPONENTS filesystem regex program_options REQUIRED)
 find_package(HPX CONFIG REQUIRED)
 
-add_executable(mobility-cpp src/main.cpp src/parquet.cpp)
+add_executable(mobility-cpp src/main.cpp src/parquet.cpp src/WeekSplitter.cpp)
 target_link_libraries(mobility-cpp PRIVATE arrow parquet Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
 target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 

@@ -126,6 +126,7 @@ int hpx_main(hpx::program_options::variables_map &vm)
                 rows.end(),
                 std::vector<visit_row>(),
                 [](std::vector<visit_row> acc, std::vector<visit_row> v) {
+                    acc.reserve(acc.size() + v.size());
                     std::move(v.begin(), v.end(), std::back_inserter(acc));
                     return acc;
                 },
