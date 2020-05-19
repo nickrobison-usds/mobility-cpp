@@ -4,6 +4,7 @@
 #include <string>
 
 #include "parquet.hpp"
+#include "data.hpp"
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
@@ -13,6 +14,7 @@
 #include <boost/regex.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
+#include "WeekSplitter.hpp"
 
 namespace par = hpx::parallel;
 namespace fs = boost::filesystem;
