@@ -17,13 +17,18 @@ namespace components {
 
         std::vector<visit_row> WeekSplitter::invoke() const {
             spdlog::debug("Invoking week splitter on {}", this->get_id());
-            return std::transform_reduce(files.begin(), files.end(), std::vector<visit_row>(), [](std::vector<visit_row> acc, std::vector<visit_row> v) {
-                acc.reserve(acc.size() + v.size());
-                std::move(v.begin(), v.end(), std::back_inserter(acc));
-                return acc;
-            }, [] (const auto f){
-                return WeekSplitter::handleFile(f);
-            });
+            return par::transform_reduce(
+                    par::execution::seq,
+                    files.begin(),
+                    files.end(),
+                    std::vector<visit_row>(),
+                    [](std::vector<visit_row> acc, std::vector<visit_row> v) {
+                        acc.reserve(acc.size() + v.size());
+                        std::move(v.begin(), v.end(), std::back_inserter(acc));
+                        return acc;
+                    }, [](const auto f) {
+                        return WeekSplitter::handleFile(f);
+                    });
         }
 
         std::vector<visit_row> WeekSplitter::handleFile(std::string const &filename) {
@@ -46,10 +51,10 @@ namespace components {
                     [](data_row row) {
                         std::vector<visit_row> out;
                         out.reserve(row.visits.size());
-                        for (int i = 0; i < row.visits.size(); i++)
-                        {
+                        for (int i = 0; i < row.visits.size(); i++) {
                             auto visit = row.visits[i];
-                            out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance, visit * row.distance});
+                            out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance,
+                                           visit * row.distance});
                         }
                         return out;
                     });
@@ -119,7 +124,7 @@ namespace components {
 
     WeekSplitter::WeekSplitter(hpx::naming::id_type &&f) : client_base(std::move(f)) {}
 
-   hpx::future<std::vector<visit_row>> WeekSplitter::invoke(hpx::launch::async_policy) const {
+    hpx::future<std::vector<visit_row>> WeekSplitter::invoke(hpx::launch::async_policy) const {
         return hpx::async<server::WeekSplitter::invoke_action>(hpx::launch::async, this->get_id());
     }
 }
