@@ -1,0 +1,21 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  packages:
+    all:
+      compiler: [gcc]
+      version: []
+      target: []
+      buildable: true
+      modules: {}
+      providers: {}
+      paths: {}
+  specs:
+    - cmake
+    - boost cxxstd=17
+    - arrow+parquet
+    - hpx@master
+  view: true
+  concretization: together
