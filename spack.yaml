@@ -6,7 +6,7 @@ spack:
   packages:
     all:
       compiler: [gcc]
-      version: []
+      version: [9]
       target: []
       buildable: true
       modules: {}

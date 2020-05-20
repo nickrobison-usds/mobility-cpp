@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_WEEKSPLITTER_HPP
 
 // This needs to come before the hpx includes, in order for the serialization to work.
-#include "parquet.hpp"
+#include "../io/parquet.hpp"
 #include "data.hpp"
 
 #include <hpx/hpx.hpp>
@@ -15,14 +15,16 @@
 #include <hpx/include/components.hpp>
 #include <hpx/include/serialization.hpp>
 
+using namespace std;
+
 namespace components {
     namespace server {
         class WeekSplitter : public hpx::components::component_base<WeekSplitter> {
 
         public:
-            explicit WeekSplitter(std::vector<std::string> filenames);
+            explicit WeekSplitter(vector<string> filenames);
 
-            std::vector<visit_row> invoke() const;
+            vector<visit_row> invoke() const;
 
             HPX_DEFINE_COMPONENT_ACTION(WeekSplitter, invoke);
 
@@ -35,26 +37,33 @@ namespace components {
             template<typename Archive>
             void serialize(Archive &ar, unsigned int version) const;
 
-            static std::vector<visit_row> handleFile(std::string const &filename);
+            static vector<visit_row> handleFile(string const &filename);
 
-            static std::vector<data_row> tableToVector(std::shared_ptr<arrow::Table> table) ;
+            static vector<data_row> tableToVector(shared_ptr<arrow::Table> table);
 
-            static std::vector<int16_t> split(std::string const &str, char delim);
+            static vector<int16_t> split(string const &str, char delim);
 
             static bool IsParenthesesOrDash(char c);
 
-            std::vector<std::string> const files;
+            vector<string> const files;
         };
     }
 
     class WeekSplitter : public hpx::components::client_base<WeekSplitter, server::WeekSplitter> {
 
     public:
-        WeekSplitter(hpx::future<hpx::naming::id_type> &&f);
+        WeekSplitter(hpx::future<hpx::naming::id_type> &&f, string basename);
 
-        WeekSplitter(hpx::naming::id_type &&f);
+        WeekSplitter(hpx::naming::id_type &&f, string basename);
 
-        hpx::future<std::vector<visit_row>> invoke(hpx::launch::async_policy) const;
+        WeekSplitter(vector<string> filenames, string basename);
+
+        ~WeekSplitter();
+
+        [[nodiscard]] hpx::future<vector<visit_row>> invoke() const;
+
+    private:
+        const string _basename;
     };
 }
 

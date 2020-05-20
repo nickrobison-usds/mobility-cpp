@@ -3,20 +3,20 @@ project(mobility-cpp VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include(CTest)
-enable_testing()
+set(DEBUG_FLAGS, "-O0 -g -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -Wall -Werror -Wpendantic")
+# Disable GTest dependency, since we use Catch
+set(BENCHMARK_ENABLE_TESTING OFF)
 
 add_subdirectory(extern/spdlog)
+add_subdirectory(extern/catch2)
+add_subdirectory(extern/benchmark)
 
-find_package(Arrow REQUIRED)
-# find_package(range-v3 CONFIG REQUIRED)
-find_package(Boost COMPONENTS filesystem regex program_options REQUIRED)
-find_package(HPX CONFIG REQUIRED)
-
-add_executable(mobility-cpp src/main.cpp src/parquet.cpp src/WeekSplitter.cpp)
-target_link_libraries(mobility-cpp PRIVATE arrow parquet Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
-target_compile_options(mobility-cpp PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
+add_subdirectory(benchmarks)
+add_subdirectory(tests)
+add_subdirectory(locales)
+add_subdirectory(src)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
