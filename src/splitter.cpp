@@ -1,7 +1,7 @@
 
 #include <algorithm>
 
-#include "io/parquet.hpp"
+#include "io/include/io/parquet.hpp"
 #include "components/data.hpp"
 #include "components/WeekSplitter.hpp"
 

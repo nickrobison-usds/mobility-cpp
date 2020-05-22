@@ -1,24 +1,27 @@
 
-#include "parquet.hpp"
+#include "io/parquet.hpp"
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
 #include <parquet/exception.h>
-#include "spdlog/spdlog.h"
 
-Parquet::Parquet(const std::string &filename) : _filename{filename}
+#include <utility>
+#include "spdlog/spdlog.h"
+using namespace std;
+
+Parquet::Parquet(string filename) : _filename{move(filename)}
 {
 }
 
-std::shared_ptr<arrow::Table> Parquet::read() const
+shared_ptr<arrow::Table> Parquet::read() const
 {
     spdlog::info("Reading {}", this->_filename);
-    std::shared_ptr<arrow::io::ReadableFile> infile;
+    shared_ptr<arrow::io::ReadableFile> infile;
     PARQUET_ASSIGN_OR_THROW(infile, arrow::io::ReadableFile::Open(this->_filename, arrow::default_memory_pool()));
 
-    std::unique_ptr<parquet::arrow::FileReader> reader;
+    unique_ptr<parquet::arrow::FileReader> reader;
     PARQUET_THROW_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
 
-    std::shared_ptr<arrow::Table> table;
+    shared_ptr<arrow::Table> table;
     PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
     spdlog::debug("Loaded {} columns and {} rows.", table->num_columns(), table->num_rows());
 
@@ -32,7 +35,7 @@ std::shared_ptr<arrow::Table> Parquet::read() const
 
 arrow::Status Parquet::write(const arrow::Table &table) const
 {
-    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    shared_ptr<arrow::io::FileOutputStream> outfile;
     PARQUET_ASSIGN_OR_THROW(
         outfile,
         arrow::io::FileOutputStream::Open(this->_filename));

@@ -8,17 +8,17 @@
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/fmt/fmt.h"
 
-
+using namespace std;
 
 class Parquet
 {
 public:
-    Parquet(const std::string &filename);
-    std::shared_ptr<arrow::Table> read() const;
+    explicit Parquet(string filename);
+    [[nodiscard]] shared_ptr<arrow::Table> read() const;
     arrow::Status write(const arrow::Table &table) const;
 
 private:
-    const std::string _filename;
+    const string _filename;
 };
 
 #endif
