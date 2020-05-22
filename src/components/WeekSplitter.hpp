@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_WEEKSPLITTER_HPP
 
 // This needs to come before the hpx includes, in order for the serialization to work.
-#include "../io/include/io/parquet.hpp"
+#include "io/parquet.hpp"
 #include "data.hpp"
 
 #include <hpx/hpx.hpp>

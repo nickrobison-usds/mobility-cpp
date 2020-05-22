@@ -10,15 +10,18 @@
 
 using namespace std;
 
-class Parquet
-{
-public:
-    explicit Parquet(string filename);
-    [[nodiscard]] shared_ptr<arrow::Table> read() const;
-    arrow::Status write(const arrow::Table &table) const;
+namespace io {
+    class Parquet {
+    public:
+        explicit Parquet(string filename);
 
-private:
-    const string _filename;
-};
+        [[nodiscard]] shared_ptr<arrow::Table> read() const;
+
+        arrow::Status write(const arrow::Table &table) const;
+
+    private:
+        const string _filename;
+    };
+}
 
 #endif

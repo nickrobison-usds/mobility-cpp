@@ -33,7 +33,7 @@ namespace components {
 
         vector<visit_row> WeekSplitter::handleFile(string const &filename) {
             spdlog::debug("Reading file: {}", filename);
-            const auto parquet = Parquet(filename);
+            const auto parquet = io::Parquet(filename);
             const auto table = parquet.read();
             const auto rows = WeekSplitter::tableToVector(table);
 

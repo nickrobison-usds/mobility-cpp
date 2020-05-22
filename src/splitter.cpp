@@ -1,7 +1,7 @@
 
 #include <algorithm>
 
-#include "io/include/io/parquet.hpp"
+#include "io/parquet.hpp"
 #include "components/data.hpp"
 #include "components/WeekSplitter.hpp"
 
@@ -97,7 +97,7 @@ void gather_here(const string &output_file, hpx::future<vector<visit_row>> &resu
     auto data_table = arrow::Table::Make(schema, {loc_cbg_array, visit_cbg_array, visit_date_array, visit_count_array,
                                                   distance_array, weight_array});
 
-    const Parquet parquet_writer(output_file);
+    const io::Parquet parquet_writer(output_file);
 
     status = parquet_writer.write(*data_table);
     if (!status.ok()) {
