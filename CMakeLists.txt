@@ -8,6 +8,8 @@ set(DEBUG_FLAGS, "-O0 -g -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -W
 # Disable GTest dependency, since we use Catch
 set(BENCHMARK_ENABLE_TESTING OFF)
 
+enable_testing()
+
 add_subdirectory(extern/spdlog)
 add_subdirectory(extern/catch2)
 add_subdirectory(extern/benchmark)
