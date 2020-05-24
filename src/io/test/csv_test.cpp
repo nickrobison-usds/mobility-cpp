@@ -16,12 +16,43 @@ struct address {
 };
 
 TEST_CASE("Loads CSV", "[csv]") {
-    io::CSVLoader<2> loader("data/addresses.csv");
+    io::CSVLoader<6, false> loader("data/addresses.csv");
 
     string fn;
     string ln;
+    string add;
+    string ct;
+    string st;
+    int zp;
 
-    const auto v = loader.read<address>([](const string& first_name, const string& last_name) {
-        return address{};
-    }, fn, ln);
+    const auto v = loader.read<address>([](const string& first_name, const string& last_name, const string& address, const string& city, const string& state, const int zip) {
+        struct address a = {first_name, last_name, address, city, state, zip};
+        return a;
+    }, fn, ln, add, ct, st, zp);
+
+    REQUIRE(v.size() == 5);
+    REQUIRE(v.at(0).first_name == "John");
+    REQUIRE(v.at(4).first_name.empty());
+
+}
+
+TEST_CASE("Skips CSV header", "[csv]") {
+    io::CSVLoader<6, true> loader("data/addresses_header.csv");
+
+    string fn;
+    string ln;
+    string add;
+    string ct;
+    string st;
+    int zp;
+
+    const auto v = loader.read<address>([](const string& first_name, const string& last_name, const string& address, const string& city, const string& state, const int zip) {
+        struct address a = {first_name, last_name, address, city, state, zip};
+        return a;
+    }, fn, ln, add, ct, st, zp);
+
+    REQUIRE(v.size() == 5);
+    REQUIRE(v.at(0).first_name == "John");
+    REQUIRE(v.at(4).first_name.empty());
+
 }

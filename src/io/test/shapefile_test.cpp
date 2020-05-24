@@ -17,9 +17,9 @@ struct poly {
 };
 
 TEST_CASE("Loads Shapefile", "[shapefile]") {
-    io::Shapefile s("test/data/poly.shp");
+    io::Shapefile s("data/poly.shp");
     const auto v = s.read<poly>([](const OGRFeatureUniquePtr &s) {
-        const poly p = {
+        poly p = {
             s->GetFieldAsDouble("AREA"),
             s->GetFieldAsInteger64("EAS_ID"),
             s->GetFieldAsString("PRFEDEA")

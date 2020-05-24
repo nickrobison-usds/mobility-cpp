@@ -8,4 +8,4 @@ target_include_directories(io PUBLIC
 
 add_executable(testio test/shapefile_test.cpp test/csv_test.cpp)
 target_link_libraries(testio Catch2::Catch2 io)
-add_test(testio testio WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/io)
+add_test(testio testio WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/io/test)

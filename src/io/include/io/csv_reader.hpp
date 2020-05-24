@@ -14,7 +14,7 @@
 using namespace std;
 
 namespace io {
-    template<unsigned int column_count>
+    template<unsigned int column_count, bool skip_header>
     class CSVLoader {
     public:
         explicit CSVLoader(string filename) : _file(move(filename)) {
@@ -24,6 +24,8 @@ namespace io {
         template<typename T, class Converter, typename ...Params>
         vector<T> read(Converter converter, Params &&... params) {
             CSVReader<column_count> reader(_file);
+            if constexpr (skip_header)
+                reader.next_line();
             vector<T> out;
             while (reader.read_row(forward<Params>(params)...)) {
                 out.push_back(converter(params...));
