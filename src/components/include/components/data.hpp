@@ -67,4 +67,8 @@ struct visit_row {
     }
 };
 
+struct census_cbg {
+
+};
+
 #endif //MOBILITY_CPP_DATA_HPP

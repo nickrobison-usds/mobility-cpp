@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_LOCATIONJOINER_HPP
 #define MOBILITY_CPP_LOCATIONJOINER_HPP
 
-#include "server/LocationJoinerServer.hpp"
+#include "../../server/LocationJoinerServer.hpp"
 #include <hpx/hpx.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
@@ -19,13 +19,11 @@ namespace components {
             : public hpx::components::client_base<LocationJoiner, components::server::LocationJoinerServer> {
 
     public:
-        explicit LocationJoiner(hpx::future<hpx::id_type> &&f);
+        LocationJoiner(hpx::future<hpx::id_type> &&f) : client_base(std::move(f)) {};
 
-        explicit LocationJoiner(hpx::id_type &&f);
+        LocationJoiner(hpx::id_type &&f) : client_base(std::move(f)) {};
 
-        explicit LocationJoiner();
-
-        hpx::future<void> invoke() const;
+        [[nodiscard]] hpx::future<void> invoke() const;
     };
 }
 

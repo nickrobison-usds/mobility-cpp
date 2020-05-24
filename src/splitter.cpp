@@ -4,11 +4,11 @@
 #include "io/parquet.hpp"
 #include "components/data.hpp"
 #include "components/WeekSplitter.hpp"
+#include "utils.hpp"
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
@@ -19,27 +19,6 @@ const char *scatter_basename = "/mobility/weekly/scatter/";
 const char *gather_basename = "/mobility/weekly/gather/";
 
 HPX_REGISTER_GATHER(vector<visit_row>, visit_gatherer);
-
-template<typename T>
-vector<vector<T>> SplitVector(const vector<T> &vec, size_t n) {
-    vector<vector<T>> outVec;
-
-    size_t length = vec.size() / n;
-    size_t remain = vec.size() % n;
-
-    size_t begin = 0;
-    size_t end = 0;
-
-    for (size_t i = 0; i < min(n, vec.size()); ++i) {
-        end += (remain > 0) ? (length + !!(remain--)) : length;
-
-        outVec.push_back(vector<T>(vec.begin() + begin, vec.begin() + end));
-
-        begin = end;
-    }
-
-    return outVec;
-}
 
 void gather_here(const string &output_file, hpx::future<vector<visit_row>> &result, const int nl) {
     hpx::future<vector<vector<visit_row>>> overall_result = hpx::lcos::gather_here(gather_basename, move(result), nl);
@@ -105,28 +84,6 @@ void gather_here(const string &output_file, hpx::future<vector<visit_row>> &resu
     }
 }
 
-vector<vector<boost::filesystem::directory_entry>> partition_files(string const &input_dir, int nl) {
-    // Iterate through all the files and do async things
-    const boost::regex my_filter(".*\\.parquet");
-    const auto dir_iter = fs::directory_iterator(input_dir);
-    vector<boost::filesystem::directory_entry> files;
-
-    // We have to do this loop because the directory iterator doesn't seem to work correctly.
-    for (auto &p : dir_iter) {
-        // Skip if not a file
-        if (!boost::filesystem::is_regular_file(p.status()))
-            continue;
-
-        boost::smatch what;
-        if (!boost::regex_match(p.path().filename().string(), what, my_filter))
-            continue;
-
-        files.push_back(p);
-    };
-
-    return SplitVector(files, nl);
-}
-
 int hpx_main(hpx::program_options::variables_map &vm) {
     string input_dir = vm["input_dir"].as<string>();
     string output_file = vm["output_file"].as<string>();
@@ -137,7 +94,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Ok. Let's try to read from disk
     auto locales = hpx::find_all_localities();
     const auto locale_id = hpx::get_locality_id();
-    const auto partitioned = partition_files(input_dir, locales.size());
+    const auto partitioned = partition_files(input_dir, locales.size(), ".*\\.parquet");
     spdlog::debug("Running on locale {} of {}.", locale_id, locales.size());
 
     // Create a component on each locale to handle the given file list.
