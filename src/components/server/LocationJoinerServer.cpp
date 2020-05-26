@@ -4,16 +4,15 @@
 #include "LocationJoinerServer.hpp"
 #include <io/csv_reader.hpp>
 #include <hpx/parallel/executors.hpp>
+#include <hpx/parallel/algorithms/transform.hpp>
 
 #include "spdlog/spdlog.h"
 
-namespace components::server {
-    void LocationJoinerServer::invoke() const {
+namespace par = hpx::parallel;
 
-        // We have to open this on the main thread, because I can't figure out how to pass pointers through futures.
-        io::Shapefile s(_shapefile);
-        GDALDatasetUniquePtr p = s.openFile();
-        const auto layer = p->GetLayer(0);
+namespace components::server {
+
+    std::vector<safegraph_location> LocationJoinerServer::invoke() const {
 
         std::shared_ptr<GDALDataset> d;
 //         Read the shapefile and one of the CSV files.
@@ -72,7 +71,14 @@ namespace components::server {
 
         spdlog::debug("Finishing reading files with {} locations", output.size());
 
-        std::transform(output.begin(), output.end(), output.begin(), [&layer](safegraph_location &loc) {
+        std::string file_capture = _shapefile;
+
+        par::transform(par::execution::par_unseq, output.begin(), output.end(), output.begin(), [&file_capture](safegraph_location &loc) {
+            // GDAL Features don't support multi-threaded queries, so we open the dataset on each thread, to work around this.
+            // A future improvement should be to cache this in the thread itself.
+            io::Shapefile s(file_capture);
+            GDALDatasetUniquePtr p = s.openFile();
+            const auto layer = p->GetLayer(0);
             // Set a new filter on the shapefile layer
             layer->SetSpatialFilter(&loc.location);
             // Find the cbg that intersects (which should be the first one)
@@ -83,7 +89,7 @@ namespace components::server {
             return loc;
         });
 
-        output.size();
+        return output;
 
 //        std::vector<safegraph_location> g = LocationJoinerServer::read_csv(string("hello")).wait();
 //        g.size();

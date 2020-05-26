@@ -22,7 +22,7 @@ namespace components::server {
 
         LocationJoinerServer(std::vector<std::string> csv_files, std::string shapefile) : _csv_file(std::move(csv_files)), _shapefile(std::move(shapefile)) {};
 
-        void invoke() const;
+        std::vector<safegraph_location> invoke() const;
 
         HPX_DEFINE_COMPONENT_ACTION(LocationJoinerServer, invoke);
 

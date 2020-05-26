@@ -23,7 +23,7 @@ namespace components {
 
         LocationJoiner(hpx::id_type &&f) : client_base(std::move(f)) {};
 
-        [[nodiscard]] hpx::future<void> invoke() const;
+        [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke() const;
     };
 }
 

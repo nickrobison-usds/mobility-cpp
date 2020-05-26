@@ -6,7 +6,7 @@
 
 namespace components {
 
-    hpx::future<void> LocationJoiner::invoke() const {
+    hpx::future<std::vector<safegraph_location>> LocationJoiner::invoke() const {
         return hpx::async<server::LocationJoinerServer::invoke_action>(get_id());
     }
 }

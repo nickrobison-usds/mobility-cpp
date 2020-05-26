@@ -94,6 +94,29 @@ struct safegraph_location {
 //    string phone_number;
 //    string open_hours;
 //    string category_tags;
+
+    // Serialization support: even if all of the code below runs on one
+    // locality only, we need to provide an (empty) implementation for the
+    // serialization as all arguments passed to actions have to support this.
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) const {
+        std::string location_wkt;
+        auto wkt_char = location_wkt.data();
+        location.exportToWkt(&wkt_char);
+        location_wkt.length();
+//        ar & safegraph_place_id
+//        & parent_safegraph_place_id
+//        & location_name
+//        & safegraph_brand_ids
+//        & brands
+//        & top_category
+//        & sub_category
+//        & naics_code
+//        & location_wkt
+//        & cbg;
+    }
 };
 
 #endif //MOBILITY_CPP_DATA_HPP

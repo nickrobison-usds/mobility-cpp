@@ -24,7 +24,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    vector<hpx::future<void>> results;
+    vector<hpx::future<vector<safegraph_location>>> results;
     results.reserve(locales.size());
 
     const auto files = partition_files(input_dir, locales.size(), ".*\\.csv");
@@ -37,6 +37,9 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         const auto l = hpx::new_<components::LocationJoiner>(node, f, shapefile);
         results.push_back(l.invoke());
     }
+
+    const auto r2 = hpx::when_all(results).get();
+
     return hpx::finalize();
 }
 
