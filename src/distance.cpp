@@ -2,14 +2,11 @@
 // Created by Nicholas Robison on 5/26/20.
 //
 
-#include <string>
 #include <algorithm>
 #include <io/parquet.hpp>
 #include <io/shapefile.hpp>
 #include <hpx/hpx_init.hpp>
-#include <hpx/hpx.hpp>
 #include <hpx/parallel/executors.hpp>
-#include <hpx/parallel/algorithms/for_each.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include "utils.hpp"
 #include "spdlog/spdlog.h"
