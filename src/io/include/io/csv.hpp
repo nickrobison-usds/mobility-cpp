@@ -880,8 +880,10 @@ namespace io{
                     sorted_col[i] = col_begin;
                 }
             }
-            if(line != nullptr)
-                throw ::io::error::too_many_columns();
+            // nickrobison: Disabling this otherwise it's not possible to do a partial read of a csv.
+            // Not sure why we're still using this class.
+//            if(line != nullptr)
+//                throw ::io::error::too_many_columns();
         }
 
         template<unsigned column_count, class trim_policy, class quote_policy>

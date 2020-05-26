@@ -23,7 +23,7 @@ namespace io {
 
         template<typename T, class Converter, typename ...Params>
         vector<T> read(Converter converter, Params &&... params) {
-            CSVReader<column_count> reader(_file);
+            CSVReader<column_count, trim_chars<' ', '\t'>, double_quote_escape<',', '"'>> reader(_file);
             if constexpr (skip_header)
                 reader.next_line();
             vector<T> out;

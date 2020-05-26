@@ -2,6 +2,7 @@
 // Created by Nicholas Robison on 5/24/20.
 //
 
+#include <algorithm>
 #include "components/data.hpp"
 #include "components/LocationJoiner.hpp"
 #include <hpx/hpx_init.hpp>
@@ -15,6 +16,7 @@ using namespace std;
 int hpx_main(hpx::program_options::variables_map &vm) {
     string input_dir = vm["input_dir"].as<string>();
     string output_file = vm["output_file"].as<string>();
+    string shapefile = vm["shapefile"].as<string>();
 
     spdlog::set_level(spdlog::level::debug);
     spdlog::info("Initializing Location Joiner");
@@ -25,8 +27,14 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     vector<hpx::future<void>> results;
     results.reserve(locales.size());
 
+    const auto files = partition_files(input_dir, locales.size(), ".*\\.csv");
+    vector<string> f;
+    std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
+        return file.path().string();
+    });
+
     for (const auto &node : locales) {
-        const auto l = hpx::new_<components::LocationJoiner>(node, vector<string>(), string(""));
+        const auto l = hpx::new_<components::LocationJoiner>(node, f, shapefile);
         results.push_back(l.invoke());
     }
     return hpx::finalize();
@@ -39,5 +47,7 @@ int main(int argc, char **argv) {
     desc_commandline.add_options()("input_dir", value<string>()->default_value("data"),
                                    "Input directory to parse")("output_file",
                                                                value<string>()->default_value("./wrong.parquet"),
-                                                               "output file to write");
+                                                               "output file to write")("shapefile", value<string>(),"Input Census shapefile");
+
+    return hpx::init(desc_commandline, argc, argv);
 }

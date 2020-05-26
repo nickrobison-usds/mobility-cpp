@@ -22,8 +22,7 @@ namespace io {
     }
 
     GDALDatasetUniquePtr Shapefile::openFile() {
-        GDALDatasetUniquePtr ds((GDALDataset *) GDALOpenEx(_file.c_str(), GDAL_OF_VECTOR, nullptr, nullptr,
-                                                           nullptr));
+        GDALDatasetUniquePtr ds((GDALDataset *) GDALOpenEx(_file.c_str(), GDAL_OF_VECTOR, nullptr, nullptr,                 nullptr));
         return ds;
     }
 }

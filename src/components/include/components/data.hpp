@@ -9,17 +9,20 @@
 #include <arrow/api.h>
 #include <hpx/include/serialization.hpp>
 #include <utility>
+#include "ogr_geometry.h"
 
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/fmt/fmt.h"
 
+using namespace std;
+
 using ArrowDate = arrow::Date32Type::c_type;
 
 struct data_row {
-    const std::string location_cbg;
-    const std::string visit_cbg;
+    const string location_cbg;
+    const string visit_cbg;
     const ArrowDate date;
-    std::vector<int16_t> visits;
+    vector<int16_t> visits;
     const double distance;
 
     template<typename OStream>
@@ -31,15 +34,15 @@ struct data_row {
 };
 
 struct visit_row {
-    std::string location_cbg;
-    std::string visit_cbg;
+    string location_cbg;
+    string visit_cbg;
     ArrowDate date;
     int16_t visits;
     double distance;
     double weighted_total;
 
-//    visit_row(std::string locationCbg, const std::string &visitCbg, const ArrowDate date, const int16_t visits,
-//              const double distance, const double weightedTotal) : location_cbg(std::move(locationCbg)),
+//    visit_row(string locationCbg, const string &visitCbg, const ArrowDate date, const int16_t visits,
+//              const double distance, const double weightedTotal) : location_cbg(move(locationCbg)),
 //                                                                   visit_cbg(visitCbg),
 //                                                                   date(date), visits(visits), distance(distance) {};
 //
@@ -56,7 +59,6 @@ struct visit_row {
     }
 
     friend void swap(visit_row &first, visit_row& second) {
-        using std::swap;
 
         swap(first.location_cbg, second.location_cbg);
         swap(first.visit_cbg, second.visit_cbg);
@@ -69,6 +71,29 @@ struct visit_row {
 
 struct census_cbg {
 
+};
+
+struct safegraph_location {
+    string safegraph_place_id;
+    string parent_safegraph_place_id;
+    string location_name;
+    string safegraph_brand_ids;
+    string brands;
+    string top_category;
+    string sub_category;
+    string naics_code;
+    OGRPoint location;
+    string cbg;
+//    double latitude;
+//    double longitude;
+//    string street_address;
+//    string city;
+//    string region;
+//    uint32_t postal_code;
+//    string iso_country_code;
+//    string phone_number;
+//    string open_hours;
+//    string category_tags;
 };
 
 #endif //MOBILITY_CPP_DATA_HPP

@@ -15,6 +15,8 @@ namespace io {
     public:
         explicit Shapefile(string filename);
 
+        GDALDatasetUniquePtr openFile();
+
 
         template<class T, class Converter>
         vector<T> read(Converter converter) {
@@ -35,7 +37,6 @@ namespace io {
         }
 
     private:
-        GDALDatasetUniquePtr openFile();
         const string _file;
     };
 }
