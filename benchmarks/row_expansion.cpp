@@ -81,7 +81,7 @@ static void BM_ExpandAndCompute(benchmark::State &state) {
     }
 }
 
-BENCHMARK(BM_ExpandAndCompute)->DenseRange(100, 10000, 500);
+BENCHMARK(BM_ExpandAndCompute)->DenseRange(1000, 100000, 1000);
 
 static void BM_ExpandThenCompute(benchmark::State &state) {
     for (auto _ : state) {
@@ -109,4 +109,4 @@ static void BM_ExpandThenCompute(benchmark::State &state) {
     }
 };
 
-BENCHMARK(BM_ExpandThenCompute)->DenseRange(100, 10000, 500);
+BENCHMARK(BM_ExpandThenCompute)->DenseRange(1000, 100000, 1000);
