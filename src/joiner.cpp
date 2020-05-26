@@ -28,7 +28,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     vector<hpx::future<vector<safegraph_location>>> results;
     results.reserve(locales.size());
 
-    const auto files = partition_files(input_dir, locales.size(), ".*\\.csv");
+    const auto files = partition_files(input_dir, locales.size(), "core_poi.*\\");
     vector<string> f;
     std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
         return file.path().string();

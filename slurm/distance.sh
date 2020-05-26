@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 36
-#SBATCH -J splitter
+#SBATCH -J distance
 #SBATCH --mem=300g
 #SBATCH -t 12:00:00
 #SBATCH -o ./%j-distance-output.txt
