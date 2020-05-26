@@ -14,3 +14,8 @@ add_executable(joiner joiner.cpp utils.hpp LocationJoinWriter.cpp LocationJoinWr
 target_link_libraries(joiner PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
 target_compile_options(joiner PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(joiner PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
+
+add_executable(distance distance.cpp)
+target_link_libraries(distance PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
+target_compile_options(distance PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(distance PRIVATE "$<$<CONFIG:RELEASE>:-O3>")

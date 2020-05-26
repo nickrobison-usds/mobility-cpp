@@ -17,7 +17,7 @@ spack:
     - boost cxxstd=17
     - arrow+parquet
     - hpx@master
-    - geos
-    - gdal
+    - geos@3.6.2
+    - gdal+geos
   view: true
   concretization: together
