@@ -10,7 +10,7 @@ target_link_libraries(splitter PRIVATE io components Boost::filesystem Boost::re
 target_compile_options(splitter PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(splitter PRIVATE "$<$<CONFIG:RELEASE>:-O3>")
 
-add_executable(joiner joiner.cpp utils.hpp)
+add_executable(joiner joiner.cpp utils.hpp LocationJoinWriter.cpp LocationJoinWriter.hpp)
 target_link_libraries(joiner PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
 target_compile_options(joiner PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(joiner PRIVATE "$<$<CONFIG:RELEASE>:-O3>")

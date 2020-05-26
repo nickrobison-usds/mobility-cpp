@@ -10,6 +10,7 @@
 #include "utils.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
+#include "LocationJoinWriter.hpp"
 
 using namespace std;
 
@@ -38,7 +39,13 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         results.push_back(l.invoke());
     }
 
-    const auto r2 = hpx::when_all(results).get();
+    const LocationJoinWriter writer(output_file);
+
+    const auto r2 = hpx::when_each([&writer](hpx::future<vector<safegraph_location>> f) {
+        const auto v = f.get();
+        spdlog::debug("I have {} elements", v.size());
+        writer.write(v);
+    }, results);
 
     return hpx::finalize();
 }

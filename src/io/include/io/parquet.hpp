@@ -17,7 +17,7 @@ namespace io {
 
         [[nodiscard]] shared_ptr<arrow::Table> read() const;
 
-        arrow::Status write(const arrow::Table &table) const;
+        arrow::Status write(const arrow::Table &table, bool append = false) const;
 
     private:
         const string _filename;

@@ -34,11 +34,11 @@ namespace io {
         return table;
     }
 
-    arrow::Status Parquet::write(const arrow::Table &table) const {
+    arrow::Status Parquet::write(const arrow::Table &table, bool append) const {
         shared_ptr<arrow::io::FileOutputStream> outfile;
         PARQUET_ASSIGN_OR_THROW(
                 outfile,
-                arrow::io::FileOutputStream::Open(this->_filename));
+                arrow::io::FileOutputStream::Open(this->_filename, append));
         // The last argument to the function call is the size of the RowGroup in
         // the parquet file. Normally you would choose this to be rather large but
         // for the example, we use a small value to have multiple RowGroups.
