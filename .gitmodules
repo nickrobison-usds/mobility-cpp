@@ -10,3 +10,6 @@
 [submodule "extern/blaze"]
 	path = extern/blaze
 	url = ../../../bitbucket.org/blaze-lib/blaze.git
+[submodule "extern/abseil"]
+	path = extern/abseil
+	url = ../../abseil/abseil-cpp.git
