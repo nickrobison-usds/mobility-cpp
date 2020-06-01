@@ -118,5 +118,19 @@ struct safegraph_location {
 //        & cbg;
     }
 };
+// Add some custom serializers
+namespace hpx::serialization {
+    template <typename Archive>
+    void serialize(Archive& ar, ArrowDate& date, unsigned int const)
+    {
+        ar & date;
+    }
+
+    // explicit instantiation for the correct archive types
+    template HPX_COMPONENT_EXPORT void
+    serialize(input_archive&, ArrowDate&, unsigned int const);
+    template HPX_COMPONENT_EXPORT void
+    serialize(output_archive&, ArrowDate&, unsigned int const);
+}
 
 #endif //MOBILITY_CPP_DATA_HPP

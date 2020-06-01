@@ -29,6 +29,7 @@ namespace components::server {
         string naics_code;
         double latitude;
         double longitude;
+
 //        string street_address;
 //        string city;
 //        string region;
