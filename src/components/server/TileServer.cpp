@@ -37,14 +37,13 @@ namespace components::server {
         // Read the CSV and filter out any that don't fit in
         const auto rows = extract_rows(filename);
 
-        // iterate through each of the rows, figure out it's CBG and expand it.
+        // iterate through each of the rows, figure out its CBG and expand it.
 
     }
 
     std::vector<sl2> TileServer::extract_rows(const string &filename) const {
 
         // Get date from filename
-
         spdlog::debug("Reading {}", filename);
         io::CSVLoader<10, true> l(filename);
 

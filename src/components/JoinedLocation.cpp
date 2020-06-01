@@ -9,6 +9,10 @@ namespace components {
     hpx::future<std::vector<safegraph_location>> JoinedLocation::invoke() const {
         return hpx::async<server::JoinedLocationServer::invoke_action>(get_id());
     }
+
+    hpx::future<joined_location> JoinedLocation::find_location(std::string &safegraph_place_id) const {
+        return hpx::async<server::JoinedLocationServer::find_location_action>(get_id(), safegraph_place_id);
+    }
 }
 typedef hpx::components::component<
         components::server::JoinedLocationServer
@@ -16,3 +20,4 @@ typedef hpx::components::component<
 
 HPX_REGISTER_COMPONENT(location_joiner_type, LocationJoiner);
 HPX_REGISTER_ACTION(::components::server::JoinedLocationServer::invoke_action);
+HPX_REGISTER_ACTION(::components::server::JoinedLocationServer::find_location_action);

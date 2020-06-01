@@ -69,8 +69,11 @@ struct visit_row {
     }
 };
 
-struct census_cbg {
-
+struct joined_location {
+    string safegraph_place_id;
+    double latitude;
+    double longitude;
+    uint64_t location_cbg;
 };
 
 struct safegraph_location {

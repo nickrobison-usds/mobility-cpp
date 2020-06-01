@@ -19,11 +19,13 @@ namespace components {
             : public hpx::components::client_base<JoinedLocation, components::server::JoinedLocationServer> {
 
     public:
-        JoinedLocation(hpx::future<hpx::id_type> &&f) : client_base(std::move(f)) {};
+        explicit JoinedLocation(hpx::future<hpx::id_type> &&f) : client_base(std::move(f)) {};
 
-        JoinedLocation(hpx::id_type &&f) : client_base(std::move(f)) {};
+        explicit JoinedLocation(hpx::id_type &&f) : client_base(std::move(f)) {};
 
         [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke() const;
+
+        hpx::future<joined_location> find_location(std::string &safegraph_place_id) const;
     };
 }
 

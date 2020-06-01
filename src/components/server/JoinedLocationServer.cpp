@@ -5,12 +5,48 @@
 #include <io/csv_reader.hpp>
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
+#include <utility>
 
 #include "spdlog/spdlog.h"
 
 namespace par = hpx::parallel;
 
 namespace components::server {
+
+    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile) :
+            _csv_file(std::move(csv_files)),
+            _shapefile(std::move(shapefile)),
+            _parquet(io::Parquet(std::string("data/hello.parquet"))),
+            _cache(loadLocationCache()){
+    }
+
+    absl::flat_hash_map<std::string, joined_location> JoinedLocationServer::loadLocationCache() const {
+
+        absl::flat_hash_map<std::string, joined_location> m;
+
+        const auto table = _parquet.read();
+
+        auto location_id = static_pointer_cast<arrow::StringArray>(table->column(0)->chunk(0));
+        auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
+        auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(2)->chunk(0));
+        auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
+
+        for (std::int64_t i = 0; i < table->num_rows(); i++) {
+            const std::string id = location_id->GetString(i);
+            const double lat = latitude->Value(i);
+            const double lon = longitude->Value(i);
+            const std::string cbg = location_cbg->GetString(i);
+            const std::uint64_t cbg_code = std::stol(cbg);
+            joined_location l = {id, lat, lon, cbg_code};
+            m.emplace(std::make_pair(id, l));
+        };
+
+        return m;
+    }
+
+    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) const {
+        return _cache.at(safegraph_place_id);
+    }
 
     std::vector<safegraph_location> JoinedLocationServer::invoke() const {
 
@@ -74,21 +110,22 @@ namespace components::server {
 
         std::string file_capture = _shapefile;
 
-        par::transform(par::execution::par_unseq, output.begin(), output.end(), output.begin(), [&file_capture](safegraph_location &loc) {
-            // GDAL Features don't support multi-threaded queries, so we open the dataset on each thread, to work around this.
-            // A future improvement should be to cache this in the thread itself.
-            io::Shapefile s(file_capture);
-            GDALDatasetUniquePtr p = s.openFile();
-            const auto layer = p->GetLayer(0);
-            // Set a new filter on the shapefile layer
-            layer->SetSpatialFilter(&loc.location);
-            // Find the cbg that intersects (which should be the first one)
-            spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
-            const auto feature = layer->GetNextFeature();
-            loc.cbg = feature->GetFieldAsString("GEOID");
+        par::transform(par::execution::par_unseq, output.begin(), output.end(), output.begin(),
+                       [&file_capture](safegraph_location &loc) {
+                           // GDAL Features don't support multi-threaded queries, so we open the dataset on each thread, to work around this.
+                           // A future improvement should be to cache this in the thread itself.
+                           io::Shapefile s(file_capture);
+                           GDALDatasetUniquePtr p = s.openFile();
+                           const auto layer = p->GetLayer(0);
+                           // Set a new filter on the shapefile layer
+                           layer->SetSpatialFilter(&loc.location);
+                           // Find the cbg that intersects (which should be the first one)
+                           spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
+                           const auto feature = layer->GetNextFeature();
+                           loc.cbg = feature->GetFieldAsString("GEOID");
 
-            return loc;
-        });
+                           return loc;
+                       });
 
         return output;
 
@@ -118,6 +155,4 @@ namespace components::server {
 
         return hpx::make_ready_future<std::vector<safegraph_location>>();
     }
-
-
 }
