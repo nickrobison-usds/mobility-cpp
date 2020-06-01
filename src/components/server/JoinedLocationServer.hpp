@@ -2,8 +2,8 @@
 // Created by Nicholas Robison on 5/22/20.
 //
 
-#ifndef MOBILITY_CPP_LOCATIONJOINERSERVER_HPP
-#define MOBILITY_CPP_LOCATIONJOINERSERVER_HPP
+#ifndef MOBILITY_CPP_JOINEDLOCATIONSERVER_HPP
+#define MOBILITY_CPP_JOINEDLOCATIONSERVER_HPP
 
 #include <string>
 #include "../include/components/data.hpp"
@@ -16,15 +16,15 @@
 
 namespace components::server {
 
-    class LocationJoinerServer : public hpx::components::component_base<LocationJoinerServer> {
+    class JoinedLocationServer : public hpx::components::component_base<JoinedLocationServer> {
 
     public:
 
-        LocationJoinerServer(std::vector<std::string> csv_files, std::string shapefile) : _csv_file(std::move(csv_files)), _shapefile(std::move(shapefile)) {};
+        JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile) : _csv_file(std::move(csv_files)), _shapefile(std::move(shapefile)) {};
 
         std::vector<safegraph_location> invoke() const;
 
-        HPX_DEFINE_COMPONENT_ACTION(LocationJoinerServer, invoke);
+        HPX_DEFINE_COMPONENT_ACTION(JoinedLocationServer, invoke);
 
     private:
         std::vector<std::string> _csv_file;
@@ -34,6 +34,6 @@ namespace components::server {
         hpx::future<std::vector<safegraph_location>> read_csv(std::string csv_file) const;
     };
 }
-HPX_REGISTER_ACTION_DECLARATION(::components::server::LocationJoinerServer::invoke_action,
+HPX_REGISTER_ACTION_DECLARATION(::components::server::JoinedLocationServer::invoke_action,
                                 location_joiner_invoke_action);
-#endif //MOBILITY_CPP_LOCATIONJOINERSERVER_HPP
+#endif //MOBILITY_CPP_JOINEDLOCATIONSERVER_HPP

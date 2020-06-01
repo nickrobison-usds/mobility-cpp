@@ -1,7 +1,7 @@
 //
 // Created by Nicholas Robison on 5/22/20.
 //
-#include "LocationJoinerServer.hpp"
+#include "JoinedLocationServer.hpp"
 #include <io/csv_reader.hpp>
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
@@ -12,7 +12,7 @@ namespace par = hpx::parallel;
 
 namespace components::server {
 
-    std::vector<safegraph_location> LocationJoinerServer::invoke() const {
+    std::vector<safegraph_location> JoinedLocationServer::invoke() const {
 
         std::shared_ptr<GDALDataset> d;
 //         Read the shapefile and one of the CSV files.
@@ -102,7 +102,7 @@ namespace components::server {
 //                }), LocationJoinerServer::read_shapefile(d), );
     }
 
-    hpx::future<int> LocationJoinerServer::read_shapefile(std::shared_ptr<GDALDataset> &ptr) const {
+    hpx::future<int> JoinedLocationServer::read_shapefile(std::shared_ptr<GDALDataset> &ptr) const {
         // Get a reference to one of the IO specific HPX io_service objects ...
         hpx::parallel::execution::io_pool_executor executor;
 
@@ -113,7 +113,7 @@ namespace components::server {
 //        return std::move(p);
     }
 
-    hpx::future<std::vector<safegraph_location>> LocationJoinerServer::read_csv(std::string csv_file) const {
+    hpx::future<std::vector<safegraph_location>> JoinedLocationServer::read_csv(std::string csv_file) const {
 
 
         return hpx::make_ready_future<std::vector<safegraph_location>>();
