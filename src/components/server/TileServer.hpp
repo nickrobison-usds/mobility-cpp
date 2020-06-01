@@ -7,6 +7,7 @@
 
 #include <hpx/include/serialization.hpp>
 #include <hpx/include/components.hpp>
+#include <blaze/math/DynamicMatrix.h>
 
 #include <cstddef>
 #include "../TileDimension.hpp"
@@ -27,6 +28,8 @@ namespace components {
 
     private:
         components::TileDimension _dim;
+        std::vector<blaze::DynamicMatrix<uint16_t>> _visit_matrix;
+        std::vector<blaze::DynamicMatrix<double>> _distance_matrix;
     };
 }
 

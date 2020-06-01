@@ -7,3 +7,6 @@
 [submodule "extern/catch2"]
 	path = extern/catch2
 	url = ../../catchorg/Catch2.git
+[submodule "extern/blaze"]
+	path = extern/blaze
+	url = ../../../bitbucket.org/blaze-lib/blaze.git
