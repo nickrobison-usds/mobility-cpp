@@ -105,11 +105,6 @@ namespace components::server {
         return strings;
     }
 
-    template<typename Archive>
-    void WeekSplitter::serialize(Archive &ar, const unsigned int version) {
-        return ar & files;
-    }
-
     bool WeekSplitter::IsParenthesesOrDash(char c) {
         switch (c) {
             case '[':

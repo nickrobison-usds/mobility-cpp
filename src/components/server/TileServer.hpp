@@ -34,9 +34,9 @@ namespace components::server {
         std::vector<distance_matrix> _distances;
 
 
-        std::vector<safegraph_location> extract_rows(const std::string &filename);
-        std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(safegraph_location &row);
-        std::vector<std::uint16_t> expandRow(safegraph_location &row);
+        static std::vector<weekly_pattern> extract_rows(const std::string &filename);
+        std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(const safegraph_location &row) const;
+        static std::vector<v2> expandRow(const weekly_pattern &row);
     };
 }
 

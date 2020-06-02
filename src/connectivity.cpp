@@ -2,6 +2,7 @@
 // Created by Nicholas Robison on 6/1/20.
 //
 
+#include <components/TileClient.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include "spdlog/spdlog.h"
@@ -53,11 +54,18 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    const auto files = partition_files(input_dir, locales.size(), "core_poi.*\\");
+    const auto files = partition_files(input_dir, locales.size(), ".*\\.csv");
     vector<string> f;
     std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
         return file.path().string();
     });
+
+    // Create the Tile Server and start it up
+    components::TileDimension dim;
+    components::TileClient t(hpx::find_here());
+    auto init_future = t.init(f[0], dim, 1);
+    init_future.get();
+
 
     return hpx::finalize();
 }
@@ -70,7 +78,7 @@ int main(int argc, char **argv) {
             ("start_date", value<string>()->default_value("2020-03-01"), "First date to handle"),
             ("min_cbg", value<size_t>()->default_value(1), "Minimum CBG ID"),
             ("max_cbg", value<size_t>()->default_value(10), "Maximum CBG ID"),
-            ("input_dir", value<string>()->default_value("data"), "Input directory to parse");
+            ("input_dir", value<string>()->default_value("test-dir"), "Input directory to parse");
 
     return hpx::init(desc_commandline, argc, argv);
 }

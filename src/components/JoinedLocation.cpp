@@ -10,7 +10,7 @@ namespace components {
         return hpx::async<server::JoinedLocationServer::invoke_action>(get_id());
     }
 
-    hpx::future<joined_location> JoinedLocation::find_location(std::string &safegraph_place_id) {
+    hpx::future<joined_location> JoinedLocation::find_location(const std::string &safegraph_place_id) const {
         return hpx::async<server::JoinedLocationServer::find_location_action>(get_id(), safegraph_place_id);
     }
 }

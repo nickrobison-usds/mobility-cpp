@@ -16,6 +16,6 @@ target_compile_options(distance PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(distance PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
 add_executable(connectivity connectivity.cpp)
-target_link_libraries(connectivity PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
+target_link_libraries(connectivity PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog)
 target_compile_options(connectivity PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(connectivity PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")

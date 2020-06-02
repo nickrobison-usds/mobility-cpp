@@ -3,6 +3,7 @@
 //
 
 #include "TileServer.hpp"
+#include <absl/strings/str_split.h>
 #include <components/JoinedLocation.hpp>
 #include <io/csv_reader.hpp>
 #include "spdlog/spdlog.h"
@@ -18,7 +19,7 @@ GDALDatasetUniquePtr openShapefile(const std::string &shapefile_name) {
 
 namespace components::server {
 
-    TileServer::TileServer(): _dim(), _visits(), _distances(), _p(openShapefile(std::string("hello"))) {
+    TileServer::TileServer() : _dim(), _visits(), _distances(), _p(openShapefile(std::string("hello"))) {
         // Not used
     };
 
@@ -42,51 +43,86 @@ namespace components::server {
         JoinedLocation l(hpx::find_here());
 
         for (const auto &row : rows) {
-
+            const auto loc_future = l.find_location(row.safegraph_place_id);
+            const auto row_future = hpx::async(expandRow, row);
         }
 
     }
 
-    std::vector<safegraph_location> TileServer::extract_rows(const string &filename) {
+    std::vector<weekly_pattern> TileServer::extract_rows(const string &filename) {
 
         // Get date from filename
         spdlog::debug("Reading {}", filename);
-        io::CSVLoader<10, true> l(filename);
+        io::CSVLoader<17, true> l(filename);
 
-        // Initialize variables for holding the column values
         string safegraph_place_id;
-        string parent_safegraph_place_id;
         string location_name;
+        string street_address;
+        string city;
+        string region;
+        string postal_code;
+        string iso_country_code;
         string safegraph_brand_ids;
         string brands;
-        string top_category;
-        string sub_category;
-        string naics_code;
-        double latitude;
-        double longitude;
+        string date_range_start;
+        string date_range_end;
+        uint16_t raw_visit_counts;
+        uint16_t raw_visitor_counts;
+        uint16_t visits_by_day;
+        uint16_t visits_by_each_hour;
+        uint64_t poi_cbg;
+        string visitor_home_cbgs;
 
-        return l.read<safegraph_location>(
-                [](string const &safegraph_place_id, string const &parent_safegraph_place_id,
-                   string const &location_name, string const &safegraph_brand_ids, string const &brands,
-                   string const &top_category, string const &sub_category, string const &naics_code,
-                   double const &latitude, double const &longitude) {
-                    safegraph_location loc{safegraph_place_id,
-                                           parent_safegraph_place_id,
-                                           location_name,
-                                           safegraph_brand_ids,
-                                           brands,
-                                           top_category,
-                                           sub_category,
-                                           naics_code,
-                                           0L};
+        return l.read<weekly_pattern>(
+                [](const string &safegraph_place_id,
+                   const string &location_name,
+                   const string &street_address,
+                   const string &city,
+                   const string &region,
+                   const string &postal_code,
+                   const string &iso_country_code,
+                   const string &safegraph_brand_ids,
+                   const string &brands,
+                   const string &date_range_start,
+                   const string &date_range_end,
+                   const uint16_t raw_visit_counts,
+                   const uint16_t raw_visitor_counts,
+                   const uint16_t visits_by_day,
+                   const uint16_t visits_by_each_hour,
+                   const uint64_t poi_cbg,
+                   const string &visitor_home_cbgs) {
+                    weekly_pattern loc{safegraph_place_id,
+                                       location_name,
+                                       date_range_start,
+                                       date_range_end,
+                                       raw_visit_counts,
+                                       raw_visitor_counts,
+                                       visits_by_day,
+                                       visits_by_each_hour,
+                                       poi_cbg,
+                                       visitor_home_cbgs};
 
                     return loc;
-                }, safegraph_place_id, parent_safegraph_place_id, location_name, safegraph_brand_ids, brands,
-                top_category, sub_category, naics_code, latitude,
-                longitude);
+                }, safegraph_place_id,
+                location_name,
+                street_address,
+                city,
+                region,
+                postal_code,
+                iso_country_code,
+                safegraph_brand_ids,
+                brands,
+                date_range_start,
+                date_range_end,
+                raw_visit_counts,
+                raw_visitor_counts,
+                visits_by_day,
+                visits_by_each_hour,
+                poi_cbg,
+                visitor_home_cbgs);
     }
 
-    std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(safegraph_location &row) {
+    std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(const safegraph_location &row) const {
 
         OGRPoint loc(row.longitude, row.latitude);
 
@@ -111,7 +147,19 @@ namespace components::server {
         return std::tuple<std::uint64_t, std::uint64_t, double>(loc_cbg, dest_cbg, distance);
     }
 
-    std::vector<std::uint16_t> TileServer::expandRow(safegraph_location &row) {
+    std::vector<v2> TileServer::expandRow(const weekly_pattern &row) {
+
+        const auto split_visits = absl::StrSplit(row.visitor_home_cbgs, ",");
+
+        const std::vector<int> visits;
+
+//        std::transform(split_visits.begin(), split_visits.end(), visits.begin(), [](const auto &tr) {
+//            int val;
+//            std::from_chars(tr.data(), tr.data() + tr.size(), val);
+//            return val;
+//        });
+
+
         return {};
     }
 }

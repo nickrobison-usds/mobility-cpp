@@ -5,7 +5,6 @@
 #ifndef MOBILITY_CPP_WEEKSPLITTER_HPP
 #define MOBILITY_CPP_WEEKSPLITTER_HPP
 
-// This needs to come before the hpx includes, in order for the serialization to work.
 #include "io/parquet.hpp"
 #include "data.hpp"
 #include "../../server/WeekSplitterServer.hpp"
@@ -14,7 +13,6 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
-#include <hpx/include/serialization.hpp>
 
 using namespace std;
 
@@ -36,9 +34,6 @@ namespace components {
         const string _basename;
     };
 }
-
-//HPX_REGISTER_ACTION_DECLARATION(
-//        ::components::server::WeekSplitter::invoke_action, week_splitter_invoke_action);
 
 
 #endif //MOBILITY_CPP_WEEKSPLITTER_HPP

@@ -24,7 +24,7 @@ namespace components {
 
         [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke();
 
-        hpx::future<joined_location> find_location(std::string &safegraph_place_id);
+        hpx::future<joined_location> find_location(const std::string &safegraph_place_id) const;
     };
 }
 
