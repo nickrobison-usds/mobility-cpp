@@ -32,7 +32,7 @@ namespace components::server {
         friend class hpx::serialization::access;
 
         template<typename Archive>
-        void serialize(Archive &ar, unsigned int version) const;
+        void serialize(Archive &ar, unsigned int version);
 
         static vector<visit_row> handleFile(string const &filename);
 

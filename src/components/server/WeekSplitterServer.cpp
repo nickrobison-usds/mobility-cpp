@@ -5,9 +5,12 @@
 #include "WeekSplitterServer.hpp"
 
 #include "spdlog/spdlog.h"
+#include <arrow/api.h>
 #include <hpx/parallel/execution.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <utility>
+
+using ArrowDate = arrow::Date32Type::c_type;
 
 using namespace std;
 namespace par = hpx::parallel;
@@ -103,7 +106,7 @@ namespace components::server {
     }
 
     template<typename Archive>
-    void WeekSplitter::serialize(Archive &ar, const unsigned int version) const {
+    void WeekSplitter::serialize(Archive &ar, const unsigned int version) {
         return ar & files;
     }
 

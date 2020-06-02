@@ -6,28 +6,14 @@
 #define MOBILITY_CPP_TILESERVER_HPP
 
 #include "../TileDimension.hpp"
+#include "../include/components/sl.hpp"
 #include <io/shapefile.hpp>
-#include <hpx/include/serialization.hpp>
 #include <hpx/include/components.hpp>
 #include <blaze/math/DynamicMatrix.h>
 
 #include <cstddef>
 
 namespace components::server {
-
-    struct sl2 {
-        string safegraph_place_id;
-        string parent_safegraph_place_id;
-        string location_name;
-        string safegraph_brand_ids;
-        string brands;
-        string top_category;
-        string sub_category;
-        string naics_code;
-        std::uint64_t cbg;
-        double latitude;
-        double longitude;
-    };
 
     class TileServer : public hpx::components::component_base<TileServer> {
 
@@ -42,15 +28,15 @@ namespace components::server {
         HPX_DEFINE_COMPONENT_ACTION(TileServer, init);
 
     private:
-        const GDALDatasetUniquePtr _p;
+        GDALDatasetUniquePtr _p;
         components::TileDimension _dim;
         std::vector<visit_matrix> _visits;
         std::vector<distance_matrix> _distances;
 
 
-        std::vector<sl2> extract_rows(const std::string &filename) const;
-        std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(const sl2 &row) const;
-        std::vector<std::uint16_t> expandRow(const sl2 &row) const;
+        std::vector<safegraph_location> extract_rows(const std::string &filename);
+        std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(safegraph_location &row);
+        std::vector<std::uint16_t> expandRow(safegraph_location &row);
     };
 }
 

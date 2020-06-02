@@ -3,6 +3,7 @@
 //
 
 #include "TileServer.hpp"
+#include <components/JoinedLocation.hpp>
 #include <io/csv_reader.hpp>
 #include "spdlog/spdlog.h"
 
@@ -38,10 +39,15 @@ namespace components::server {
         const auto rows = extract_rows(filename);
 
         // iterate through each of the rows, figure out its CBG and expand it.
+        JoinedLocation l(hpx::find_here());
+
+        for (const auto &row : rows) {
+
+        }
 
     }
 
-    std::vector<sl2> TileServer::extract_rows(const string &filename) const {
+    std::vector<safegraph_location> TileServer::extract_rows(const string &filename) {
 
         // Get date from filename
         spdlog::debug("Reading {}", filename);
@@ -59,12 +65,12 @@ namespace components::server {
         double latitude;
         double longitude;
 
-        return l.read<sl2>(
+        return l.read<safegraph_location>(
                 [](string const &safegraph_place_id, string const &parent_safegraph_place_id,
                    string const &location_name, string const &safegraph_brand_ids, string const &brands,
                    string const &top_category, string const &sub_category, string const &naics_code,
                    double const &latitude, double const &longitude) {
-                    sl2 loc{safegraph_place_id,
+                    safegraph_location loc{safegraph_place_id,
                                            parent_safegraph_place_id,
                                            location_name,
                                            safegraph_brand_ids,
@@ -72,9 +78,7 @@ namespace components::server {
                                            top_category,
                                            sub_category,
                                            naics_code,
-                                           0L,
-                                           latitude,
-                                           longitude};
+                                           0L};
 
                     return loc;
                 }, safegraph_place_id, parent_safegraph_place_id, location_name, safegraph_brand_ids, brands,
@@ -82,9 +86,10 @@ namespace components::server {
                 longitude);
     }
 
-    std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(const sl2 &row) const {
+    std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(safegraph_location &row) {
 
-        OGRPoint loc(row.longitude, row.latitude);
+//        OGRPoint loc(row.longitude, row.latitude);
+        OGRPoint loc;
 
         const auto layer = _p->GetLayer(0);
         // Set a new filter on the shapefile layer
@@ -107,7 +112,7 @@ namespace components::server {
         return std::tuple<std::uint64_t, std::uint64_t, double>(loc_cbg, dest_cbg, distance);
     }
 
-    std::vector<std::uint16_t> TileServer::expandRow(const sl2 &row) const {
+    std::vector<std::uint16_t> TileServer::expandRow(safegraph_location &row) {
         return {};
     }
 }

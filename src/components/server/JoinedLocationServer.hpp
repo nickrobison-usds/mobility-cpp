@@ -6,14 +6,15 @@
 #define MOBILITY_CPP_JOINEDLOCATIONSERVER_HPP
 
 #include <string>
-#include "../include/components/data.hpp"
+#include "../include/components/sl.hpp"
+#include "../include/components/jl.hpp"
 #include <io/shapefile.hpp>
 #include <io/parquet.hpp>
 #include <absl/container/flat_hash_map.h>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
-#include <hpx/include/serialization.hpp>
+
 #include <utility>
 
 namespace components::server {
@@ -24,8 +25,8 @@ namespace components::server {
 
         JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile);
 
-        std::vector<safegraph_location> invoke() const;
-        joined_location find_location(const std::string &safegraph_place_id) const;
+        std::vector<safegraph_location> invoke();
+        joined_location find_location(const std::string &safegraph_place_id);
         HPX_DEFINE_COMPONENT_ACTION(JoinedLocationServer, invoke);
         HPX_DEFINE_COMPONENT_ACTION(JoinedLocationServer, find_location);
 

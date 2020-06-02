@@ -17,7 +17,7 @@ namespace components::server {
             _csv_file(std::move(csv_files)),
             _shapefile(std::move(shapefile)),
             _parquet(io::Parquet(std::string("data/hello.parquet"))),
-            _cache(loadLocationCache()){
+            _cache(loadLocationCache()) {
     }
 
     absl::flat_hash_map<std::string, joined_location> JoinedLocationServer::loadLocationCache() const {
@@ -44,11 +44,11 @@ namespace components::server {
         return m;
     }
 
-    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) const {
+    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) {
         return _cache.at(safegraph_place_id);
     }
 
-    std::vector<safegraph_location> JoinedLocationServer::invoke() const {
+    std::vector<safegraph_location> JoinedLocationServer::invoke() {
 
         std::shared_ptr<GDALDataset> d;
 //         Read the shapefile and one of the CSV files.
@@ -95,8 +95,9 @@ namespace components::server {
                                                brands,
                                                top_category,
                                                sub_category,
-                                               naics_code,
-                                               OGRPoint(longitude, latitude)};
+                                               naics_code};
+//                                               latitude,
+//                                               longitude};
 
                         return loc;
                     }, safegraph_place_id, parent_safegraph_place_id, location_name, safegraph_brand_ids, brands,
@@ -118,7 +119,9 @@ namespace components::server {
                            GDALDatasetUniquePtr p = s.openFile();
                            const auto layer = p->GetLayer(0);
                            // Set a new filter on the shapefile layer
-                           layer->SetSpatialFilter(&loc.location);
+//                           OGRPoint location(loc.longitude, loc.latitude);
+                           OGRPoint location;
+                           layer->SetSpatialFilter(&location);
                            // Find the cbg that intersects (which should be the first one)
                            spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
                            const auto feature = layer->GetNextFeature();

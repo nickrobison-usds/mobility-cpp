@@ -4,7 +4,6 @@
 #include <iostream>
 #include <arrow/api.h>
 #include <arrow/io/api.h>
-
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/fmt/fmt.h"
 

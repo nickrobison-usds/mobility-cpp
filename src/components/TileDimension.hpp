@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_TILEDIMENSION_HPP
 #define MOBILITY_CPP_TILEDIMENSION_HPP
 
-#include <hpx/include/serialization.hpp>
+#include "components/serializers.hpp"
 
 #include <cstddef>
 
@@ -19,13 +19,14 @@ namespace components {
         std::size_t _time_count; // Max Z
 
         TileDimension() :
-                _cbg_offset(0), _cbg_count(0), _time_offset(0), _time_count(0) {}
-    };
-}
+                _cbg_offset(0), _cbg_count(0), _time_offset(0), _time_count(0) {};
+        friend class hpx::serialization::access;
 
-namespace hpx::serialization {
-    template<typename Archive>
-    void serialize(Archive &, ::components::TileDimension &, unsigned int);
+        template<typename Archive>
+        void serialize(Archive &ar, const unsigned int version) {
+            ar & _cbg_offset & _cbg_count & _time_offset & _time_count;
+        }
+    };
 }
 
 

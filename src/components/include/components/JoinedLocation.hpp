@@ -10,7 +10,6 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
-#include <hpx/include/serialization.hpp>
 
 namespace components {
 
@@ -23,9 +22,9 @@ namespace components {
 
         explicit JoinedLocation(hpx::id_type &&f) : client_base(std::move(f)) {};
 
-        [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke() const;
+        [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke();
 
-        hpx::future<joined_location> find_location(std::string &safegraph_place_id) const;
+        hpx::future<joined_location> find_location(std::string &safegraph_place_id);
     };
 }
 
