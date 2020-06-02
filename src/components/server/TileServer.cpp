@@ -88,8 +88,7 @@ namespace components::server {
 
     std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(safegraph_location &row) {
 
-//        OGRPoint loc(row.longitude, row.latitude);
-        OGRPoint loc;
+        OGRPoint loc(row.longitude, row.latitude);
 
         const auto layer = _p->GetLayer(0);
         // Set a new filter on the shapefile layer

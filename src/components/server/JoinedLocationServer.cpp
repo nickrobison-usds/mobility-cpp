@@ -95,9 +95,9 @@ namespace components::server {
                                                brands,
                                                top_category,
                                                sub_category,
-                                               naics_code};
-//                                               latitude,
-//                                               longitude};
+                                               naics_code,
+                                               latitude,
+                                               longitude};
 
                         return loc;
                     }, safegraph_place_id, parent_safegraph_place_id, location_name, safegraph_brand_ids, brands,
@@ -119,8 +119,7 @@ namespace components::server {
                            GDALDatasetUniquePtr p = s.openFile();
                            const auto layer = p->GetLayer(0);
                            // Set a new filter on the shapefile layer
-//                           OGRPoint location(loc.longitude, loc.latitude);
-                           OGRPoint location;
+                           OGRPoint location(loc.longitude, loc.latitude);
                            layer->SetSpatialFilter(&location);
                            // Find the cbg that intersects (which should be the first one)
                            spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
