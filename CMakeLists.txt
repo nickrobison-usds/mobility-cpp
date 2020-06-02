@@ -22,6 +22,7 @@ add_subdirectory(extern/catch2)
 add_subdirectory(extern/benchmark)
 add_subdirectory(extern/blaze)
 add_subdirectory(extern/abseil)
+add_subdirectory(extern/date)
 
 add_subdirectory(benchmarks)
 add_subdirectory(tests)

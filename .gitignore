@@ -3,3 +3,4 @@ build/
 *.parquet
 cmake-build-debug/
 .idea/
+test-dir/

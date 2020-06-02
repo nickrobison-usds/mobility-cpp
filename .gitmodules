@@ -13,3 +13,6 @@
 [submodule "extern/abseil"]
 	path = extern/abseil
 	url = ../../abseil/abseil-cpp.git
+[submodule "extern/date"]
+	path = extern/date
+	url = ../../HowardHinnant/date.git
