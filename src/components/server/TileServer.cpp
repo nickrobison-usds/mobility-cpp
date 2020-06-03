@@ -3,6 +3,7 @@
 //
 
 #include "TileServer.hpp"
+#include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
@@ -34,10 +35,21 @@ namespace components::server {
         std::vector<std::pair<std::string, std::uint16_t>> cbg_visits;
         std::transform(visit_pairs.begin(), visit_pairs.end(), std::back_inserter(cbg_visits), [](const auto &kv_pair) {
             const std::pair<std::string, std::string> split_pair = absl::StrSplit(kv_pair, ':');
-            return std::make_pair(split_pair.first, std::stoi(split_pair.second));
+            std::uint16_t v = 0;
+            try {
+                v = std::stoi(split_pair.second);
+            } catch (std::invalid_argument &e) {
+                spdlog::error("Cannot convert {} for {}", split_pair.second, split_pair.first);
+            }
+            return std::make_pair(split_pair.first, v);
         });
 
-        return cbg_visits;
+        std::vector<std::pair<std::string, std::uint16_t>> filtered;
+        std::copy_if(cbg_visits.begin(), cbg_visits.end(), std::back_inserter(filtered), [](const auto &v) {
+            return !v.first.empty();
+        });
+
+        return filtered;
     };
 
 
@@ -48,7 +60,13 @@ namespace components::server {
         const std::vector<std::string> split_visits = absl::StrSplit(replaced, ',');
         std::vector<std::uint16_t> visits;
         std::transform(split_visits.begin(), split_visits.end(), std::back_inserter(visits), [](const auto &tr) {
-            return std::stoi(tr);
+            std::uint16_t v = 0;
+            try {
+                v = std::stoi(tr);
+            } catch (std::invalid_argument &e) {
+                spdlog::error("No conversion for {}", tr);
+            }
+            return v;
         });
 
         std::vector<v2> output;
@@ -103,6 +121,8 @@ namespace components::server {
         ShapefileWrapper s(std::string("/Users/raac/Development/covid/mobility-analysis/data/reference/census/block_groups.shp"));
 
 
+        std::vector<hpx::future<std::vector<v2>>> results;
+        results.reserve(rows.size());
         for (const auto &row : rows) {
             const auto visits = extract_cbg_visits(row);
             std::vector<std::string> cbgs;
@@ -112,28 +132,36 @@ namespace components::server {
 
             hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
             hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
-            auto centroid_future = s.get_centroids(cbgs);
 
             using hpx::dataflow;
             using hpx::util::unwrapping;
 
-            const auto res = dataflow(unwrapping([this](const joined_location &loc, const std::vector<v2> &patterns, const std::vector<std::pair<std::string, OGRPoint>> &centroids) {
-//                const OGRPoint loc_point(loc.longitude, loc.latitude);
-//                loc.location_cbg;
-//                patterns.size();
-//                std::vector<v2> o;
-//                o.reserve(patterns.size());
-//                const auto layer = this->_p->GetLayer(0);
-//                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&layer, &loc_point](const auto &row) {
-//                    layer->SetAttributeFilter(absl::StrCat("GEOID == ", row.visit_cbg).c_str());
-//                    const auto f = layer->GetNextFeature();
-//                    const double distance = f->GetGeometryRef()->Distance(&loc_point);
-//                    return row;
-//                });
-                return 1;
-            }), loc_future, row_future, centroid_future).get();
-        }
+            auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
+                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
+                return map;
+            }));
 
+            auto res = dataflow(unwrapping([this](const joined_location &loc, const std::vector<v2> &patterns, const auto &centroids) {
+                spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
+                const OGRPoint loc_point(loc.longitude, loc.latitude);
+                patterns.size();
+                std::vector<v2> o;
+                o.reserve(patterns.size());
+                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&centroids, &loc_point](auto &row) {
+                    const auto cbg_centroid = centroids.at(row.visit_cbg);
+                    const auto distance = loc_point.Distance(&cbg_centroid);
+                    v2 r2{row.safegraph_place_id, row.visit_date, row.visit_cbg, row.visits, distance, 0.0F};
+                    return r2;
+                });
+                spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
+                return o;
+            }), loc_future, row_future, centroid_future);
+
+            results.push_back(std::move(res));
+        };
+        spdlog::debug("Waiting for {} rows", results.size());
+        hpx::wait_all(results);
+        spdlog::debug("It's done");
     }
 
     std::vector<weekly_pattern> TileServer::extract_rows(const string &filename) {
