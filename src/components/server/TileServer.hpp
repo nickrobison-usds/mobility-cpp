@@ -7,7 +7,6 @@
 
 #include "../TileDimension.hpp"
 #include "../include/components/data.hpp"
-#include <io/shapefile.hpp>
 #include <hpx/include/components.hpp>
 #include <blaze/math/DynamicMatrix.h>
 
@@ -28,15 +27,12 @@ namespace components::server {
         HPX_DEFINE_COMPONENT_ACTION(TileServer, init);
 
     private:
-        GDALDatasetUniquePtr _p;
         components::TileDimension _dim;
         std::vector<visit_matrix> _visits;
         std::vector<distance_matrix> _distances;
 
-
         static std::vector<weekly_pattern> extract_rows(const std::string &filename);
         std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(const safegraph_location &row) const;
-        static std::vector<v2> expandRow(const weekly_pattern &row);
     };
 }
 

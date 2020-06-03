@@ -1,6 +1,6 @@
 find_package(GDAL REQUIRED)
 
-add_library(io src/parquet.cpp include/io/parquet.hpp src/shapefile.cpp include/io/shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp)
+add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp)
 target_link_libraries(io PUBLIC arrow parquet GDAL PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

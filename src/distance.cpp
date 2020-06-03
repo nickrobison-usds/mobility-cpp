@@ -4,7 +4,7 @@
 
 #include <algorithm>
 #include <io/parquet.hpp>
-#include <io/shapefile.hpp>
+#include <io/ShapefileWrapper.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>

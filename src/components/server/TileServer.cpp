@@ -6,6 +6,7 @@
 #include <absl/strings/str_split.h>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
+#include <components/ShapefileWrapper.hpp>
 #include <hpx/parallel/execution.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
 #include <io/csv_reader.hpp>
@@ -25,7 +26,49 @@ GDALDatasetUniquePtr openShapefile(const std::string &shapefile_name) {
 
 namespace components::server {
 
-    TileServer::TileServer() : _dim(), _visits(), _distances(), _p(openShapefile(std::string("hello"))) {
+    std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const weekly_pattern &row) {
+        // Extract the CBGs which get visited
+        const auto cbg_replaced = boost::regex_replace(row.visitor_home_cbgs, cbg_map_replace, "");
+        // Split into key/pairs, then split the pairs
+        const auto visit_pairs = absl::StrSplit(cbg_replaced, ',');
+        std::vector<std::pair<std::string, std::uint16_t>> cbg_visits;
+        std::transform(visit_pairs.begin(), visit_pairs.end(), std::back_inserter(cbg_visits), [](const auto &kv_pair) {
+            const std::pair<std::string, std::string> split_pair = absl::StrSplit(kv_pair, ':');
+            return std::make_pair(split_pair.first, std::stoi(split_pair.second));
+        });
+
+        return cbg_visits;
+    };
+
+
+    std::vector<v2> expandRow(const weekly_pattern &row, const std::vector<std::pair<std::string, std::uint16_t>> &cbg_visits) {
+        // Extract the number of visits each day
+        const auto replaced = boost::regex_replace(row.visits_by_day, brackets, std::string(""));
+        // Return a vector of string, because stoi doesn't support string_view.
+        const std::vector<std::string> split_visits = absl::StrSplit(replaced, ',');
+        std::vector<std::uint16_t> visits;
+        std::transform(split_visits.begin(), split_visits.end(), std::back_inserter(visits), [](const auto &tr) {
+            return std::stoi(tr);
+        });
+
+        std::vector<v2> output;
+        const std::size_t r = visits.size() * cbg_visits.size();
+        spdlog::debug("Expecting {} rows", r);
+        output.reserve(r);
+
+        // Iterate through both sets and generate a v2 struct for each day/cbg pair
+        for (int i = 0; i < visits.size(); i++) {
+            const auto visit = visits[i];
+            for (const auto& cbg_pair : cbg_visits) {
+                const v2 day{row.safegraph_place_id, static_cast<float>(0.0 + i), cbg_pair.first, visit, 0.0F, 0.0F};
+                output.push_back(day);
+            }
+        }
+        spdlog::debug("Returning output");
+        return output;
+    };
+
+    TileServer::TileServer() : _dim(), _visits(), _distances() {
         // Not used
     };
 
@@ -56,19 +99,39 @@ namespace components::server {
         // iterate through each of the rows, figure out its CBG and expand it.
         spdlog::debug("Initializing location join component");
         JoinedLocation l({}, std::string("Not a shapefile"), std::string("./test-dir/poi.parquet"));
+        spdlog::debug("Initializing shapefile component");
+        ShapefileWrapper s(std::string("/Users/raac/Development/covid/mobility-analysis/data/reference/census/block_groups.shp"));
+
 
         for (const auto &row : rows) {
+            const auto visits = extract_cbg_visits(row);
+            std::vector<std::string> cbgs;
+            std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
+                return pair.first;
+            });
+
             hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
-            hpx::future<std::vector<v2>> row_future = hpx::async(expandRow, row);
+            hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+            auto centroid_future = s.get_centroids(cbgs);
 
             using hpx::dataflow;
             using hpx::util::unwrapping;
 
-            const auto res = dataflow(unwrapping([](const joined_location &loc, const std::vector<v2> &patterns) {
-                loc.location_cbg;
-                patterns.size();
+            const auto res = dataflow(unwrapping([this](const joined_location &loc, const std::vector<v2> &patterns, const std::vector<std::pair<std::string, OGRPoint>> &centroids) {
+//                const OGRPoint loc_point(loc.longitude, loc.latitude);
+//                loc.location_cbg;
+//                patterns.size();
+//                std::vector<v2> o;
+//                o.reserve(patterns.size());
+//                const auto layer = this->_p->GetLayer(0);
+//                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&layer, &loc_point](const auto &row) {
+//                    layer->SetAttributeFilter(absl::StrCat("GEOID == ", row.visit_cbg).c_str());
+//                    const auto f = layer->GetNextFeature();
+//                    const double distance = f->GetGeometryRef()->Distance(&loc_point);
+//                    return row;
+//                });
                 return 1;
-            }), loc_future, row_future).get();
+            }), loc_future, row_future, centroid_future).get();
         }
 
     }
@@ -147,64 +210,28 @@ namespace components::server {
     }
 
     std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(const safegraph_location &row) const {
-
-        OGRPoint loc(row.longitude, row.latitude);
-
-        const auto layer = _p->GetLayer(0);
-        // Set a new filter on the shapefile layer
-        layer->SetSpatialFilter(&loc);
-        // Find the cbg that intersects (which should be the first one)
-        spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
-        const auto feature = layer->GetNextFeature();
-        const auto loc_cbg_str = feature->GetFieldAsString("GEOID");
-        const auto geom = feature->GetGeometryRef();
-        OGRPoint cbg_centroid;
-        geom->Centroid(&cbg_centroid);
-        const double distance = cbg_centroid.Distance(&loc);
-
-        // Parse the strings to longs
-        std::string::size_type sz;
-        const std::uint64_t loc_cbg = std::stol(loc_cbg_str, &sz);
-        // This is completely wrong
-        const std::uint64_t dest_cbg = std::stol(row.safegraph_place_id, &sz);
-
-        return std::tuple<std::uint64_t, std::uint64_t, double>(loc_cbg, dest_cbg, distance);
-    }
-
-    std::vector<v2> TileServer::expandRow(const weekly_pattern &row) {
-
-        // Extract the number of visits each day
-        const auto replaced = boost::regex_replace(row.visits_by_day, brackets, std::string(""));
-        // Return a vector of string, because stoi doesn't support string_view.
-        const std::vector<std::string> split_visits = absl::StrSplit(replaced, ',');
-        std::vector<std::uint16_t> visits;
-        std::transform(split_visits.begin(), split_visits.end(), std::back_inserter(visits), [](const auto &tr) {
-            return std::stoi(tr);
-        });
-
-        // Extract the CBGs which get visited
-        const auto cbg_replaced = boost::regex_replace(row.visitor_home_cbgs, cbg_map_replace, "");
-        // Split into key/pairs, then split the pairs
-        const auto visit_pairs = absl::StrSplit(cbg_replaced, ',');
-        std::vector<std::pair<std::string, std::string>> cbg_visits;
-        std::transform(visit_pairs.begin(), visit_pairs.end(), std::back_inserter(cbg_visits), [](const auto &kv_pair) {
-            return absl::StrSplit(kv_pair, ':');
-        });
-
-        std::vector<v2> output;
-        const std::size_t r = visits.size() * cbg_visits.size();
-        spdlog::debug("Expecting {} rows", r);
-        output.reserve(r);
-
-        // Iterate through both sets and generate a v2 struct for each day/cbg pair
-        for (int i = 0; i < visits.size(); i++) {
-            const auto visit = visits[i];
-            for (const auto& cbg_pair : cbg_visits) {
-                const v2 day{row.safegraph_place_id, static_cast<float>(0.0 + i), cbg_pair.first, visit, 0.0F, 0.0F};
-                output.push_back(day);
-            }
-        }
-        spdlog::debug("Returning output");
-        return output;
+        return {};
+//
+//        OGRPoint loc(row.longitude, row.latitude);
+//
+//        const auto layer = _p->GetLayer(0);
+//        // Set a new filter on the shapefile layer
+//        layer->SetSpatialFilter(&loc);
+//        // Find the cbg that intersects (which should be the first one)
+//        spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
+//        const auto feature = layer->GetNextFeature();
+//        const auto loc_cbg_str = feature->GetFieldAsString("GEOID");
+//        const auto geom = feature->GetGeometryRef();
+//        OGRPoint cbg_centroid;
+//        geom->Centroid(&cbg_centroid);
+//        const double distance = cbg_centroid.Distance(&loc);
+//
+//        // Parse the strings to longs
+//        std::string::size_type sz;
+//        const std::uint64_t loc_cbg = std::stol(loc_cbg_str, &sz);
+//        // This is completely wrong
+//        const std::uint64_t dest_cbg = std::stol(row.safegraph_place_id, &sz);
+//
+//        return std::tuple<std::uint64_t, std::uint64_t, double>(loc_cbg, dest_cbg, distance);
     }
 }

@@ -3,6 +3,8 @@
 //
 
 #include "components/TileClient.hpp"
+#include "server/ShapefileServer.hpp"
+
 
 namespace components {
 

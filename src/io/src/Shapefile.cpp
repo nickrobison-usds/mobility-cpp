@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 5/22/20.
 //
 
-#include "io/shapefile.hpp"
+#include "io/Shapefile.hpp"
 
 #include <iostream>
 #include <utility>

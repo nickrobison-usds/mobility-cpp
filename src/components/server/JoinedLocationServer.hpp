@@ -7,7 +7,7 @@
 
 #include <string>
 #include "../include/components/data.hpp"
-#include <io/shapefile.hpp>
+#include <io/Shapefile.hpp>
 #include <absl/container/flat_hash_map.h>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
