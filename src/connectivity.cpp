@@ -28,7 +28,10 @@ chrono::system_clock::time_point parse_date(const string &date) {
 }
 
 int hpx_main(hpx::program_options::variables_map &vm) {
-    const auto input_dir = vm["input_dir"].as<string>();
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Initializing connectivity calculator");
+
+    const string input_dir = vm["input_dir"].as<string>();
     const string date_string = vm["start_date"].as<string>();
     const size_t min_cbg = vm["min_cbg"].as<size_t>();
     const size_t max_cbg = vm["min_cbg"].as<size_t>();
@@ -48,20 +51,19 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Max size of X, Y axis
     const size_t cbg_bounds = max_cbg - min_cbg;
 
-    spdlog::set_level(spdlog::level::debug);
-    spdlog::info("Initializing connectivity calculator");
-
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    const auto files = partition_files(input_dir, locales.size(), ".*\\.csv");
-    vector<string> f;
+    const auto files = partition_files(input_dir, locales.size(), ".*patterns\\.csv");
+    vector <string> f;
     std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
         return file.path().string();
     });
 
     // Create the Tile Server and start it up
     components::TileDimension dim;
+    dim._cbg_count = 100;
+    dim._time_count = 10;
     components::TileClient t(hpx::find_here());
     auto init_future = t.init(f[0], dim, 1);
     init_future.get();
@@ -75,10 +77,11 @@ int main(int argc, char **argv) {
 
     options_description desc_commandline;
     desc_commandline.add_options()
-            ("start_date", value<string>()->default_value("2020-03-01"), "First date to handle"),
-            ("min_cbg", value<size_t>()->default_value(1), "Minimum CBG ID"),
-            ("max_cbg", value<size_t>()->default_value(10), "Maximum CBG ID"),
-            ("input_dir", value<string>()->default_value("test-dir"), "Input directory to parse");
+            ("start_date", value<string>()->default_value("2020-03-01"), "First date to handle")
+            ("end_date", value<string>()->default_value(""), "Last date to handle")
+            ("min_cbg", value<size_t>()->default_value(1), "Minimum CBG ID")
+            ("max_cbg", value<size_t>()->default_value(10), "Maximum CBG ID")
+            ("input_dir", value<string>()->default_value("./test-dir"), "Input directory to parse");
 
     return hpx::init(desc_commandline, argc, argv);
 }

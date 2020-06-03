@@ -4,11 +4,17 @@
 
 #include "TileServer.hpp"
 #include <absl/strings/str_split.h>
+#include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
+#include <hpx/parallel/execution.hpp>
+#include <hpx/parallel/algorithms/transform.hpp>
 #include <io/csv_reader.hpp>
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+
+static const boost::regex brackets("\\[|\\]");
+static const boost::regex cbg_map_replace("{|\"|}");
 
 GDALDatasetUniquePtr openShapefile(const std::string &shapefile_name) {
     // GDAL Features don't support multi-threaded queries, so we open the dataset on each thread, to work around this.
@@ -31,20 +37,38 @@ namespace components::server {
         _distances.reserve(_dim._time_count);
         _visits.reserve(_dim._time_count);
 
-        for (int i = 0; i < 10; i++) {
-            _distances.emplace_back(_dim._cbg_count, _dim._cbg_count, 0.0F);
-            _visits.emplace_back(_dim._cbg_count, _dim._cbg_count, 0.0F);
-        }
+        visit_matrix v(100, 100, 0);
+        distance_matrix d(100, 100, 0.0F);
+
+        // This is broken, I think it has to do with the wonky way we're initializing things
+        // We shouldn't do it this way.
+
+//        for (int i = 0; i < 10; i++) {
+////            visit_matrix v(100, 100, 0);
+////            distance_matrix d(100, 100, 0.0F);
+//            _visits.emplace_back(100, 100, 0);
+////            _distances.push_back(&d);
+//        }
 
         // Read the CSV and filter out any that don't fit in
         const auto rows = extract_rows(filename);
 
         // iterate through each of the rows, figure out its CBG and expand it.
-        JoinedLocation l(hpx::find_here());
+        spdlog::debug("Initializing location join component");
+        JoinedLocation l({}, std::string("Not a shapefile"), std::string("./test-dir/poi.parquet"));
 
         for (const auto &row : rows) {
-            const auto loc_future = l.find_location(row.safegraph_place_id);
-            const auto row_future = hpx::async(expandRow, row);
+            hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
+            hpx::future<std::vector<v2>> row_future = hpx::async(expandRow, row);
+
+            using hpx::dataflow;
+            using hpx::util::unwrapping;
+
+            const auto res = dataflow(unwrapping([](const joined_location &loc, const std::vector<v2> &patterns) {
+                loc.location_cbg;
+                patterns.size();
+                return 1;
+            }), loc_future, row_future).get();
         }
 
     }
@@ -68,8 +92,8 @@ namespace components::server {
         string date_range_end;
         uint16_t raw_visit_counts;
         uint16_t raw_visitor_counts;
-        uint16_t visits_by_day;
-        uint16_t visits_by_each_hour;
+        string visits_by_day;
+        string visits_by_each_hour;
         uint64_t poi_cbg;
         string visitor_home_cbgs;
 
@@ -87,8 +111,8 @@ namespace components::server {
                    const string &date_range_end,
                    const uint16_t raw_visit_counts,
                    const uint16_t raw_visitor_counts,
-                   const uint16_t visits_by_day,
-                   const uint16_t visits_by_each_hour,
+                   const string visits_by_day,
+                   const string visits_by_each_hour,
                    const uint64_t poi_cbg,
                    const string &visitor_home_cbgs) {
                     weekly_pattern loc{safegraph_place_id,
@@ -149,17 +173,38 @@ namespace components::server {
 
     std::vector<v2> TileServer::expandRow(const weekly_pattern &row) {
 
-        const auto split_visits = absl::StrSplit(row.visitor_home_cbgs, ",");
+        // Extract the number of visits each day
+        const auto replaced = boost::regex_replace(row.visits_by_day, brackets, std::string(""));
+        // Return a vector of string, because stoi doesn't support string_view.
+        const std::vector<std::string> split_visits = absl::StrSplit(replaced, ',');
+        std::vector<std::uint16_t> visits;
+        std::transform(split_visits.begin(), split_visits.end(), std::back_inserter(visits), [](const auto &tr) {
+            return std::stoi(tr);
+        });
 
-        const std::vector<int> visits;
+        // Extract the CBGs which get visited
+        const auto cbg_replaced = boost::regex_replace(row.visitor_home_cbgs, cbg_map_replace, "");
+        // Split into key/pairs, then split the pairs
+        const auto visit_pairs = absl::StrSplit(cbg_replaced, ',');
+        std::vector<std::pair<std::string, std::string>> cbg_visits;
+        std::transform(visit_pairs.begin(), visit_pairs.end(), std::back_inserter(cbg_visits), [](const auto &kv_pair) {
+            return absl::StrSplit(kv_pair, ':');
+        });
 
-//        std::transform(split_visits.begin(), split_visits.end(), visits.begin(), [](const auto &tr) {
-//            int val;
-//            std::from_chars(tr.data(), tr.data() + tr.size(), val);
-//            return val;
-//        });
+        std::vector<v2> output;
+        const std::size_t r = visits.size() * cbg_visits.size();
+        spdlog::debug("Expecting {} rows", r);
+        output.reserve(r);
 
-
-        return {};
+        // Iterate through both sets and generate a v2 struct for each day/cbg pair
+        for (int i = 0; i < visits.size(); i++) {
+            const auto visit = visits[i];
+            for (const auto& cbg_pair : cbg_visits) {
+                const v2 day{row.safegraph_place_id, static_cast<float>(0.0 + i), cbg_pair.first, visit, 0.0F, 0.0F};
+                output.push_back(day);
+            }
+        }
+        spdlog::debug("Returning output");
+        return output;
     }
 }

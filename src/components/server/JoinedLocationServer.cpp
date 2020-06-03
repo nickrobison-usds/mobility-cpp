@@ -3,6 +3,7 @@
 //
 #include "JoinedLocationServer.hpp"
 #include <io/csv_reader.hpp>
+#include <io/parquet.hpp>
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
 #include <utility>
@@ -13,10 +14,10 @@ namespace par = hpx::parallel;
 
 namespace components::server {
 
-    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile) :
+    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file) :
             _csv_file(std::move(csv_files)),
             _shapefile(std::move(shapefile)),
-            _parquet(io::Parquet(std::string("data/hello.parquet"))),
+            _parquet(std::move(parquet_file)),
             _cache(loadLocationCache()) {
     }
 
@@ -24,27 +25,30 @@ namespace components::server {
 
         absl::flat_hash_map<std::string, joined_location> m;
 
-        const auto table = _parquet.read();
+        // No idea why we can't get the string to pass correctly.
+        const io::Parquet parquet("./test-dir/poi.parquet/part.0.parquet");
 
-        auto location_id = static_pointer_cast<arrow::StringArray>(table->column(0)->chunk(0));
-        auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
-        auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(2)->chunk(0));
-        auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
+        const auto table = parquet.read();
+
+        auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(0)->chunk(0));
+        auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
+        auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
+        auto location_id = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
 
         for (std::int64_t i = 0; i < table->num_rows(); i++) {
-            const std::string id = location_id->GetString(i);
             const double lat = latitude->Value(i);
             const double lon = longitude->Value(i);
             const std::string cbg = location_cbg->GetString(i);
-            const std::uint64_t cbg_code = std::stol(cbg);
-            joined_location l = {id, lat, lon, cbg_code};
+            const std::string id = location_id->GetString(i);
+
+            joined_location l = {id, lat, lon, cbg};
             m.emplace(std::make_pair(id, l));
         };
 
         return m;
     }
 
-    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) {
+    joined_location JoinedLocationServer::find_location(const std::string& safegraph_place_id) {
         return _cache.at(safegraph_place_id);
     }
 

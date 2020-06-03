@@ -8,7 +8,6 @@
 #include <string>
 #include "../include/components/data.hpp"
 #include <io/shapefile.hpp>
-#include <io/parquet.hpp>
 #include <absl/container/flat_hash_map.h>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
@@ -22,10 +21,10 @@ namespace components::server {
 
     public:
 
-        JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile);
+        JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file);
 
         std::vector<safegraph_location> invoke();
-        joined_location find_location(const std::string &safegraph_place_id);
+        joined_location find_location(const std::string& safegraph_place_id);
         HPX_DEFINE_COMPONENT_ACTION(JoinedLocationServer, invoke);
         HPX_DEFINE_COMPONENT_ACTION(JoinedLocationServer, find_location);
 
@@ -33,7 +32,7 @@ namespace components::server {
         const std::vector<std::string> _csv_file;
         const std::string _shapefile;
         const absl::flat_hash_map<std::string, joined_location> _cache;
-        const io::Parquet _parquet;
+        const std::string _parquet;
 
         hpx::future<int> read_shapefile(std::shared_ptr<GDALDataset> &ptr) const;
         hpx::future<std::vector<safegraph_location>> read_csv(std::string csv_file) const;

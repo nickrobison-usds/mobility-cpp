@@ -18,7 +18,7 @@ namespace components::server {
     class TileServer : public hpx::components::component_base<TileServer> {
 
     public:
-        typedef blaze::DynamicMatrix<uint16_t> visit_matrix;
+        typedef blaze::DynamicMatrix<int> visit_matrix;
         typedef blaze::DynamicMatrix<double> distance_matrix;
 
         TileServer();

@@ -12,7 +12,8 @@ using namespace std;
 namespace io {
 
 
-    Parquet::Parquet(string filename) : _filename{move(filename)} {
+    Parquet::Parquet(string filename) :
+    _filename{move(filename)} {
     }
 
     shared_ptr<arrow::Table> Parquet::read() const {

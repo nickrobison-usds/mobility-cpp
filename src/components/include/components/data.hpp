@@ -38,8 +38,8 @@ struct weekly_pattern {
     string date_range_end;
     uint16_t raw_visit_counts;
     uint16_t raw_visitor_counts;
-    uint16_t visits_by_day;
-    uint16_t visits_by_each_hour;
+    string visits_by_day;
+    string visits_by_each_hour;
     uint64_t poi_cbg;
     string visitor_home_cbgs;
 };
@@ -73,7 +73,7 @@ struct joined_location {
     string safegraph_place_id;
     double latitude;
     double longitude;
-    uint64_t location_cbg;
+    string location_cbg;
 
     // Serialization support: even if all of the code below runs on one
     // locality only, we need to provide an (empty) implementation for the
