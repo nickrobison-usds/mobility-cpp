@@ -20,9 +20,9 @@ namespace components::server {
         typedef blaze::DynamicMatrix<int> visit_matrix;
         typedef blaze::DynamicMatrix<double> distance_matrix;
 
-        TileServer();
+        TileServer(TileDimension dim);
 
-        void init(const std::string &filename, const TileDimension &dim, std::size_t num_nodes);
+        void init(const std::string &filename, std::size_t num_nodes);
 
         HPX_DEFINE_COMPONENT_ACTION(TileServer, init);
 

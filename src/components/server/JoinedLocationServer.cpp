@@ -2,49 +2,82 @@
 // Created by Nicholas Robison on 5/22/20.
 //
 #include "JoinedLocationServer.hpp"
+#include <boost/filesystem.hpp>
 #include <io/csv_reader.hpp>
 #include <io/parquet.hpp>
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
+#include <algorithm>
 #include <utility>
 
 #include "spdlog/spdlog.h"
 
 namespace par = hpx::parallel;
+namespace fs = boost::filesystem;
 
 namespace components::server {
+
+    std::vector<std::string> getParquetFiles(const std::string &path_string) {
+        // Determine if the file path is a directory or a single file. If it's a directory, we'll need to iterate over the values
+        const fs::path file_path(path_string);
+        std::vector<std::string> files;
+        if (fs::is_regular_file(file_path)) {
+            files.push_back(file_path.string());
+        } else {
+            for (auto &p : fs::directory_iterator(file_path)) {
+                // Skip if not a file or not parquet
+                if (!boost::filesystem::is_regular_file(p.status()))
+                    continue;
+
+                if (fs::extension(p) != ".parquet") {
+                    continue;
+                }
+
+                files.push_back(p.path().string());
+            };
+        }
+
+        return files;
+    }
 
     JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file) :
             _csv_file(std::move(csv_files)),
             _shapefile(std::move(shapefile)),
             _parquet(std::move(parquet_file)),
             _cache(loadLocationCache()) {
+        parquet_file.length();
     }
 
     absl::flat_hash_map<std::string, joined_location> JoinedLocationServer::loadLocationCache() const {
-
+        spdlog::debug("Loading POI cache");
         absl::flat_hash_map<std::string, joined_location> m;
 
-        // No idea why we can't get the string to pass correctly.
-        const io::Parquet parquet("./test-dir/poi.parquet/part.0.parquet");
+        const auto files = getParquetFiles(_shapefile);
 
-        const auto table = parquet.read();
+        std::for_each(files.begin(), files.end(), [&m](const auto &file) {
+            spdlog::debug("Reading {}", file);
 
-        auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(0)->chunk(0));
-        auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
-        auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
-        auto location_id = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
+            // No idea why we can't get the string to pass correctly.
+            const io::Parquet parquet(file);
 
-        for (std::int64_t i = 0; i < table->num_rows(); i++) {
-            const double lat = latitude->Value(i);
-            const double lon = longitude->Value(i);
-            const std::string cbg = location_cbg->GetString(i);
-            const std::string id = location_id->GetString(i);
+            const auto table = parquet.read();
 
-            joined_location l = {id, lat, lon, cbg};
-            m.emplace(std::make_pair(id, l));
-        };
+            auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(0)->chunk(0));
+            auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
+            auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
+            auto location_id = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
 
+            for (std::int64_t i = 0; i < table->num_rows(); i++) {
+                const double lat = latitude->Value(i);
+                const double lon = longitude->Value(i);
+                const std::string cbg = location_cbg->GetString(i);
+                const std::string id = location_id->GetString(i);
+
+                joined_location l = {id, lat, lon, cbg};
+                m.emplace(std::make_pair(id, l));
+            };
+        });
+        spdlog::debug("Cache loading complete. {} Entries", m.size());
         return m;
     }
 

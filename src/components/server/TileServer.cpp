@@ -14,6 +14,7 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <utility>
 
 static const boost::regex brackets("\\[|\\]");
 static const boost::regex cbg_map_replace("{|\"|}");
@@ -169,13 +170,11 @@ namespace components::server {
         return output;
     };
 
-    TileServer::TileServer() : _dim(), _visits(), _distances() {
+    TileServer::TileServer(TileDimension dim) : _dim(std::move(dim)), _visits(), _distances() {
         // Not used
     };
 
-    void TileServer::init(const std::string &filename, const components::TileDimension &dim,
-                          std::size_t num_nodes) {
-        _dim = dim;
+    void TileServer::init(const std::string &filename, std::size_t num_nodes) {
 
         // Create and fill the matrices
         _distances.reserve(_dim._time_count);
@@ -199,9 +198,9 @@ namespace components::server {
 
         // iterate through each of the rows, figure out its CBG and expand it.
         spdlog::debug("Initializing location join component");
-        JoinedLocation l({}, std::string("Not a shapefile"), std::string("./test-dir/poi.parquet"));
+        JoinedLocation l({}, _dim._poi_parquet, _dim._poi_parquet);
         spdlog::debug("Initializing shapefile component");
-        ShapefileWrapper s(std::string("/Users/raac/Development/covid/mobility-analysis/data/reference/census/block_groups.shp"));
+        ShapefileWrapper s(_dim._cbg_shp);
 
 
         std::vector<hpx::future<std::vector<v2>>> results;

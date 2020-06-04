@@ -15,7 +15,6 @@ namespace components {
     }
 
     JoinedLocation::JoinedLocation(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file): client_base(hpx::new_<server::JoinedLocationServer>(hpx::find_here(), csv_files, shapefile, parquet_file))  {
-
     }
 }
 typedef hpx::components::component<

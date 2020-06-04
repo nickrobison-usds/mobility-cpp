@@ -19,7 +19,9 @@ class TileClient : public hpx::components::client_base<TileClient, components::s
 
         explicit TileClient(hpx::id_type &&f) : client_base(std::move(f)) {};
 
-        hpx::future<void> init(const std::string &filename, const TileDimension &dim, std::size_t num_nodes) const;
+        explicit TileClient(const TileDimension &dim);
+
+        hpx::future<void> init(const std::string &filename, std::size_t num_nodes) const;
     };
 }
 

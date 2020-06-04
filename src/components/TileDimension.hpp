@@ -17,14 +17,14 @@ namespace components {
         std::size_t _cbg_count;  // Max X/Y
         std::size_t _time_offset; // Min Z
         std::size_t _time_count; // Max Z
+        std::string _cbg_shp;
+        std::string _poi_parquet;
 
-        TileDimension() :
-                _cbg_offset(0), _cbg_count(0), _time_offset(0), _time_count(0) {};
         friend class hpx::serialization::access;
 
         template<typename Archive>
         void serialize(Archive &ar, const unsigned int version) {
-            ar & _cbg_offset & _cbg_count & _time_offset & _time_count;
+            ar & _cbg_offset & _cbg_count & _time_offset & _time_count & _cbg_shp & _poi_parquet;
         }
     };
 }

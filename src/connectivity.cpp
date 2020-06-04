@@ -14,6 +14,12 @@
 #include <iomanip>
 #include <hpx/runtime/find_localities.hpp>
 
+// The smallest and largest CBG codes. These shouldn't ever change
+const static uint64_t min_cbg = 010010201001;
+const static uint64_t max_cbg = 780309900000;
+// Max size of X, Y axis
+const static uint64_t cbg_bounds = max_cbg - min_cbg;
+
 using namespace std;
 
 typedef chrono::duration<int, ratio_multiply<chrono::hours::period, ratio<24>>::type> days;
@@ -27,15 +33,32 @@ chrono::system_clock::time_point parse_date(const string &date) {
     return tp;
 }
 
+fs::path buildPath(const fs::path &root_path, const string &path_string) {
+    fs::path appender(path_string);
+    if (appender.is_relative()) {
+        return fs::path(root_path) /= appender;
+    };
+    return appender;
+};
+
+
 int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v");
     spdlog::info("Initializing connectivity calculator");
 
-    const string input_dir = vm["input_dir"].as<string>();
+    // Build the file paths
+    const string input_dir = vm["data_dir"].as<string>();
+    const fs::path data_dir(fs::absolute(fs::path(input_dir)));
+    const auto cbg_str = vm["cbg_shp"].as<string>();
+    const auto cbg_path = buildPath(data_dir, cbg_str);
+    const auto poi_str = vm["poi_parquet"].as<string>();
+    const auto poi_path = buildPath(data_dir, poi_str);
+    const auto csv_str = vm["pattern_csvs"].as<string>();
+    const auto csv_path = buildPath(data_dir, csv_str);
+
+
     const string date_string = vm["start_date"].as<string>();
-    const size_t min_cbg = vm["min_cbg"].as<size_t>();
-    const size_t max_cbg = vm["min_cbg"].as<size_t>();
     // TODO: Would be nice to combine this with the previous call.
     const auto start_date = parse_date(date_string);
 
@@ -49,24 +72,20 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     }
     // Max size of Z axis
     const auto time_bounds = chrono::duration_cast<days>(end_date - start_date).count();
-    // Max size of X, Y axis
-    const size_t cbg_bounds = max_cbg - min_cbg;
 
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    const auto files = partition_files(input_dir, locales.size(), ".*patterns\\.csv");
-    vector <string> f;
+    const auto files = partition_files(csv_path.string(), locales.size(), ".*patterns\\.csv");
+    vector<string> f;
     std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
         return file.path().string();
     });
 
     // Create the Tile Server and start it up
-    components::TileDimension dim;
-    dim._cbg_count = 100;
-    dim._time_count = 10;
-    components::TileClient t(hpx::find_here());
-    auto init_future = t.init(f[0], dim, 1);
+    components::TileDimension dim{0, 100, 10, 0, cbg_path.string(), poi_path.string()};
+    components::TileClient t(dim);
+    auto init_future = t.init(f[0], 1);
     init_future.get();
 
 
@@ -80,9 +99,12 @@ int main(int argc, char **argv) {
     desc_commandline.add_options()
             ("start_date", value<string>()->default_value("2020-03-01"), "First date to handle")
             ("end_date", value<string>()->default_value(""), "Last date to handle")
-            ("min_cbg", value<size_t>()->default_value(1), "Minimum CBG ID")
-            ("max_cbg", value<size_t>()->default_value(10), "Maximum CBG ID")
-            ("input_dir", value<string>()->default_value("./test-dir"), "Input directory to parse");
+            ("data_dir", value<string>()->default_value("test-dir/"), "Root of data directory")
+            ("cbg_shp", value<string>()->default_value("reference/census/block_groups.shp"), "CBG shapefile")
+            ("poi_parquet", value<string>()->default_value("reference/Joined_POI.parquet"),
+             "Parquet file with POI information")
+            ("pattern_csvs", value<string>()->default_value("safegraph/weekly-patterns/"),
+             "Directory with weekly pattern files");
 
     return hpx::init(desc_commandline, argc, argv);
 }
