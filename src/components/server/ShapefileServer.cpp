@@ -30,4 +30,28 @@ namespace components::server {
 
         return res;
     }
+
+    ShapefileServer::offset_type ShapefileServer::build_offsets() const {
+        ShapefileServer::offset_type offsets;
+        std::vector<std::string> geoids;
+
+        std::size_t idx = 0;
+        const auto layer = _shapefile->GetLayer(0);
+        // Reset the filter, since we want everything
+        layer->SetAttributeFilter(nullptr);
+        offsets.reserve(layer->GetFeatureCount());
+        geoids.reserve(layer->GetFeatureCount());
+
+        std::for_each(layer->begin(), layer->end(), [&geoids](auto &feature) {
+            geoids.push_back(feature->GetFieldAsString("GEOID"));
+        });
+        std::sort(geoids.begin(), geoids.end());
+        std::for_each(geoids.begin(), geoids.end(), [&offsets, &idx](const auto &geoid) {
+            offsets.emplace_back(geoid, idx);
+            idx++;
+        });
+
+        return offsets;
+    }
+
 }

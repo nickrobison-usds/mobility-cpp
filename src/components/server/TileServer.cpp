@@ -6,6 +6,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
+#include <boost/bimap.hpp>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
@@ -27,17 +28,19 @@ const static uint64_t max_cbg = 780309900000;
 // Max size of X, Y axis
 const static uint64_t cbg_bounds = max_cbg - min_cbg;
 
+typedef boost::bimap<std::string, std::size_t> offset_bimap;
+typedef offset_bimap::value_type position;
+
 namespace components::server {
 
     /**
      * Compute the local offset for a given CBG code
+     * @param map - Map of CBG-codes to their size_t matrix offset
      * @param cbg_code - CBG code (string)
      * @return offset
      */
-    size_t inline calculate_cbg_offset(const std::string &cbg_code) {
-        const auto cbg = std::stol(cbg_code);
-        // FIXME: Completely wrong, but we may have an issue with not being able to allocate enough memory
-        return std::min(99ULL, cbg - min_cbg);
+    size_t calculate_cbg_offset(const offset_bimap &map, const std::string &cbg_code) {
+        return map.left.at(cbg_code);
     };
 
     std::vector<weekly_pattern> extract_rows(const string &filename) {
@@ -149,7 +152,8 @@ namespace components::server {
     };
 
 
-    std::vector<v2> expandRow(const weekly_pattern &row, const std::vector<std::pair<std::string, std::uint16_t>> &cbg_visits) {
+    std::vector<v2>
+    expandRow(const weekly_pattern &row, const std::vector<std::pair<std::string, std::uint16_t>> &cbg_visits) {
         // Extract the number of visits each day
         const auto replaced = boost::regex_replace(row.visits_by_day, brackets, std::string(""));
         // Return a vector of string, because stoi doesn't support string_view.
@@ -173,8 +177,9 @@ namespace components::server {
         // Iterate through both sets and generate a v2 struct for each day/cbg pair
         for (int i = 0; i < visits.size(); i++) {
             const auto visit = visits[i];
-            for (const auto& cbg_pair : cbg_visits) {
-                const v2 day{row.safegraph_place_id, row.date_range_start + date::days{i}, "", cbg_pair.first, visit, 0.0F, 0.0F};
+            for (const auto &cbg_pair : cbg_visits) {
+                const v2 day{row.safegraph_place_id, row.date_range_start + date::days{i}, "", cbg_pair.first, visit,
+                             0.0F, 0.0F};
                 output.push_back(day);
             }
         }
@@ -191,10 +196,6 @@ namespace components::server {
         // Create and fill the matrices
         _distances.reserve(_dim._time_count);
         _visits.reserve(_dim._time_count);
-
-        absl::Mutex matrix_lock;
-        visit_matrix v(100, 100, 0);
-        distance_matrix d(100, 100, 0.0F);
 
         // This is broken, I think it has to do with the wonky way we're initializing things
         // We shouldn't do it this way.
@@ -215,42 +216,61 @@ namespace components::server {
         spdlog::debug("Initializing shapefile component");
         ShapefileWrapper s(_dim._cbg_shp);
 
+        // TODO: This should be where we do async initialization
+        // Build the CBG offsetmap
+        offset_bimap cbg_offsets;
+        s.build_offsets().then([&cbg_offsets](auto of) {
+            const auto offsets = of.get();
+            std::for_each(offsets.begin(), offsets.end(), [&cbg_offsets](const auto &pair) {
+                cbg_offsets.insert(position(pair.first, pair.second));
+            });
+        }).get();
 
-        std::vector<hpx::future<std::vector<v2>>> results;
+        absl::Mutex matrix_lock;
+        spdlog::debug("Allocating Visit matrix of size {}x{}", cbg_offsets.size());
+        visit_matrix v(cbg_offsets.size(), cbg_offsets.size(), 0);
+        spdlog::debug("Allocating Distance matrix");
+        distance_matrix d(cbg_offsets.size(), cbg_offsets.size(), 0.0F);
+
+
+        std::vector < hpx::future < std::vector < v2 >> > results;
         results.reserve(rows.size());
         for (const auto &row : rows) {
             const auto visits = extract_cbg_visits(row);
-            std::vector<std::string> cbgs;
+            std::vector <std::string> cbgs;
             std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
                 return pair.first;
             });
 
-            hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
-            hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+            hpx::future <joined_location> loc_future = l.find_location(row.safegraph_place_id);
+            hpx::future <std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
 
             using hpx::dataflow;
             using hpx::util::unwrapping;
 
             auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
+                absl::flat_hash_map <std::string, OGRPoint> map(centroids.begin(), centroids.end());
                 return map;
             }));
 
-            auto res = dataflow(unwrapping([this](const joined_location &loc, const std::vector<v2> &patterns, const auto &centroids) {
-                spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
-                const OGRPoint loc_point(loc.longitude, loc.latitude);
-                patterns.size();
-                std::vector<v2> o;
-                o.reserve(patterns.size());
-                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&centroids, &loc_point, &loc](auto &row) {
-                    const auto cbg_centroid = centroids.at(row.visit_cbg);
-                    const auto distance = loc_point.Distance(&cbg_centroid);
-                    v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg, row.visit_cbg, row.visits, distance, 0.0F};
-                    return r2;
-                });
-                spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
-                return o;
-            }), loc_future, row_future, centroid_future);
+            auto res = dataflow(unwrapping(
+                    [this](const joined_location &loc, const std::vector <v2> &patterns, const auto &centroids) {
+                        spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
+                        const OGRPoint loc_point(loc.longitude, loc.latitude);
+                        patterns.size();
+                        std::vector <v2> o;
+                        o.reserve(patterns.size());
+                        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
+                                       [&centroids, &loc_point, &loc](auto &row) {
+                                           const auto cbg_centroid = centroids.at(row.visit_cbg);
+                                           const auto distance = loc_point.Distance(&cbg_centroid);
+                                           v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg,
+                                                 row.visit_cbg, row.visits, distance, 0.0F};
+                                           return r2;
+                                       });
+                        spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
+                        return o;
+                    }), loc_future, row_future, centroid_future);
 
             results.push_back(std::move(res));
         };
@@ -258,13 +278,15 @@ namespace components::server {
 //        hpx::wait_all(results);
 //        spdlog::debug("Expansion complete, loading into matrix");
 
-        hpx::when_each([&matrix_lock, &v, &d](hpx::future<std::vector<v2>> rows) {
+        hpx::when_each([&cbg_offsets, &matrix_lock, &v, &d](hpx::future <std::vector<v2>> rows) {
             const auto expanded_rows = rows.get();
             spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
             matrix_lock.Lock();
-            std::for_each(expanded_rows.begin(), expanded_rows.end(), [&v, &d](const v2 &expanded_row) {
-                v(calculate_cbg_offset(expanded_row.location_cbg), calculate_cbg_offset(expanded_row.visit_cbg)) += expanded_row.visits;
-                d(calculate_cbg_offset(expanded_row.location_cbg), calculate_cbg_offset(expanded_row.visit_cbg)) += expanded_row.distance;
+            std::for_each(expanded_rows.begin(), expanded_rows.end(), [&cbg_offsets, &v, &d](const v2 &expanded_row) {
+                v(calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+                  calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg)) += expanded_row.visits;
+                d(calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+                  calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg)) += expanded_row.distance;
             });
             matrix_lock.Unlock();
             spdlog::debug("Finished adding rows");

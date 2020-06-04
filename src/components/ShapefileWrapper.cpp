@@ -13,6 +13,10 @@ namespace components {
     hpx::future<std::vector<std::pair<std::string, OGRPoint>>> ShapefileWrapper::get_centroids(const std::vector<std::string> &geoids) const {
         return hpx::async<server::ShapefileServer::get_centroids_action>(get_id(), geoids);
     }
+
+    hpx::future<server::ShapefileServer::offset_type> ShapefileWrapper::build_offsets() const {
+        return hpx::async<server::ShapefileServer::build_offsets_action>(get_id());
+    }
 }
 
 typedef hpx::components::component<
@@ -21,3 +25,4 @@ typedef hpx::components::component<
 
 HPX_REGISTER_COMPONENT(shapefile_type, ShapefileWrapper);
 HPX_REGISTER_ACTION(::components::server::ShapefileServer::get_centroids_action);
+HPX_REGISTER_ACTION(::components::server::ShapefileServer::build_offsets_action);
