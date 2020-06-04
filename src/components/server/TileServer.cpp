@@ -69,10 +69,20 @@ namespace components::server {
                    const string visits_by_each_hour,
                    const uint64_t poi_cbg,
                    const string &visitor_home_cbgs) {
+
+                    // Parse the start/end dates
+                    std::istringstream start{date_range_start};
+                    std::istringstream end{date_range_end};
+                    date::sys_days start_date;
+                    date::sys_days end_date;
+                    start >> date::parse("%F", start_date);
+                    end >> date::parse("%F", end_date);
+
+
                     weekly_pattern loc{safegraph_place_id,
                                        location_name,
-                                       date_range_start,
-                                       date_range_end,
+                                       start_date,
+                                       end_date,
                                        raw_visit_counts,
                                        raw_visitor_counts,
                                        visits_by_day,
@@ -151,7 +161,7 @@ namespace components::server {
         for (int i = 0; i < visits.size(); i++) {
             const auto visit = visits[i];
             for (const auto& cbg_pair : cbg_visits) {
-                const v2 day{row.safegraph_place_id, static_cast<float>(0.0 + i), cbg_pair.first, visit, 0.0F, 0.0F};
+                const v2 day{row.safegraph_place_id, row.date_range_start + date::days{i}, cbg_pair.first, visit, 0.0F, 0.0F};
                 output.push_back(day);
             }
         }

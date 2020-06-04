@@ -56,7 +56,7 @@ namespace components::server {
                     out.reserve(row.visits.size());
                     for (int i = 0; i < row.visits.size(); i++) {
                         auto visit = row.visits[i];
-                        out.push_back({row.location_cbg, row.visit_cbg, row.date + 1, visit, row.distance,
+                        out.push_back({row.location_cbg, row.visit_cbg, row.date + date::days{i}, visit, row.distance,
                                        visit * row.distance});
                     }
                     return out;
@@ -86,7 +86,10 @@ namespace components::server {
             catch (const invalid_argument &e) {
                 spdlog::critical("Problem doing conversion: {}\n{}", e.what(), visit_str);
             }
-            rows.push_back({cbg, visit, d2, v2, d});
+
+            data_row v{cbg, visit, date::sys_days(date::days{d2}), v2, d};
+
+            rows.push_back(v);
         }
 
         return rows;

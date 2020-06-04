@@ -30,4 +30,12 @@ namespace hpx::serialization {
         double y = fp.getY();
         ar & x & y;
     }
+
+    void serialize(input_archive &ar, date::sys_days &dt, unsigned int const) {
+        ar & dt;
+    }
+
+    void serialize(output_archive &ar, date::sys_days &dt, unsigned int const) {
+        ar & dt;
+    }
 }

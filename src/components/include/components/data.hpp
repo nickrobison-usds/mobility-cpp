@@ -10,6 +10,7 @@
 #include <utility>
 #include "serializers.hpp"
 #include "ogr_geometry.h"
+#include <date/date.h>
 
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/fmt/fmt.h"
@@ -19,7 +20,7 @@ using namespace std;
 struct data_row {
     string location_cbg;
     string visit_cbg;
-    int date;
+    date::sys_days date;
     vector<int16_t> visits;
     double distance;
 
@@ -34,8 +35,8 @@ struct data_row {
 struct weekly_pattern {
     string safegraph_place_id;
     string location_name;
-    string date_range_start;
-    string date_range_end;
+    date::sys_days date_range_start;
+    date::sys_days date_range_end;
     uint16_t raw_visit_counts;
     uint16_t raw_visitor_counts;
     string visits_by_day;
@@ -47,7 +48,7 @@ struct weekly_pattern {
 struct visit_row {
     string location_cbg;
     string visit_cbg;
-    int date;
+    date::sys_days date;
     int16_t visits;
     double distance;
     double weighted_total;
@@ -62,7 +63,7 @@ struct visit_row {
 
 struct v2 {
     string safegraph_place_id;
-    float visit_date;
+    date::sys_days visit_date;
     string visit_cbg;
     uint16_t visits;
     double distance;

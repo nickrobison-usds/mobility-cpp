@@ -7,6 +7,7 @@
 
 #include <arrow/api.h>
 #include <ogr_geometry.h>
+#include <date/date.h>
 #include <hpx/serialization/serialize.hpp>
 
 /**
@@ -25,6 +26,12 @@ namespace hpx::serialization {
 
     void
     serialize(output_archive &ar, OGRPoint &fp, unsigned int const);
+
+    void
+    serialize(input_archive &ar, date::sys_days &dt, unsigned int const);
+
+    void
+    serialize(output_archive &ar, date::sys_days &dt, unsigned int const);
 }
 
 #endif //MOBILITY_CPP_SERIALIZERS_HPP

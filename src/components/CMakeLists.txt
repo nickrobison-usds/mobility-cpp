@@ -15,7 +15,7 @@ add_library(components
         TileDimension.hpp include/components/TileClient.hpp TileClient.cpp
         server/ShapefileServer.cpp server/ShapefileServer.hpp
         ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp)
-target_link_libraries(components PUBLIC hpx blaze PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::strings Boost::regex)
+target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::strings Boost::regex)
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
