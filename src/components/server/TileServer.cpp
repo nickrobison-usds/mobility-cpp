@@ -27,6 +27,79 @@ GDALDatasetUniquePtr openShapefile(const std::string &shapefile_name) {
 
 namespace components::server {
 
+    std::vector<weekly_pattern> extract_rows(const string &filename) {
+
+        // Get date from filename
+        spdlog::debug("Reading {}", filename);
+        io::CSVLoader<17, true> l(filename);
+
+        string safegraph_place_id;
+        string location_name;
+        string street_address;
+        string city;
+        string region;
+        string postal_code;
+        string iso_country_code;
+        string safegraph_brand_ids;
+        string brands;
+        string date_range_start;
+        string date_range_end;
+        uint16_t raw_visit_counts;
+        uint16_t raw_visitor_counts;
+        string visits_by_day;
+        string visits_by_each_hour;
+        uint64_t poi_cbg;
+        string visitor_home_cbgs;
+
+        return l.read<weekly_pattern>(
+                [](const string &safegraph_place_id,
+                   const string &location_name,
+                   const string &street_address,
+                   const string &city,
+                   const string &region,
+                   const string &postal_code,
+                   const string &iso_country_code,
+                   const string &safegraph_brand_ids,
+                   const string &brands,
+                   const string &date_range_start,
+                   const string &date_range_end,
+                   const uint16_t raw_visit_counts,
+                   const uint16_t raw_visitor_counts,
+                   const string visits_by_day,
+                   const string visits_by_each_hour,
+                   const uint64_t poi_cbg,
+                   const string &visitor_home_cbgs) {
+                    weekly_pattern loc{safegraph_place_id,
+                                       location_name,
+                                       date_range_start,
+                                       date_range_end,
+                                       raw_visit_counts,
+                                       raw_visitor_counts,
+                                       visits_by_day,
+                                       visits_by_each_hour,
+                                       poi_cbg,
+                                       visitor_home_cbgs};
+
+                    return loc;
+                }, safegraph_place_id,
+                location_name,
+                street_address,
+                city,
+                region,
+                postal_code,
+                iso_country_code,
+                safegraph_brand_ids,
+                brands,
+                date_range_start,
+                date_range_end,
+                raw_visit_counts,
+                raw_visitor_counts,
+                visits_by_day,
+                visits_by_each_hour,
+                poi_cbg,
+                visitor_home_cbgs);
+    }
+
     std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const weekly_pattern &row) {
         // Extract the CBGs which get visited
         const auto cbg_replaced = boost::regex_replace(row.visitor_home_cbgs, cbg_map_replace, "");
@@ -162,104 +235,5 @@ namespace components::server {
         spdlog::debug("Waiting for {} rows", results.size());
         hpx::wait_all(results);
         spdlog::debug("It's done");
-    }
-
-    std::vector<weekly_pattern> TileServer::extract_rows(const string &filename) {
-
-        // Get date from filename
-        spdlog::debug("Reading {}", filename);
-        io::CSVLoader<17, true> l(filename);
-
-        string safegraph_place_id;
-        string location_name;
-        string street_address;
-        string city;
-        string region;
-        string postal_code;
-        string iso_country_code;
-        string safegraph_brand_ids;
-        string brands;
-        string date_range_start;
-        string date_range_end;
-        uint16_t raw_visit_counts;
-        uint16_t raw_visitor_counts;
-        string visits_by_day;
-        string visits_by_each_hour;
-        uint64_t poi_cbg;
-        string visitor_home_cbgs;
-
-        return l.read<weekly_pattern>(
-                [](const string &safegraph_place_id,
-                   const string &location_name,
-                   const string &street_address,
-                   const string &city,
-                   const string &region,
-                   const string &postal_code,
-                   const string &iso_country_code,
-                   const string &safegraph_brand_ids,
-                   const string &brands,
-                   const string &date_range_start,
-                   const string &date_range_end,
-                   const uint16_t raw_visit_counts,
-                   const uint16_t raw_visitor_counts,
-                   const string visits_by_day,
-                   const string visits_by_each_hour,
-                   const uint64_t poi_cbg,
-                   const string &visitor_home_cbgs) {
-                    weekly_pattern loc{safegraph_place_id,
-                                       location_name,
-                                       date_range_start,
-                                       date_range_end,
-                                       raw_visit_counts,
-                                       raw_visitor_counts,
-                                       visits_by_day,
-                                       visits_by_each_hour,
-                                       poi_cbg,
-                                       visitor_home_cbgs};
-
-                    return loc;
-                }, safegraph_place_id,
-                location_name,
-                street_address,
-                city,
-                region,
-                postal_code,
-                iso_country_code,
-                safegraph_brand_ids,
-                brands,
-                date_range_start,
-                date_range_end,
-                raw_visit_counts,
-                raw_visitor_counts,
-                visits_by_day,
-                visits_by_each_hour,
-                poi_cbg,
-                visitor_home_cbgs);
-    }
-
-    std::tuple<std::uint64_t, std::uint64_t, double> TileServer::computeDistance(const safegraph_location &row) const {
-        return {};
-//
-//        OGRPoint loc(row.longitude, row.latitude);
-//
-//        const auto layer = _p->GetLayer(0);
-//        // Set a new filter on the shapefile layer
-//        layer->SetSpatialFilter(&loc);
-//        // Find the cbg that intersects (which should be the first one)
-//        spdlog::debug("Matching features: {}", layer->GetFeatureCount(true));
-//        const auto feature = layer->GetNextFeature();
-//        const auto loc_cbg_str = feature->GetFieldAsString("GEOID");
-//        const auto geom = feature->GetGeometryRef();
-//        OGRPoint cbg_centroid;
-//        geom->Centroid(&cbg_centroid);
-//        const double distance = cbg_centroid.Distance(&loc);
-//
-//        // Parse the strings to longs
-//        std::string::size_type sz;
-//        const std::uint64_t loc_cbg = std::stol(loc_cbg_str, &sz);
-//        // This is completely wrong
-//        const std::uint64_t dest_cbg = std::stol(row.safegraph_place_id, &sz);
-//
-//        return std::tuple<std::uint64_t, std::uint64_t, double>(loc_cbg, dest_cbg, distance);
     }
 }

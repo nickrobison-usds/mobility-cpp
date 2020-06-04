@@ -29,6 +29,7 @@ chrono::system_clock::time_point parse_date(const string &date) {
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::set_level(spdlog::level::debug);
+    spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v");
     spdlog::info("Initializing connectivity calculator");
 
     const string input_dir = vm["input_dir"].as<string>();

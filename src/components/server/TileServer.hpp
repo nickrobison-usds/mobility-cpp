@@ -30,9 +30,6 @@ namespace components::server {
         components::TileDimension _dim;
         std::vector<visit_matrix> _visits;
         std::vector<distance_matrix> _distances;
-
-        static std::vector<weekly_pattern> extract_rows(const std::string &filename);
-        std::tuple<std::uint64_t , std::uint64_t, double> computeDistance(const safegraph_location &row) const;
     };
 }
 
