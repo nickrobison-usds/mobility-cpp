@@ -5,6 +5,7 @@
 #include "TileServer.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
@@ -19,14 +20,25 @@
 static const boost::regex brackets("\\[|\\]");
 static const boost::regex cbg_map_replace("{|\"|}");
 
-GDALDatasetUniquePtr openShapefile(const std::string &shapefile_name) {
-    // GDAL Features don't support multi-threaded queries, so we open the dataset on each thread, to work around this.
-    // A future improvement should be to cache this in the thread itself.
-    io::Shapefile s(shapefile_name);
-    return s.openFile();
-}
+// TODO: This shouldn't be copied, it should be passed
+// The smallest and largest CBG codes. These shouldn't ever change
+const static uint64_t min_cbg = 010010201001;
+const static uint64_t max_cbg = 780309900000;
+// Max size of X, Y axis
+const static uint64_t cbg_bounds = max_cbg - min_cbg;
 
 namespace components::server {
+
+    /**
+     * Compute the local offset for a given CBG code
+     * @param cbg_code - CBG code (string)
+     * @return offset
+     */
+    size_t inline calculate_cbg_offset(const std::string &cbg_code) {
+        const auto cbg = std::stol(cbg_code);
+        // FIXME: Completely wrong, but we may have an issue with not being able to allocate enough memory
+        return std::min(99ULL, cbg - min_cbg);
+    };
 
     std::vector<weekly_pattern> extract_rows(const string &filename) {
 
@@ -162,7 +174,7 @@ namespace components::server {
         for (int i = 0; i < visits.size(); i++) {
             const auto visit = visits[i];
             for (const auto& cbg_pair : cbg_visits) {
-                const v2 day{row.safegraph_place_id, row.date_range_start + date::days{i}, cbg_pair.first, visit, 0.0F, 0.0F};
+                const v2 day{row.safegraph_place_id, row.date_range_start + date::days{i}, "", cbg_pair.first, visit, 0.0F, 0.0F};
                 output.push_back(day);
             }
         }
@@ -180,6 +192,7 @@ namespace components::server {
         _distances.reserve(_dim._time_count);
         _visits.reserve(_dim._time_count);
 
+        absl::Mutex matrix_lock;
         visit_matrix v(100, 100, 0);
         distance_matrix d(100, 100, 0.0F);
 
@@ -229,10 +242,10 @@ namespace components::server {
                 patterns.size();
                 std::vector<v2> o;
                 o.reserve(patterns.size());
-                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&centroids, &loc_point](auto &row) {
+                std::transform(patterns.begin(), patterns.end(), std::back_inserter(o), [&centroids, &loc_point, &loc](auto &row) {
                     const auto cbg_centroid = centroids.at(row.visit_cbg);
                     const auto distance = loc_point.Distance(&cbg_centroid);
-                    v2 r2{row.safegraph_place_id, row.visit_date, row.visit_cbg, row.visits, distance, 0.0F};
+                    v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg, row.visit_cbg, row.visits, distance, 0.0F};
                     return r2;
                 });
                 spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
@@ -242,7 +255,25 @@ namespace components::server {
             results.push_back(std::move(res));
         };
         spdlog::debug("Waiting for {} rows", results.size());
-        hpx::wait_all(results);
+//        hpx::wait_all(results);
+//        spdlog::debug("Expansion complete, loading into matrix");
+
+        hpx::when_each([&matrix_lock, &v, &d](hpx::future<std::vector<v2>> rows) {
+            const auto expanded_rows = rows.get();
+            spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
+            matrix_lock.Lock();
+            std::for_each(expanded_rows.begin(), expanded_rows.end(), [&v, &d](const v2 &expanded_row) {
+                v(calculate_cbg_offset(expanded_row.location_cbg), calculate_cbg_offset(expanded_row.visit_cbg)) += expanded_row.visits;
+                d(calculate_cbg_offset(expanded_row.location_cbg), calculate_cbg_offset(expanded_row.visit_cbg)) += expanded_row.distance;
+            });
+            matrix_lock.Unlock();
+            spdlog::debug("Finished adding rows");
+        }, results).get();
+
+        // Now, multiply
+        spdlog::debug("Performing multiplication");
+        const auto matrix_result = v * d;
+
         spdlog::debug("It's done");
     }
 }

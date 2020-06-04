@@ -64,6 +64,7 @@ struct visit_row {
 struct v2 {
     string safegraph_place_id;
     date::sys_days visit_date;
+    string location_cbg;
     string visit_cbg;
     uint16_t visits;
     double distance;

@@ -49,13 +49,12 @@ namespace components::server {
     }
 
     absl::flat_hash_map<std::string, joined_location> JoinedLocationServer::loadLocationCache() const {
-        spdlog::debug("Loading POI cache");
+        spdlog::debug("Loading POI cache with {}", _shapefile);
         absl::flat_hash_map<std::string, joined_location> m;
 
         const auto files = getParquetFiles(_shapefile);
 
         std::for_each(files.begin(), files.end(), [&m](const auto &file) {
-            spdlog::debug("Reading {}", file);
 
             // No idea why we can't get the string to pass correctly.
             const io::Parquet parquet(file);
