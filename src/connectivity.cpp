@@ -83,7 +83,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     });
 
     // Create the Tile Server and start it up
-    components::TileDimension dim{0, 100, 10, 0, cbg_path.string(), poi_path.string()};
+    components::TileDimension dim{0, 100, 0, 7, cbg_path.string(), poi_path.string()};
     components::TileClient t(dim);
     auto init_future = t.init(f[0], 1);
     init_future.get();
