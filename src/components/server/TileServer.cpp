@@ -212,13 +212,13 @@ namespace components::server {
         // Initialize the Matricies
         TemporalMatricies matricies(_dim._time_count, cbg_offsets.size());
 
-        std::vector<hpx::future < std::vector<v2 >> > results;
+        std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
 
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
         spdlog::debug("Processing {} rows concurrently", _dim.nr);
-//        hpx::lcos::local::sliding_semaphore sem(_dim.nr);
+        hpx::lcos::local::sliding_semaphore sem(_dim.nr);
         for (std::size_t t = 0; t < rows.size(); t++) {
             const auto row = rows.at(t);
             const auto visits = extract_cbg_visits(row);
@@ -234,11 +234,11 @@ namespace components::server {
             using hpx::util::unwrapping;
 
             auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
+                absl::flat_hash_map <std::string, OGRPoint> map(centroids.begin(), centroids.end());
                 return map;
             }));
 
-            auto res = dataflow(unwrapping(
+            auto distance_res = dataflow(unwrapping(
                     [this](const joined_location &loc, const std::vector<v2> &patterns, const auto &centroids) {
                         spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
                         const OGRPoint loc_point(loc.longitude, loc.latitude);
@@ -254,27 +254,31 @@ namespace components::server {
                                            return r2;
                                        });
                         spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
-//                        sem.signal(t);
                         return o;
                     }), loc_future, row_future, centroid_future);
 
+            auto res = distance_res.then([&sem, t, &cbg_offsets, &matricies](hpx::future <std::vector<v2>> rows) {
+                const auto expanded_rows = rows.get();
+                spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
+                std::for_each(expanded_rows.begin(), expanded_rows.end(),
+                              [&cbg_offsets, &matricies](const v2 &expanded_row) {
+                                  matricies.insert(0, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+                                                   calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
+                                                   expanded_row.visits, expanded_row.distance);
+                              });
+                spdlog::debug("Finished adding rows");
+                sem.signal(t);
+            });
+
             results.push_back(std::move(res));
-//            spdlog::debug("Waiting for semaphore");
-//            sem.wait(t);
+            const auto sem_start = hpx::util::high_resolution_clock::now();
+            sem.wait(t);
+            const auto sem_elapsed = hpx::util::high_resolution_clock::now() - sem_start;
+            spdlog::debug("Semaphore wait took {} ms", sem_elapsed / 1000);
+
         };
         // When each result is completed, load it into the distance and visit matricies
-        auto rows_future = hpx::when_each([&cbg_offsets, &matricies](hpx::future <std::vector<v2>> rows) {
-            const auto expanded_rows = rows.get();
-            spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
-            std::for_each(expanded_rows.begin(), expanded_rows.end(),
-                          [&cbg_offsets, &matricies](const v2 &expanded_row) {
-                              matricies.insert(0, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
-                                               calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
-                                               expanded_row.visits, expanded_row.distance);
-                          });
-            spdlog::debug("Finished adding rows");
-        }, results);
-        rows_future.get();
+        hpx::wait_all(results);
         spdlog::debug("Waiting for {} rows", results.size());
 
         // Now, multiply
