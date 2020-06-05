@@ -43,6 +43,11 @@ namespace components::server {
         return diff.count();
     }
 
+    void print_timing(const std::uint64_t elapsed) {
+        const chrono::nanoseconds n{elapsed};
+        spdlog::debug("Operation took {} ms", chrono::duration_cast<chrono::milliseconds>(n).count());
+    }
+
     std::vector<weekly_pattern> extract_rows(const string &filename) {
 
         // Get date from filename
@@ -286,7 +291,7 @@ namespace components::server {
             spdlog::debug("Waiting on semaphore");
             sem.wait(t);
             const auto sem_elapsed = hpx::util::high_resolution_clock::now() - sem_start;
-            spdlog::debug("Semaphore wait took {} ms", sem_elapsed / 1000000);
+            print_timing(sem_elapsed);
 
         };
         // When each result is completed, load it into the distance and visit matricies
@@ -294,28 +299,35 @@ namespace components::server {
         hpx::wait_all(results);
 
         // Now, multiply
-        spdlog::debug("Performing multiplication");
-        const auto result = matricies.compute();
-        spdlog::debug("Have {} non zero values.", result.nonZeros());
-        // Find the minimum value and rescale the matrix
-
-
-        // Sum the total risk for each cbg
-        const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
-        const auto max = blaze::max(cbg_risk_score);
-
-        // scale it back down
-        // TODO: This should be a custom operation, so we can vectorize it.
-        const auto scaled_results = blaze::map(cbg_risk_score, [&max](double d) {
-            return d / max;
-        });
-
         TileWriter tw(std::string("test-norm.parquet"), cbg_offsets);
-        spdlog::debug("Beginning tile write");
-        const arrow::Status status = tw.writeResults(start_date, scaled_results);
-        if (!status.ok()) {
-            spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+        for (uint i = 0; i < _dim._time_count; i++) {
+            // Some nice pretty-printing of the dates
+            const date::sys_days matrix_date = start_date + date::days{i};
+            spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
+
+            const auto result = matricies.compute(i);
+            spdlog::debug("Have {} non zero values.", result.nonZeros());
+
+            // Sum the total risk for each cbg
+            const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
+            const auto max = blaze::max(cbg_risk_score);
+
+            // scale it back down
+            // TODO: This should be a custom operation, so we can vectorize it.
+            const auto scaled_results = blaze::map(cbg_risk_score, [&max](double d) {
+                return d / max;
+            });
+
+            spdlog::info("Beginning tile write");
+            const auto write_start = hpx::util::high_resolution_clock::now();
+            const arrow::Status status = tw.writeResults(start_date, scaled_results);
+            if (!status.ok()) {
+                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+            }
+            const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
+            print_timing(write_elapsed);
         }
-        spdlog::debug("It's done");
+
+        spdlog::info("Tile computation complete");
     }
 }

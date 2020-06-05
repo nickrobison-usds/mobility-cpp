@@ -41,7 +41,6 @@ namespace components {
     };
 
     distance_matrix TemporalMatricies::compute(const std::size_t i) {
-        spdlog::debug("Computing matricies at time offset: {}", i);
         auto &lock = _locks.at(i);
         lock.Lock();
         MatrixPair &pair = matricies.at(i);
