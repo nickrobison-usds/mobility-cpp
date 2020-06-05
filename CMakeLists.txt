@@ -14,6 +14,8 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
 endif()
 # Disable GTest dependency, since we use Catch
 set(BENCHMARK_ENABLE_TESTING OFF)
+#Set options for Blaze Library
+set(BLAZE_SMP_THREADS HPX)
 
 enable_testing()
 

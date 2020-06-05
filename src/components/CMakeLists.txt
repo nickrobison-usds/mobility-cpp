@@ -1,9 +1,6 @@
 
 find_package(GEOS REQUIRED)
 
-#Set options for Blaze Library
-set(BLAZE_SMP_THREADS HPX)
-
 add_library(components
         WeekSplitter.cpp
         include/components/WeekSplitter.hpp include/components/data.hpp

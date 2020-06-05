@@ -20,12 +20,12 @@ namespace components::server {
         const auto query = absl::StrCat("GEOID IN ('", joined, "')");
 
         layer->SetAttributeFilter(query.c_str());
-        auto res = std::reduce(layer->begin(), layer->end(), std::vector<std::pair<std::string, OGRPoint>>(), [](auto &acc, auto &feature) {
+        std::vector<std::pair<std::string, OGRPoint>> res;
+        std::for_each(layer->begin(), layer->end(), [&res](OGRFeatureUniquePtr &feature) {
             const auto geoid = feature->GetFieldAsString("GEOID");
             OGRPoint centroid;
             feature->GetGeometryRef()->Centroid(&centroid);
-            acc.emplace_back(geoid, centroid);
-            return acc;
+            res.emplace_back(geoid, centroid);
         });
 
         return res;
