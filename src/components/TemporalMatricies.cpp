@@ -29,6 +29,7 @@ namespace components {
 
     void
     TemporalMatricies::insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance) {
+        // TODO: This is incredibly inefficient. We should take the lock before we do the inserts
         auto &lock = _locks.at(time);
         lock.Lock();
         MatrixPair &pair = matricies.at(time);

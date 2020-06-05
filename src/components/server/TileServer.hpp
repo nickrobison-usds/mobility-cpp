@@ -28,8 +28,8 @@ namespace components::server {
 
     private:
         components::TileDimension _dim;
-        std::vector<visit_matrix> _visits;
-        std::vector<distance_matrix> _distances;
+
+        void writeResults() const;
     };
 }
 

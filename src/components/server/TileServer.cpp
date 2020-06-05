@@ -3,8 +3,11 @@
 //
 
 #include "TileServer.hpp"
+#include "../TileWriter.hpp"
+#include "../TemporalMatricies.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
+#include <blaze/math/CompressedVector.h>
 #include <boost/bimap.hpp>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
@@ -13,7 +16,6 @@
 #include <hpx/parallel/algorithms/transform.hpp>
 #include <io/csv_reader.hpp>
 #include "spdlog/spdlog.h"
-#include "../TemporalMatricies.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -181,19 +183,14 @@ namespace components::server {
                 output.push_back(day);
             }
         }
-        spdlog::debug("Returning output");
         return output;
     };
 
-    TileServer::TileServer(TileDimension dim) : _dim(std::move(dim)), _visits(), _distances() {
+    TileServer::TileServer(TileDimension dim) : _dim(std::move(dim)) {
         // Not used
     };
 
     void TileServer::init(const std::string &filename, std::size_t num_nodes) {
-
-        // Create and fill the matrices
-        _distances.reserve(_dim._time_count);
-        _visits.reserve(_dim._time_count);
 
         // Read the CSV and filter out any that don't fit in
         const auto rows = extract_rows(filename);
@@ -266,45 +263,59 @@ namespace components::server {
                         return o;
                     }), loc_future, row_future, centroid_future);
 
-            auto res = distance_res.then([&start_date, &sem, t, &cbg_offsets, &matricies](hpx::future<std::vector<v2>> rows) {
-                const auto expanded_rows = rows.get();
-                spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
-                std::for_each(expanded_rows.begin(), expanded_rows.end(),
-                              [&start_date, &cbg_offsets, &matricies](const v2 &expanded_row) {
-                    // Compute the temporal offset
-                    const auto t_offset = compute_temporal_offset(start_date, expanded_row.visit_date);
-                                  matricies.insert(t_offset, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
-                                                   calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
-                                                   expanded_row.visits, expanded_row.distance);
-                              });
-                spdlog::debug("Finished adding rows");
-                sem.signal(t);
-            });
+            auto res = distance_res.then(
+                    [&start_date, &sem, t, &cbg_offsets, &matricies](hpx::future<std::vector<v2>> rows) {
+                        const auto expanded_rows = rows.get();
+                        spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
+                        std::for_each(expanded_rows.begin(), expanded_rows.end(),
+                                      [&start_date, &cbg_offsets, &matricies](const v2 &expanded_row) {
+                                          // Compute the temporal offset
+                                          const auto t_offset = compute_temporal_offset(start_date,
+                                                                                        expanded_row.visit_date);
+                                          matricies.insert(t_offset,
+                                                           calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+                                                           calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
+                                                           expanded_row.visits, expanded_row.distance);
+                                      });
+                        spdlog::debug("Finished adding rows");
+                        sem.signal(t);
+                    });
 
             results.push_back(std::move(res));
             const auto sem_start = hpx::util::high_resolution_clock::now();
+            spdlog::debug("Waiting on semaphore");
             sem.wait(t);
             const auto sem_elapsed = hpx::util::high_resolution_clock::now() - sem_start;
             spdlog::debug("Semaphore wait took {} ms", sem_elapsed / 1000000);
 
         };
         // When each result is completed, load it into the distance and visit matricies
-        hpx::wait_all(results);
         spdlog::debug("Waiting for {} rows", results.size());
+        hpx::wait_all(results);
 
         // Now, multiply
         spdlog::debug("Performing multiplication");
         const auto result = matricies.compute();
         spdlog::debug("Have {} non zero values.", result.nonZeros());
         // Find the minimum value and rescale the matrix
-        const auto max = blaze::max(result);
+
+
+        // Sum the total risk for each cbg
+        const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
+        const auto max = blaze::max(cbg_risk_score);
 
         // scale it back down
         // TODO: This should be a custom operation, so we can vectorize it.
-        const auto scaled_results = blaze::map(result, [&max](double d) {
+        const auto scaled_results = blaze::map(cbg_risk_score, [&max](double d) {
             return d / max;
         });
 
+        TileWriter tw(std::string("test-norm.parquet"), cbg_offsets);
+        spdlog::debug("Beginning tile write");
+        const arrow::Status status = tw.writeResults(start_date, scaled_results);
+        if (!status.ok()) {
+            spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+        }
         spdlog::debug("It's done");
     }
 }
