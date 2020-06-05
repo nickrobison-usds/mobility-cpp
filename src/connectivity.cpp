@@ -33,7 +33,7 @@ chrono::system_clock::time_point parse_date(const string &date) {
     return tp;
 }
 
-fs::path buildPath(const fs::path &root_path, const string &path_string) {
+fs::path build_path(const fs::path &root_path, const string &path_string) {
     fs::path appender(path_string);
     if (appender.is_relative()) {
         return fs::path(root_path) /= appender;
@@ -45,19 +45,26 @@ fs::path buildPath(const fs::path &root_path, const string &path_string) {
 int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v");
-    spdlog::info("Initializing connectivity calculator");
+    spdlog::info("Initializing connectivity calculator on locale {}", hpx::get_locality_id());
 
     // Build the file paths
     const string input_dir = vm["data_dir"].as<string>();
     const fs::path data_dir(fs::absolute(fs::path(input_dir)));
     const auto cbg_str = vm["cbg_shp"].as<string>();
-    const auto cbg_path = buildPath(data_dir, cbg_str);
+    const auto cbg_path = build_path(data_dir, cbg_str);
     const auto poi_str = vm["poi_parquet"].as<string>();
-    const auto poi_path = buildPath(data_dir, poi_str);
+    const auto poi_path = build_path(data_dir, poi_str);
     const auto csv_str = vm["pattern_csvs"].as<string>();
-    const auto csv_path = buildPath(data_dir, csv_str);
+    const auto csv_path = build_path(data_dir, csv_str);
+    const auto output_str = vm["output_directory"].as<string>();
+    const auto output_path = build_path(data_dir, output_str);
+    const auto output_name = vm["output_name"].as<string>();
     const auto nr = vm["nr"].as<uint16_t>();
 
+    if (!fs::exists(output_path)) {
+        spdlog::debug("Creating output directory");
+        fs::create_directory(output_path);
+    }
 
     const string date_string = vm["start_date"].as<string>();
     // TODO: Would be nice to combine this with the previous call.
@@ -77,10 +84,10 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    const auto files = partition_files(csv_path.string(), locales.size(), ".*patterns\\.csv");
+    const auto files = enumerate_files(csv_path.string(), ".*patterns\\.csv");
     // From the list of files, get their paths (as strings) and compute their offset from the
-    vector<pair<string, date::sys_days>> f;
-    std::transform(files[0].begin(), files[0].end(), back_inserter(f), [&start_date](const auto &file) {
+    vector<pair<string, date::sys_days>> input_files;
+    std::transform(files.begin(), files.end(), back_inserter(input_files), [&start_date](const auto &file) {
         const fs::path p = file.path();
         const auto f = p.filename();
         // Try to parse out the date
@@ -92,15 +99,24 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                 file_date);
     });
 
-    for(const auto &file : f) {
-        // Ignore the file if its before what we care about
-        // TODO: This should also filter dates greater than our end_date variable
-        auto date_dif = chrono::duration_cast<days>(file.second - start_date).count();
-        if (date_dif >= 0) {
+    // Filter out everything that's not within our date range
+    input_files.erase(std::remove_if(input_files.begin(), input_files.end(), [&start_date, &end_date](const auto &pair) {
+        auto before_dif = chrono::duration_cast<days>(pair.second - start_date).count();
+        auto after_dif = chrono::duration_cast<days>(pair.second - end_date).count();
+        return !(before_dif >= 0 && after_dif <= 0);
+    }));
+    // Partition the inputs based on the number of locales;
+    const auto split_files = SplitVector(input_files, locales.size());
+
+    const auto locale_files = split_files.at(hpx::get_locality_id());
+
+    for(const auto &file : locale_files) {
+        // Ignore
+        if (!file.first.empty()) {
             // Create the Tile Server and start it up
             size_t ds = file.second.time_since_epoch().count();
             components::TileDimension dim{0, 100, ds, 7, cbg_path.string(), poi_path.string(), nr};
-            components::TileClient t(dim);
+            components::TileClient t(dim, output_path.string(), output_name);
             auto init_future = t.init(file.first, 1);
             init_future.get();
         }
@@ -123,7 +139,13 @@ int main(int argc, char **argv) {
              "Parquet file with POI information")
             ("pattern_csvs", value<string>()->default_value("safegraph/weekly-patterns/"),
              "Directory with weekly pattern files")
+            ("output_directory", value<string>()->default_value("output/"), "Where to place the output files")
+            ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process");
 
-    return hpx::init(desc_commandline, argc, argv);
+    std::vector<std::string> const cfg = {
+            "hpx.run_hpx_main!=1"
+    };
+
+    return hpx::init(desc_commandline, argc, argv, cfg);
 }

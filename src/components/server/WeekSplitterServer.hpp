@@ -29,7 +29,7 @@ namespace components::server {
 
         static vector<data_row> tableToVector(shared_ptr<arrow::Table> table);
 
-        static vector<int16_t> split(string const &str, char delim);
+        static vector<uint32_t> split(string const &str, char delim);
 
         static bool IsParenthesesOrDash(char c);
 

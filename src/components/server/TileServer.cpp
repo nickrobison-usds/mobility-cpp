@@ -9,6 +9,7 @@
 #include <absl/strings/str_split.h>
 #include <blaze/math/CompressedVector.h>
 #include <boost/bimap.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
@@ -23,8 +24,11 @@
 static const boost::regex brackets("\\[|\\]");
 static const boost::regex cbg_map_replace("{|\"|}");
 
+
 typedef boost::bimap<std::string, std::size_t> offset_bimap;
 typedef offset_bimap::value_type position;
+
+namespace fs = boost::filesystem;
 
 namespace components::server {
 
@@ -43,9 +47,9 @@ namespace components::server {
         return diff.count();
     }
 
-    void print_timing(const std::uint64_t elapsed) {
+    void print_timing(const std::string &op_name, const std::uint64_t elapsed) {
         const chrono::nanoseconds n{elapsed};
-        spdlog::debug("Operation took {} ms", chrono::duration_cast<chrono::milliseconds>(n).count());
+        spdlog::debug("[{}] took {} ms", op_name, chrono::duration_cast<chrono::milliseconds>(n).count());
     }
 
     std::vector<weekly_pattern> extract_rows(const string &filename) {
@@ -65,8 +69,8 @@ namespace components::server {
         string brands;
         string date_range_start;
         string date_range_end;
-        uint16_t raw_visit_counts;
-        uint16_t raw_visitor_counts;
+        uint32_t raw_visit_counts;
+        uint32_t raw_visitor_counts;
         string visits_by_day;
         string visits_by_each_hour;
         uint64_t poi_cbg;
@@ -84,8 +88,8 @@ namespace components::server {
                    const string &brands,
                    const string &date_range_start,
                    const string &date_range_end,
-                   const uint16_t raw_visit_counts,
-                   const uint16_t raw_visitor_counts,
+                   const uint32_t raw_visit_counts,
+                   const uint32_t raw_visitor_counts,
                    const string visits_by_day,
                    const string visits_by_each_hour,
                    const uint64_t poi_cbg,
@@ -191,7 +195,7 @@ namespace components::server {
         return output;
     };
 
-    TileServer::TileServer(TileDimension dim) : _dim(std::move(dim)) {
+    TileServer::TileServer(TileDimension dim, std::string output_dir, const std::string &output_name) : _dim(std::move(dim)), _output_dir(std::move(output_dir)), _output_name(output_name) {
         // Not used
     };
 
@@ -291,22 +295,24 @@ namespace components::server {
             spdlog::debug("Waiting on semaphore");
             sem.wait(t);
             const auto sem_elapsed = hpx::util::high_resolution_clock::now() - sem_start;
-            print_timing(sem_elapsed);
+            print_timing("Semaphore Wait", sem_elapsed);
 
         };
         // When each result is completed, load it into the distance and visit matricies
         spdlog::debug("Waiting for {} rows", results.size());
         hpx::wait_all(results);
 
-        // Now, multiply
-        TileWriter tw(std::string("test-norm.parquet"), cbg_offsets);
+        // Now, multiply the values and write them to disk
+        const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(), date::format("%F", start_date), _output_name);
+        const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
+
+        TileWriter tw(std::string(p_file.string()), cbg_offsets);
         for (uint i = 0; i < _dim._time_count; i++) {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
 
             const auto result = matricies.compute(i);
-            spdlog::debug("Have {} non zero values.", result.nonZeros());
 
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
@@ -325,7 +331,7 @@ namespace components::server {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }
             const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
-            print_timing(write_elapsed);
+            print_timing("File Write", write_elapsed);
         }
 
         spdlog::info("Tile computation complete");

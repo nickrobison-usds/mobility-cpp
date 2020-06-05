@@ -9,7 +9,7 @@
 #include <absl/synchronization/mutex.h>
 #include <blaze/math/CompressedMatrix.h>
 
-typedef blaze::CompressedMatrix<int> visit_matrix;
+typedef blaze::CompressedMatrix<uint32_t> visit_matrix;
 typedef blaze::CompressedMatrix<double> distance_matrix;
 
 namespace components {

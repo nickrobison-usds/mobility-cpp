@@ -79,7 +79,7 @@ namespace components::server {
             const ArrowDate d2 = date->Value(i);
             const double d = distance->Value(i);
             const string visit_str = visits->GetString(i);
-            vector<int16_t> v2;
+            vector<uint32_t> v2;
             try {
                 v2 = WeekSplitter::split(visit_str, ',');
             }
@@ -95,8 +95,8 @@ namespace components::server {
         return rows;
     }
 
-    vector<int16_t> WeekSplitter::split(string const &str, char delim) {
-        vector<int16_t> strings;
+    vector<uint32_t> WeekSplitter::split(string const &str, char delim) {
+        vector<uint32_t> strings;
         size_t start;
         size_t end = 0;
         while ((start = str.find_first_not_of(delim, end)) != string::npos) {

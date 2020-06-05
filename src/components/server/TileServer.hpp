@@ -20,7 +20,7 @@ namespace components::server {
         typedef blaze::CompressedMatrix<int> visit_matrix;
         typedef blaze::CompressedMatrix<double> distance_matrix;
 
-        explicit TileServer(TileDimension dim);
+        explicit TileServer(TileDimension dim, std::string output_dir, const std::string &output_name);
 
         void init(const std::string &filename, std::size_t num_nodes);
 
@@ -28,6 +28,8 @@ namespace components::server {
 
     private:
         components::TileDimension _dim;
+        const std::string _output_dir;
+        const std::string _output_name;
 
         void writeResults() const;
     };

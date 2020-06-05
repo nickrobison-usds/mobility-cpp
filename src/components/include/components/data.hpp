@@ -21,7 +21,7 @@ struct data_row {
     string location_cbg;
     string visit_cbg;
     date::sys_days date;
-    vector<int16_t> visits;
+    vector<uint32_t> visits;
     double distance;
 
     template<typename OStream>
@@ -37,8 +37,8 @@ struct weekly_pattern {
     string location_name;
     date::sys_days date_range_start;
     date::sys_days date_range_end;
-    uint16_t raw_visit_counts;
-    uint16_t raw_visitor_counts;
+    uint32_t raw_visit_counts;
+    uint32_t raw_visitor_counts;
     string visits_by_day;
     string visits_by_each_hour;
     uint64_t poi_cbg;
@@ -49,7 +49,7 @@ struct visit_row {
     string location_cbg;
     string visit_cbg;
     date::sys_days date;
-    int16_t visits;
+    uint32_t visits;
     double distance;
     double weighted_total;
 
@@ -66,7 +66,7 @@ struct v2 {
     date::sys_days visit_date;
     string location_cbg;
     string visit_cbg;
-    uint16_t visits;
+    uint32_t visits;
     double distance;
     double weighted_total;
 };

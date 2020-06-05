@@ -40,18 +40,8 @@ vector<vector<T>> SplitVector(const vector<T> &vec, size_t n) {
 
     return outVec;
 }
-
-
-/**
- * For a given input directory, split all the files in `nl` number of vectors.
- * If the split is uneaven some vectors will have one more element than other vectors.
- * @param input_dir - Input directory to iterate through and split.
- * @param nl - Number of vectors to partition files into
- * @param filter_regex - Filter regex for selecting which files to include
- * @return - `NL` vectors of vectors of directory entries.
- */
-vector<vector<boost::filesystem::directory_entry>>
-partition_files(string const &input_dir, int nl, string const &filter_regex) {
+vector<boost::filesystem::directory_entry>
+enumerate_files(string const &input_dir, string const &filter_regex) {
     // Iterate through all the files and do async things
     const boost::regex my_filter(filter_regex);
     const auto dir_iter = fs::directory_iterator(input_dir);
@@ -71,9 +61,23 @@ partition_files(string const &input_dir, int nl, string const &filter_regex) {
     };
 
     // Do a lexical sort on the files
-    sort(files.begin(), files.end(), [](const auto &a, const auto &b) {
-        return a.path().string().compare(b.path().string()) == 0;
-    });
+    sort(files.begin(), files.end());
+
+    return files;
+}
+
+
+/**
+ * For a given input directory, split all the files in `nl` number of vectors.
+ * If the split is uneaven some vectors will have one more element than other vectors.
+ * @param input_dir - Input directory to iterate through and split.
+ * @param nl - Number of vectors to partition files into
+ * @param filter_regex - Filter regex for selecting which files to include
+ * @return - `NL` vectors of vectors of directory entries.
+ */
+vector<vector<boost::filesystem::directory_entry>>
+partition_files(string const &input_dir, int nl, string const &filter_regex) {
+    const auto files = enumerate_files(input_dir, filter_regex);
 
     return SplitVector(files, nl);
 }
