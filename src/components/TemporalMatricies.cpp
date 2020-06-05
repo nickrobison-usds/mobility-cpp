@@ -32,8 +32,10 @@ namespace components {
         auto &lock = _locks.at(time);
         lock.Lock();
         MatrixPair &pair = matricies.at(time);
-        pair.vm(x, y) += visits;
-        pair.dm(x, y) += distance;
+        const auto v2 = pair.vm.at(x, y);
+        const auto d2 = pair.dm.at(x, y);
+        pair.vm.set(x, y, visits + v2);
+        pair.dm.set(x, y, distance + d2);
         lock.Unlock();
     }
 
@@ -43,7 +45,7 @@ namespace components {
             auto &lock = _locks.at(i);
             lock.Lock();
             MatrixPair &pair = matricies.at(i);
-            const auto result = pair.dm * pair.vm;
+            const distance_matrix result = pair.dm % pair.vm;
             spdlog::debug("Have {} non zero values.", result.nonZeros());
             lock.Unlock();
         }

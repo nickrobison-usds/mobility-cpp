@@ -214,7 +214,13 @@ namespace components::server {
 
         std::vector<hpx::future < std::vector<v2 >> > results;
         results.reserve(rows.size());
-        for (const auto &row : rows) {
+
+        // Semaphore for limiting the number of rows to process concurrently.
+        // This should help make sure we make progress across all the threads
+        spdlog::debug("Processing {} rows concurrently", _dim.nr);
+//        hpx::lcos::local::sliding_semaphore sem(_dim.nr);
+        for (std::size_t t = 0; t < rows.size(); t++) {
+            const auto row = rows.at(t);
             const auto visits = extract_cbg_visits(row);
             std::vector<std::string> cbgs;
             std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
@@ -248,16 +254,16 @@ namespace components::server {
                                            return r2;
                                        });
                         spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
+//                        sem.signal(t);
                         return o;
                     }), loc_future, row_future, centroid_future);
 
             results.push_back(std::move(res));
+//            spdlog::debug("Waiting for semaphore");
+//            sem.wait(t);
         };
-        spdlog::debug("Waiting for {} rows", results.size());
-//        hpx::wait_all(results);
-//        spdlog::debug("Expansion complete, loading into matrix");
-
-        hpx::when_each([&cbg_offsets, &matricies](hpx::future <std::vector<v2>> rows) {
+        // When each result is completed, load it into the distance and visit matricies
+        auto rows_future = hpx::when_each([&cbg_offsets, &matricies](hpx::future <std::vector<v2>> rows) {
             const auto expanded_rows = rows.get();
             spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
             std::for_each(expanded_rows.begin(), expanded_rows.end(),
@@ -265,14 +271,11 @@ namespace components::server {
                               matricies.insert(0, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
                                                calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
                                                expanded_row.visits, expanded_row.distance);
-//
-//                v(calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
-//                  calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg)) += expanded_row.visits;
-//                d(calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
-//                  calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg)) += expanded_row.distance;
                           });
             spdlog::debug("Finished adding rows");
-        }, results).get();
+        }, results);
+        rows_future.get();
+        spdlog::debug("Waiting for {} rows", results.size());
 
         // Now, multiply
         spdlog::debug("Performing multiplication");

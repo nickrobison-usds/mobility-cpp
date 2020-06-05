@@ -56,6 +56,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto poi_path = buildPath(data_dir, poi_str);
     const auto csv_str = vm["pattern_csvs"].as<string>();
     const auto csv_path = buildPath(data_dir, csv_str);
+    const auto nr = vm["nr"].as<uint16_t>();
 
 
     const string date_string = vm["start_date"].as<string>();
@@ -83,7 +84,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     });
 
     // Create the Tile Server and start it up
-    components::TileDimension dim{0, 100, 0, 7, cbg_path.string(), poi_path.string()};
+    components::TileDimension dim{0, 100, 0, 7, cbg_path.string(), poi_path.string(), nr};
     components::TileClient t(dim);
     auto init_future = t.init(f[0], 1);
     init_future.get();
@@ -104,7 +105,8 @@ int main(int argc, char **argv) {
             ("poi_parquet", value<string>()->default_value("reference/Joined_POI.parquet"),
              "Parquet file with POI information")
             ("pattern_csvs", value<string>()->default_value("safegraph/weekly-patterns/"),
-             "Directory with weekly pattern files");
+             "Directory with weekly pattern files")
+            ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process");
 
     return hpx::init(desc_commandline, argc, argv);
 }

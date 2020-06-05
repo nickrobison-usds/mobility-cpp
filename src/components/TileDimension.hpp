@@ -19,6 +19,7 @@ namespace components {
         std::size_t _time_count; // Max Z
         std::string _cbg_shp;
         std::string _poi_parquet;
+        std::uint16_t nr; // Number of concurrent rows
 
         friend class hpx::serialization::access;
 
