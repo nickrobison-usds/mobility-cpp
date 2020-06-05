@@ -78,17 +78,34 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::debug("Executing on {} locales", locales.size());
 
     const auto files = partition_files(csv_path.string(), locales.size(), ".*patterns\\.csv");
-    vector<string> f;
-    std::transform(files[0].begin(), files[0].end(), back_inserter(f), [](const auto &file) {
-        return file.path().string();
+    // From the list of files, get their paths (as strings) and compute their offset from the
+    vector<pair<string, date::sys_days>> f;
+    std::transform(files[0].begin(), files[0].end(), back_inserter(f), [&start_date](const auto &file) {
+        const fs::path p = file.path();
+        const auto f = p.filename();
+        // Try to parse out the date
+        std::istringstream fstream{p.filename().string()};
+        date::sys_days file_date;
+        fstream >> date::parse("%F", file_date);
+        string fp = file.path().string();
+        return make_pair(fp,
+                file_date);
     });
 
-    // Create the Tile Server and start it up
-    components::TileDimension dim{0, 100, 0, 7, cbg_path.string(), poi_path.string(), nr};
-    components::TileClient t(dim);
-    auto init_future = t.init(f[0], 1);
-    init_future.get();
+    for(const auto &file : f) {
+        // Ignore the file if its before what we care about
+        // TODO: This should also filter dates greater than our end_date variable
+        auto date_dif = chrono::duration_cast<days>(file.second - start_date).count();
+        if (date_dif >= 0) {
+            // Create the Tile Server and start it up
+            size_t ds = file.second.time_since_epoch().count();
+            components::TileDimension dim{0, 100, ds, 7, cbg_path.string(), poi_path.string(), nr};
+            components::TileClient t(dim);
+            auto init_future = t.init(file.first, 1);
+            init_future.get();
+        }
 
+    };
 
     return hpx::finalize();
 }

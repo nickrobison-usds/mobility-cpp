@@ -70,5 +70,10 @@ partition_files(string const &input_dir, int nl, string const &filter_regex) {
         files.push_back(p);
     };
 
+    // Do a lexical sort on the files
+    sort(files.begin(), files.end(), [](const auto &a, const auto &b) {
+        return a.path().string().compare(b.path().string()) == 0;
+    });
+
     return SplitVector(files, nl);
 }

@@ -36,6 +36,11 @@ namespace components::server {
         return map.left.at(cbg_code);
     };
 
+    size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
+        const auto diff = row_date - start_date;
+        return diff.count();
+    }
+
     std::vector<weekly_pattern> extract_rows(const string &filename) {
 
         // Get date from filename
@@ -192,6 +197,7 @@ namespace components::server {
 
         // Read the CSV and filter out any that don't fit in
         const auto rows = extract_rows(filename);
+        const date::sys_days start_date = date::sys_days{} + date::days(_dim._time_offset);
 
         // iterate through each of the rows, figure out its CBG and expand it.
         spdlog::debug("Initializing location join component");
@@ -220,7 +226,7 @@ namespace components::server {
         spdlog::debug("Processing {} rows concurrently", _dim.nr);
         hpx::lcos::local::sliding_semaphore sem(_dim.nr);
         // FIXME: Only for testing
-        for (std::size_t t = 0; t < 10; t++) {
+        for (std::size_t t = 0; t < 5; t++) {
             const auto row = rows.at(t);
             const auto visits = extract_cbg_visits(row);
             std::vector<std::string> cbgs;
@@ -228,14 +234,14 @@ namespace components::server {
                 return pair.first;
             });
 
-            hpx::future <joined_location> loc_future = l.find_location(row.safegraph_place_id);
-            hpx::future <std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+            hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
+            hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
 
             using hpx::dataflow;
             using hpx::util::unwrapping;
 
             auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-                absl::flat_hash_map <std::string, OGRPoint> map(centroids.begin(), centroids.end());
+                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
                 return map;
             }));
 
@@ -260,12 +266,14 @@ namespace components::server {
                         return o;
                     }), loc_future, row_future, centroid_future);
 
-            auto res = distance_res.then([&sem, t, &cbg_offsets, &matricies](hpx::future <std::vector<v2>> rows) {
+            auto res = distance_res.then([&start_date, &sem, t, &cbg_offsets, &matricies](hpx::future<std::vector<v2>> rows) {
                 const auto expanded_rows = rows.get();
                 spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
                 std::for_each(expanded_rows.begin(), expanded_rows.end(),
-                              [&cbg_offsets, &matricies](const v2 &expanded_row) {
-                                  matricies.insert(0, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+                              [&start_date, &cbg_offsets, &matricies](const v2 &expanded_row) {
+                    // Compute the temporal offset
+                    const auto t_offset = compute_temporal_offset(start_date, expanded_row.visit_date);
+                                  matricies.insert(t_offset, calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
                                                    calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
                                                    expanded_row.visits, expanded_row.distance);
                               });
@@ -293,7 +301,7 @@ namespace components::server {
 
         // scale it back down
         // TODO: This should be a custom operation, so we can vectorize it.
-        const auto scaled_results = blaze::map(result, [&max](double d){
+        const auto scaled_results = blaze::map(result, [&max](double d) {
             return d / max;
         });
 
