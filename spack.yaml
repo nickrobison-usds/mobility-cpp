@@ -19,6 +19,6 @@ spack:
     - hpx@master
     - geos@3.6.2
     - gdal+geos
-    - tcmalloc
+    - gperftools
   view: true
   concretization: together

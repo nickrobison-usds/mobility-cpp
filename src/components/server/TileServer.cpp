@@ -231,8 +231,7 @@ namespace components::server {
         // This should help make sure we make progress across all the threads
         spdlog::debug("Processing {} rows concurrently", _dim.nr);
         hpx::lcos::local::sliding_semaphore sem(_dim.nr);
-        // FIXME: Only for testing
-        for (std::size_t t = 0; t < 5; t++) {
+        for (std::size_t t = 0; t < rows.size(); t++) {
             const auto row = rows.at(t);
             const auto visits = extract_cbg_visits(row);
             std::vector<std::string> cbgs;
@@ -260,10 +259,8 @@ namespace components::server {
                         o.reserve(patterns.size());
                         std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
                                        [&centroids, &loc_point, &loc](auto &row) {
-//                                           const auto cbg_centroid = centroids.at(row.visit_cbg);
-//                                           const auto distance = loc_point.Distance(&cbg_centroid);
-// FIXME: This is only for testing
-                                           const auto distance = 1.0F;
+                                           const auto cbg_centroid = centroids.at(row.visit_cbg);
+                                           const auto distance = loc_point.Distance(&cbg_centroid);
                                            v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg,
                                                  row.visit_cbg, row.visits, distance, 0.0F};
                                            return r2;
@@ -326,7 +323,7 @@ namespace components::server {
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
-            const arrow::Status status = tw.writeResults(start_date, scaled_results);
+            const arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results);
             if (!status.ok()) {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }

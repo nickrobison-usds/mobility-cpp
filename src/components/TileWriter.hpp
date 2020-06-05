@@ -17,7 +17,7 @@ namespace components {
     public:
         typedef boost::bimap<std::string, std::size_t> offset_bimap;
         TileWriter(const std::string& filename, const offset_bimap &map);
-        arrow::Status writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results);
+        arrow::Status writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results, const blaze::CompressedVector<double> &norm_results);
     private:
         const io::Parquet _p;
         const offset_bimap _map;

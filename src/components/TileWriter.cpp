@@ -11,7 +11,7 @@ namespace components {
 
     }
 
-    arrow::Status TileWriter::writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results) {
+    arrow::Status TileWriter::writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results, const blaze::CompressedVector<double> &norm_results) {
         arrow::Status status;
 
         for (size_t i = 0; i < results.size(); i++) {
@@ -20,8 +20,8 @@ namespace components {
             // Write it out
             status = _cbg_builder.Append(cbg);
             status = _date_builder.Append(result_date.time_since_epoch().count());
-            status = _risk_builder.Append(0.0F);
-            status = _normalize_risk_builder.Append(results[i]);
+            status = _risk_builder.Append(results[i]);
+            status = _normalize_risk_builder.Append(norm_results[i]);
         }
 
         // Convert to table pass to parquet writer
