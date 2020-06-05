@@ -37,18 +37,17 @@ namespace components {
         pair.vm.set(x, y, visits + v2);
         pair.dm.set(x, y, distance + d2);
         lock.Unlock();
-    }
+    };
 
-    void TemporalMatricies::compute() {
-        for (int i = 0; i < matricies.size(); i++) {
-            spdlog::debug("Computing matricies at time offset: {}", i);
-            auto &lock = _locks.at(i);
-            lock.Lock();
-            MatrixPair &pair = matricies.at(i);
-            const distance_matrix result = pair.dm % pair.vm;
-            spdlog::debug("Have {} non zero values.", result.nonZeros());
-            lock.Unlock();
-        }
-    }
+    distance_matrix TemporalMatricies::compute(const std::size_t i) {
+        spdlog::debug("Computing matricies at time offset: {}", i);
+        auto &lock = _locks.at(i);
+        lock.Lock();
+        MatrixPair &pair = matricies.at(i);
+        distance_matrix result = pair.dm % pair.vm;
+        spdlog::debug("Have {} non zero values.", result.nonZeros());
+        lock.Unlock();
+        return result;
+    };
 }
 
