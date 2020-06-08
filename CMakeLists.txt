@@ -16,6 +16,7 @@ endif()
 set(BENCHMARK_ENABLE_TESTING OFF)
 #Set options for Blaze Library
 set(BLAZE_SMP_THREADS HPX)
+set(BLAZE_USE_VECTORIZATION TRUE)
 
 enable_testing()
 

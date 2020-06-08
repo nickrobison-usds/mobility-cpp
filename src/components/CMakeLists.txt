@@ -2,7 +2,7 @@
 find_package(GEOS REQUIRED)
 
 add_library(components
-        src/WeekSplitter.cpp
+        src/WeekSplitter.cpp src/vector_scaler.hpp
         include/components/WeekSplitter.hpp include/components/data.hpp
         include/components/serializers.hpp include/components/serializers.cpp
         src/server/JoinedLocationServer.cpp src/server/JoinedLocationServer.hpp
@@ -18,3 +18,8 @@ target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::G
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
+
+
+add_executable(testcomponents test/test_scaler.cpp)
+target_link_libraries(testcomponents Catch2::Catch2 components)
+add_test(testcomponents testcomponents)
