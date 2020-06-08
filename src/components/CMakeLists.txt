@@ -2,18 +2,18 @@
 find_package(GEOS REQUIRED)
 
 add_library(components
-        WeekSplitter.cpp
+        src/WeekSplitter.cpp
         include/components/WeekSplitter.hpp include/components/data.hpp
         include/components/serializers.hpp include/components/serializers.cpp
-        server/JoinedLocationServer.cpp server/JoinedLocationServer.hpp
-        JoinedLocation.cpp include/components/JoinedLocation.hpp
-        server/WeekSplitterServer.cpp server/WeekSplitterServer.hpp
-        server/TileServer.cpp server/TileServer.hpp
-        TileDimension.hpp include/components/TileClient.hpp TileClient.cpp
-        server/ShapefileServer.cpp server/ShapefileServer.hpp
-        ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
-        TemporalMatricies.cpp TemporalMatricies.hpp
-        TileWriter.cpp TileWriter.hpp)
+        src/server/JoinedLocationServer.cpp src/server/JoinedLocationServer.hpp
+        src/JoinedLocation.cpp include/components/JoinedLocation.hpp
+        src/server/WeekSplitterServer.cpp src/server/WeekSplitterServer.hpp
+        src/server/TileServer.cpp src/server/TileServer.hpp
+        src/TileDimension.hpp include/components/TileClient.hpp src/TileClient.cpp
+        src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
+        src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
+        src/TemporalMatricies.cpp src/TemporalMatricies.hpp
+        src/TileWriter.cpp src/TileWriter.hpp)
 target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::strings absl::synchronization Boost::regex)
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

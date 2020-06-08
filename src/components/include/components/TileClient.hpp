@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_TILECLIENT_HPP
 #define MOBILITY_CPP_TILECLIENT_HPP
 
-#include "../../server/TileServer.hpp"
+#include "../../src/server/TileServer.hpp"
 #include <hpx/hpx.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>

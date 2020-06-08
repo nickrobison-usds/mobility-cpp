@@ -8,7 +8,7 @@
 #include <io/Shapefile.hpp>
 #include <ogrsf_frmts.h>
 #include <ogr_geometry.h>
-#include "../include/components/serializers.hpp"
+#include "components/serializers.hpp"
 #include <hpx/include/components.hpp>
 
 namespace components::server {

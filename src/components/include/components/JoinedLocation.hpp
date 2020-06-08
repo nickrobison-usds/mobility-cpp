@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_JOINEDLOCATION_HPP
 #define MOBILITY_CPP_JOINEDLOCATION_HPP
 
-#include "../../server/JoinedLocationServer.hpp"
+#include "../../src/server/JoinedLocationServer.hpp"
 #include <hpx/hpx.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
@@ -26,7 +26,7 @@ namespace components {
 
         [[nodiscard]] hpx::future<std::vector<safegraph_location>> invoke();
 
-        hpx::future<joined_location> find_location(const std::string safegraph_place_id) const;
+        hpx::future<joined_location> find_location(std::string safegraph_place_id) const;
     };
 }
 

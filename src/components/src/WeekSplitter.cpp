@@ -1,7 +1,7 @@
 //
 // Created by Nicholas Robison on 5/19/20.
 //
-#include "include/components/WeekSplitter.hpp"
+#include "components/WeekSplitter.hpp"
 
 #include "spdlog/spdlog.h"
 #include <hpx/parallel/execution.hpp>

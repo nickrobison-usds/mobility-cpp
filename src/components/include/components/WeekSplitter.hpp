@@ -7,7 +7,7 @@
 
 #include "io/parquet.hpp"
 #include "data.hpp"
-#include "../../server/WeekSplitterServer.hpp"
+#include "../../src/server/WeekSplitterServer.hpp"
 
 #include <hpx/hpx.hpp>
 #include <hpx/include/actions.hpp>
