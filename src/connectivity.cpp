@@ -7,18 +7,10 @@
 #include <hpx/hpx_init.hpp>
 #include "spdlog/spdlog.h"
 #include "utils.hpp"
-#include <iostream>
 #include <chrono>
-#include <sstream>
 #include <string>
 #include <iomanip>
 #include <hpx/runtime/find_localities.hpp>
-
-// The smallest and largest CBG codes. These shouldn't ever change
-const static uint64_t min_cbg = 010010201001;
-const static uint64_t max_cbg = 780309900000;
-// Max size of X, Y axis
-const static uint64_t cbg_bounds = max_cbg - min_cbg;
 
 using namespace std;
 
@@ -96,21 +88,26 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         fstream >> date::parse("%F", file_date);
         string fp = file.path().string();
         return make_pair(fp,
-                file_date);
+                         file_date);
     });
 
-    // Filter out everything that's not within our date range
-    input_files.erase(std::remove_if(input_files.begin(), input_files.end(), [&start_date, &end_date](const auto &pair) {
-        auto before_dif = chrono::duration_cast<days>(pair.second - start_date).count();
-        auto after_dif = chrono::duration_cast<days>(pair.second - end_date).count();
-        return !(before_dif >= 0 && after_dif <= 0);
-    }));
+    // If we only have a single file, don't try and remove it
+    if (input_files.size() > 1) {
+        // Filter out everything that's not within our date range
+        input_files.erase(
+                std::remove_if(input_files.begin(), input_files.end(), [&start_date, &end_date](const auto &pair) {
+                    auto before_dif = chrono::duration_cast<days>(pair.second - start_date).count();
+                    auto after_dif = chrono::duration_cast<days>(pair.second - end_date).count();
+                    return !(before_dif >= 0 && after_dif <= 0);
+                }));
+    }
+
     // Partition the inputs based on the number of locales;
     const auto split_files = SplitVector(input_files, locales.size());
 
     const auto locale_files = split_files.at(hpx::get_locality_id());
 
-    for(const auto &file : locale_files) {
+    for (const auto &file : locale_files) {
         // Ignore
         if (!file.first.empty()) {
             // Create the Tile Server and start it up

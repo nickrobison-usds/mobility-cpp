@@ -11,7 +11,9 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
 if(COMPILER_SUPPORTS_MARCH_NATIVE)
     set(RELEASE_FLAGS ${RELEASE_FLAGS} "-march=native")
+    set(DEBUG_FLAGS ${DEBUG_FLAGS} "-march=native")
 endif()
+
 # Disable GTest dependency, since we use Catch
 set(BENCHMARK_ENABLE_TESTING OFF)
 #Set options for Blaze Library

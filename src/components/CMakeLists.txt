@@ -1,6 +1,10 @@
 
 find_package(GEOS REQUIRED)
 
+# Include AVX, if it's available
+include(FindAVX)
+CHECK_FOR_AVX()
+
 add_library(components
         src/WeekSplitter.cpp src/vector_scaler.hpp
         include/components/WeekSplitter.hpp include/components/data.hpp
@@ -18,6 +22,7 @@ target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::G
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
+target_compile_options(components PUBLIC "-march=native")
 
 
 add_executable(testcomponents test/test_scaler.cpp)

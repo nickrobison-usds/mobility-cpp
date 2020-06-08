@@ -5,11 +5,13 @@
 #ifndef MOBILITY_CPP_VECTOR_SCALER_HPP
 #define MOBILITY_CPP_VECTOR_SCALER_HPP
 
+#include <blaze/system/Vectorization.h>
 #include <blaze/math/simd/BasicTypes.h>
 #include <blaze/system/Inline.h>
-#include <blaze/system/Vectorization.h>
 #include <immintrin.h>
 #include <limits.h>
+#include <type_traits>
+#include <typeinfo>
 
 namespace components::detail {
 
@@ -79,11 +81,12 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
     }
 
 
+    template<typename T>
     class Divisor_i {
     protected:
-        __m128i multiplier;                                    // multiplier used in fast division
+        T multiplier;                                    // multiplier used in fast division
         __m128i shift1;                                        // shift count used in fast division
-        __m128i sign;                                          // sign of divisor
+        T sign;                                          // sign of divisor
     public:
         Divisor_i() {};                                        // Default constructor
         Divisor_i(int32_t d) {                                 // Constructor with divisor
@@ -97,7 +100,9 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
             sign = _mm_set1_epi32(sgn);
         }
 
-        void set(int32_t d) {                                  // Set or change divisor, calculate parameters
+        template<typename V = T>
+        std::enable_if_t<std::is_same_v<V, __m128i>>
+        set(int32_t d) {                                  // Set or change divisor, calculate parameters
             const int32_t d1 = ::abs(d);
             int32_t sh, m;
             if (d1 > 1) {
@@ -119,7 +124,31 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
             if (d < 0) sign = _mm_set1_epi32(-1); else sign = _mm_set1_epi32(0);  // sign of divisor
         }
 
-        __m128i getm() const {                                 // get multiplier
+        template<typename V = T>
+        std::enable_if_t<std::is_same_v<V, __m256i>>
+        set(int32_t d) {                                  // Set or change divisor, calculate parameters
+            const int32_t d1 = ::abs(d);
+            int32_t sh, m;
+            if (d1 > 1) {
+                sh = (int) bit_scan_reverse(
+                        uint32_t(d1 - 1));  // shift count = ceil(log2(d1))-1 = (bit_scan_reverse(d1-1)+1)-1
+                m = int32_t((int64_t(1) << (32 + sh)) / d1 - ((int64_t(1) << 32) - 1)); // calculate multiplier
+            } else {
+                m = 1;                                         // for d1 = 1
+                sh = 0;
+                if (d == 0) m /= d;                            // provoke error here if d = 0
+                if (uint32_t(d) == 0x80000000u) {              // fix overflow for this special case
+                    m = 0x80000001;
+                    sh = 30;
+                }
+            }
+            multiplier = _mm256_set1_epi32(m);                    // broadcast multiplier
+            shift1 = _mm_cvtsi32_si128(sh);                    // shift count
+            //sign = _mm_set1_epi32(d < 0 ? -1 : 0);           // bug in VS2019, 32 bit release. Replace by this:
+            if (d < 0) sign = _mm256_set1_epi32(-1); else sign = _mm256_set1_epi32(0);  // sign of divisor
+        }
+
+        T getm() const {                                 // get multiplier
             return multiplier;
         }
 
@@ -127,15 +156,35 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
             return shift1;
         }
 
-        __m128i getsign() const {                              // get sign of divisor
+        T getsign() const {                              // get sign of divisor
             return sign;
         }
     };
 
     BLAZE_ALWAYS_INLINE const blaze::SIMDint32 scale(const blaze::SIMDint32 &a, const std::int32_t scaler) noexcept
-#ifdef BLAZE_SSE4_MODE
+#if BLAZE_AVX2_MODE
     {
-        const Divisor_i d(scaler);
+        const Divisor_i<__m256i> d(scaler);
+
+        __m256i t1 = _mm256_mul_epi32(a.value,
+                                      d.getm());               // 32x32->64 bit signed multiplication of a[0] and a[2]
+        __m256i t2 = _mm256_srli_epi64(t1, 32);                   // high dword of result 0 and 2
+        __m256i t3 = _mm256_srli_epi64(a.value,
+                                       32);                    // get a[1] and a[3] into position for multiplication
+        __m256i t4 = _mm256_mul_epi32(t3,
+                                      d.getm());              // 32x32->64 bit signed multiplication of a[1] and a[3]
+        __m256i t7 = _mm256_blend_epi16(t2, t4, 0xCC);
+        __m256i t8 = _mm256_add_epi32(t7, a.value);                     // add
+        __m256i t9 = _mm256_sra_epi32(t8, d.gets1());             // shift right arithmetic
+        __m256i t10 = _mm256_srai_epi32(a.value, 31);                   // sign of a
+        __m256i t11 = _mm256_sub_epi32(t10, d.getsign());         // sign of a - sign of d
+        __m256i t12 = _mm256_sub_epi32(t9, t11);                  // + 1 if a < 0, -1 if d < 0
+        return _mm256_xor_si256(t12, d.getsign());         // change sign if divisor negative
+    }
+
+#elif BLAZE_SSE4_MODE
+    {
+        const Divisor_i<__m128i> d(scaler);
 
         __m128i t1 = _mm_mul_epi32(a.value,
                                    d.getm());               // 32x32->64 bit signed multiplication of a[0] and a[2]
@@ -157,7 +206,14 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
 #endif
 
     BLAZE_ALWAYS_INLINE const blaze::SIMDdouble scale(const blaze::SIMDdouble &v, const double scaler) noexcept
-#ifdef BLAZE_SSE4_MODE
+
+#if BLAZE_AVX2_MODE
+    {
+        __m256d vb = _mm256_set1_pd(scaler);
+        return _mm256_div_pd(v.value, vb);
+    }
+
+#elif BLAZE_SSE4_MODE
     {
         __m128d vb = _mm_set1_pd(scaler);
         return _mm_div_pd(v.value, vb);
@@ -174,8 +230,8 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
             // Not used
         }
 
-
         decltype(auto) operator()(const T &v) const {
+
             return v / _scaler;
         }
 

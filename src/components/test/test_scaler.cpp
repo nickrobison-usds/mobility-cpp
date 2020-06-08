@@ -15,15 +15,15 @@ TEST_CASE("Simple test", "[vector]") {
     auto result = blaze::map(v, VectorScaler<int>(4));
     REQUIRE(blaze::sum(result) == 2);
 
-    blaze::StaticMatrix<int, 2UL, 2UL> m(100000);
+    blaze::StaticMatrix<int, 500UL, 500UL> m(100000);
     auto r2 = blaze::map(m, VectorScaler<int>(100000));
     auto summed = blaze::sum(r2);
-    REQUIRE(summed == 4);
+    REQUIRE(summed == 250000);
 }
 
 TEST_CASE("Double test", "[vector]") {
     blaze::StaticVector<double, 2UL> v(2);
-    auto result = blaze::map(v, VectorScaler<double>(4.0));
+    auto result = blaze::map(v, VectorScaler<double>(3.0));
     REQUIRE(blaze::sum(result) == 1);
 }
 

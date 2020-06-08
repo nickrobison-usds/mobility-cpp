@@ -5,6 +5,7 @@
 #include "TileServer.hpp"
 #include "../TileWriter.hpp"
 #include "../TemporalMatricies.hpp"
+#include "../vector_scaler.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <blaze/math/CompressedVector.h>
@@ -313,13 +314,10 @@ namespace components::server {
 
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
-            const auto max = blaze::max(cbg_risk_score);
+            const double max = blaze::max(cbg_risk_score);
 
             // scale it back down
-            // TODO: This should be a custom operation, so we can vectorize it.
-            const auto scaled_results = blaze::map(cbg_risk_score, [&max](double d) {
-                return d / max;
-            });
+            const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler(max));
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
