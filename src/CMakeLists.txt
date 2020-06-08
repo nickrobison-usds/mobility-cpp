@@ -5,6 +5,10 @@ find_package(Boost COMPONENTS filesystem regex program_options REQUIRED)
 find_package(HPX CONFIG REQUIRED)
 find_package(TCMalloc)
 
+# Include AVX, if it's available
+include(FindAVX)
+CHECK_FOR_AVX()
+
 add_subdirectory(io)
 add_subdirectory(components)
 
