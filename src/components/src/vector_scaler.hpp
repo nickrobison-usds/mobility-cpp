@@ -15,6 +15,14 @@
 
 namespace components::detail {
 
+    static constexpr bool avx2() {
+#ifdef __AVX2__
+        return true;
+#else
+        return false;
+#endif
+    }
+
     // All this code is pulled from Agner Fog's VectorClass library.
     // You can find it here https://github.com/vectorclass/version2/blob/master/vectori128.h
 
@@ -161,10 +169,10 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
         }
     };
 
-    BLAZE_ALWAYS_INLINE const blaze::SIMDint32 scale(const blaze::SIMDint32 &a, const std::int32_t scaler) noexcept
+    template<typename T>
+    BLAZE_ALWAYS_INLINE const blaze::SIMDint32 scale(const blaze::SIMDint32 &a, const Divisor_i<T> d) noexcept
 #if BLAZE_AVX2_MODE
     {
-        const Divisor_i<__m256i> d(scaler);
 
         __m256i t1 = _mm256_mul_epi32(a.value,
                                       d.getm());               // 32x32->64 bit signed multiplication of a[0] and a[2]
@@ -223,10 +231,43 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
     = delete;
 #endif
 
-    template<typename T>
+    template<class T, typename V = std::conditional_t<avx2(), __m256i, __m128i>, bool = std::is_integral_v<T>>
     struct VectorScaler {
 
-        explicit VectorScaler(const T max) : _scaler(max) {
+        template<typename S>
+        static constexpr bool simdEnabled() {
+            return true;
+        }
+
+
+        static constexpr bool paddingEnabled() { return false; }
+
+    };
+
+    template<typename T, typename V>
+    struct VectorScaler<T, V, true> {
+        explicit VectorScaler(const T max) : _scaler(Divisor_i<V>(max)), _unpadded(max) {
+            // Not used
+        }
+
+        decltype(auto) operator()(const T &v) const {
+            return v / _unpadded;
+        }
+
+        template<typename S>
+        decltype(auto) load(const S &v) const {
+            return scale(v, _scaler);
+        }
+
+    private:
+        const Divisor_i<__m256i> _scaler;
+        const T _unpadded;
+    };
+
+    template<typename T, typename V>
+    struct VectorScaler<T, V, false> {
+
+        VectorScaler(const T max) : _scaler(max) {
             // Not used
         }
 
@@ -235,17 +276,11 @@ static inline uint32_t bit_scan_reverse(uint64_t a) {
             return v / _scaler;
         }
 
-        template<typename S>
-        static constexpr bool simdEnabled() {
-            return true;
-        }
 
         template<typename S>
         decltype(auto) load(const S &v) const {
             return scale(v, _scaler);
         }
-
-        static constexpr bool paddingEnabled() { return true; }
 
     private:
         const T _scaler;

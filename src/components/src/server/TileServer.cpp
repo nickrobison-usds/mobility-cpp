@@ -317,7 +317,7 @@ namespace components::server {
             const double max = blaze::max(cbg_risk_score);
 
             // scale it back down
-            const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler(max));
+            const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler<double>(max));
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
