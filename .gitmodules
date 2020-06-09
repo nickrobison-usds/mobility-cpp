@@ -16,3 +16,6 @@
 [submodule "extern/date"]
 	path = extern/date
 	url = ../../HowardHinnant/date.git
+[submodule "extern/sanitizers-cmake"]
+	path = extern/sanitizers-cmake
+	url = ../../arsenm/sanitizers-cmake.git

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0)
 project(mobility-cpp VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake "${CMAKE_SOURCE_DIR}/extern/sanitizers-cmake/cmake")
 
 set(DEBUG_FLAGS, "-O0 -g -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -Wall -Werror -Wpendantic")
 set(RELEASE_FLAGS, "-O3")
@@ -13,6 +13,8 @@ if(COMPILER_SUPPORTS_MARCH_NATIVE)
     set(RELEASE_FLAGS ${RELEASE_FLAGS} "-march=native")
     set(DEBUG_FLAGS ${DEBUG_FLAGS} "-march=native")
 endif()
+
+find_package(Sanitizers)
 
 # Disable GTest dependency, since we use Catch
 set(BENCHMARK_ENABLE_TESTING OFF)

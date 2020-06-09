@@ -24,6 +24,8 @@ target_include_directories(components PUBLIC
         $<INSTALL_INTERFACE:include>)
 target_compile_options(components PUBLIC "-march=native")
 
+add_sanitizers(components)
+
 
 add_executable(testcomponents test/test_scaler.cpp)
 target_link_libraries(testcomponents Catch2::Catch2 components)
