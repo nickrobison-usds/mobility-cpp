@@ -196,21 +196,21 @@ namespace components::server {
         return output;
     };
 
-    TileServer::TileServer(TileDimension dim, std::string output_dir, const std::string &output_name) : _dim(std::move(dim)), _output_dir(std::move(output_dir)), _output_name(output_name) {
+    TileServer::TileServer(std::string output_dir, const std::string output_name) :_output_dir(std::move(output_dir)), _output_name(std::move(output_name)) {
         // Not used
     };
 
-    void TileServer::init(const std::string &filename, std::size_t num_nodes) {
+    void TileServer::init(const TileConfiguration &dim, std::size_t num_nodes) {
 
         // Read the CSV and filter out any that don't fit in
-        const auto rows = extract_rows(filename);
-        const date::sys_days start_date = date::sys_days{} + date::days(_dim._time_offset);
+        const auto rows = extract_rows(dim._filename);
+        const date::sys_days start_date = date::sys_days{} + date::days(dim._time_offset);
 
         // iterate through each of the rows, figure out its CBG and expand it.
         spdlog::debug("Initializing location join component");
-        JoinedLocation l({}, _dim._poi_parquet, _dim._poi_parquet);
+        JoinedLocation l({}, dim._poi_parquet, dim._poi_parquet);
         spdlog::debug("Initializing shapefile component");
-        ShapefileWrapper s(_dim._cbg_shp);
+        ShapefileWrapper s(dim._cbg_shp);
 
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
@@ -223,15 +223,15 @@ namespace components::server {
         }).get();
 
         // Initialize the Matricies
-        TemporalMatricies matricies(_dim._time_count, cbg_offsets.size());
+        TemporalMatricies matricies(dim._time_count, cbg_offsets.size());
 
         std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
 
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
-        spdlog::debug("Processing {} rows concurrently", _dim.nr);
-        hpx::lcos::local::sliding_semaphore sem(_dim.nr);
+        spdlog::debug("Processing {} rows concurrently", dim._nr);
+        hpx::lcos::local::sliding_semaphore sem(dim._nr);
         for (std::size_t t = 0; t < rows.size(); t++) {
             const auto row = rows.at(t);
             const auto visits = extract_cbg_visits(row);
@@ -305,7 +305,7 @@ namespace components::server {
         const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
         TileWriter tw(std::string(p_file.string()), cbg_offsets);
-        for (uint i = 0; i < _dim._time_count; i++) {
+        for (uint i = 0; i < dim._time_count; i++) {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));

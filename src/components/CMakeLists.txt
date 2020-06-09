@@ -6,14 +6,14 @@ include(FindAVX)
 CHECK_FOR_AVX()
 
 add_library(components
-        src/WeekSplitter.cpp src/vector_scaler.hpp
+        src/WeekSplitter.cpp src/vector_scaler.hpp include/components/constants.hpp
         include/components/WeekSplitter.hpp include/components/data.hpp
         include/components/serializers.hpp include/components/serializers.cpp
         src/server/JoinedLocationServer.cpp src/server/JoinedLocationServer.hpp
         src/JoinedLocation.cpp include/components/JoinedLocation.hpp
         src/server/WeekSplitterServer.cpp src/server/WeekSplitterServer.hpp
         src/server/TileServer.cpp src/server/TileServer.hpp
-        src/TileDimension.hpp include/components/TileClient.hpp src/TileClient.cpp
+        src/TileConfiguration.hpp include/components/TileClient.hpp src/TileClient.cpp
         src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
         src/TemporalMatricies.cpp src/TemporalMatricies.hpp

@@ -8,13 +8,13 @@
 
 namespace components {
 
-    TileClient::TileClient(const TileDimension &dim, const std::string &output_dir, const std::string &output_name): client_base(hpx::new_<server::TileServer>(hpx::find_here(), dim, output_dir, output_name)) {
+    TileClient::TileClient(const std::string &output_dir, const std::string &output_name): client_base(hpx::new_<server::TileServer>(hpx::find_here(), output_dir, output_name)) {
         // Not used
     };
 
     hpx::future<void>
-    TileClient::init(const std::string &filename, std::size_t num_nodes) const {
-        return hpx::async<server::TileServer::init_action>(get_id(), filename, num_nodes);
+    TileClient::init(const TileConfiguration &dim, std::size_t num_nodes) const {
+        return hpx::async<server::TileServer::init_action>(get_id(), dim, num_nodes);
     }
 }
 

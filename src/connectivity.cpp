@@ -2,6 +2,7 @@
 // Created by Nicholas Robison on 6/1/20.
 //
 
+#include <components/constants.hpp>
 #include <components/TileClient.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
@@ -52,6 +53,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto output_path = build_path(data_dir, output_str);
     const auto output_name = vm["output_name"].as<string>();
     const auto nr = vm["nr"].as<uint16_t>();
+    const auto tile_parititions = vm["tile_partitions"].as<uint16_t>();
 
     if (!fs::exists(output_path)) {
         spdlog::debug("Creating output directory");
@@ -98,22 +100,37 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                 return !(before_dif >= 0 && after_dif <= 0);
             }), input_files.end());
 
+    // For each file, we need to build a tile parameter, partitioning if necessary
+    vector<components::TileConfiguration> tiles;
+    std::for_each(input_files.begin(), input_files.end(),
+                  [&tiles, &tile_parititions, &cbg_path, &poi_path, &nr](const auto &pair) {
+                      size_t ds = pair.second.time_since_epoch().count();
+                      const auto stride = components::MAX_CBG / tile_parititions;
+
+                      for (size_t i = 0; i < components::MAX_CBG; i += stride) {
+                          components::TileConfiguration dim{pair.first, i, std::min(i + stride, components::MAX_CBG),
+                                                            ds, 7, cbg_path.string(), poi_path.string(), nr};
+                          tiles.push_back(dim);
+                      }
+                  });
+
     // Partition the inputs based on the number of locales;
-    const auto split_files = SplitVector(input_files, locales.size());
+    const auto split_tiles = SplitVector(tiles, locales.size());
 
-    const auto locale_files = split_files.at(hpx::get_locality_id());
+    const auto locale_tiles = split_tiles.at(hpx::get_locality_id());
 
-    for (const auto &file : locale_files) {
+    components::TileClient t(output_path.string(), output_name);
+
+    for (const auto &tile : locale_tiles) {
         // Ignore
-        if (!file.first.empty()) {
-            // Create the Tile Server and start it up
-            size_t ds = file.second.time_since_epoch().count();
-            components::TileDimension dim{0, 100, ds, 7, cbg_path.string(), poi_path.string(), nr};
-            components::TileClient t(dim, output_path.string(), output_name);
-            auto init_future = t.init(file.first, 1);
-            init_future.get();
-        }
+//        if (!tile.first.empty()) {
+        // Create the Tile Server and start it up
+//            size_t ds = tile.second.time_since_epoch().count();
+//            components::TileConfiguration dim{string(""), 0, 100, ds, 7, cbg_path.string(), poi_path.string(), nr};
 
+        auto init_future = t.init(tile, 1);
+        init_future.get();
+//        }
     };
 
     return hpx::finalize();
@@ -134,7 +151,9 @@ int main(int argc, char **argv) {
              "Directory with weekly pattern files")
             ("output_directory", value<string>()->default_value("output/"), "Where to place the output files")
             ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
-            ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process");
+            ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
+            ("tile_partitions", value<uint16_t>()->default_value(2),
+             "Number of partitions for each file (CBGs to process)");
 
     std::vector<std::string> const cfg = {
             "hpx.run_hpx_main!=1"
