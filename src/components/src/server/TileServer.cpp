@@ -228,7 +228,7 @@ namespace components::server {
         results.reserve(rows.size());
 
         // Create the Row Processor
-        RowProcessor processor{dim, l, s, start_date};
+        RowProcessor processor{dim, l, s, cbg_offsets, start_date};
 
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
@@ -236,7 +236,7 @@ namespace components::server {
         hpx::lcos::local::sliding_semaphore sem(dim._nr);
         for (std::size_t t = 0; t < rows.size(); t++) {
             const auto row = std::make_shared<weekly_pattern>(rows.at(t));
-            auto res = processor.processRow(row).then([&sem, t](hpx::future<void> f) {
+            auto res = processor.process_row(row).then([&sem, t](hpx::future<void> f) {
                 sem.signal(t);
             });
 //            const auto visits = extract_cbg_visits(row);

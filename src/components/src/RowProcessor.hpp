@@ -14,16 +14,17 @@
 #include "types.hpp"
 
 #include <hpx/lcos/future.hpp>
+#include <utility>
 
 namespace components {
     class RowProcessor {
 
     public:
-        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, const date::sys_days &start_date): _conf(conf), _l(l), _s(s), _matricies(
-                {conf._time_count, MAX_CBG}), _start_date(start_date) {
+        RowProcessor(const TileConfiguration &conf, JoinedLocation l, ShapefileWrapper s, const detail::offset_bimap &offset_map, const date::sys_days &start_date): _conf(conf), _l(std::move(l)), _s(std::move(s)), _matricies(
+                {conf._time_count, MAX_CBG}), _start_date(start_date), _offset_map(offset_map) {
             // Not used
         };
-        hpx::future<void> processRow(const std::shared_ptr<weekly_pattern> row);
+        hpx::future<void> process_row(const shared_ptr<weekly_pattern> row);
 
     private:
         const TileConfiguration _conf;
@@ -35,6 +36,7 @@ namespace components {
         hpx::future<void> handle_row(const std::shared_ptr<weekly_pattern> row, const std::shared_ptr<joined_location> jl);
         hpx::future<absl::flat_hash_map<std::string, OGRPoint>> get_centroid_map(const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> visits);
         hpx::future<void> insert_rows(hpx::future<std::vector<v2>> rows);
+        std::size_t calculate_cbg_offset(const std::string &cbg_code) const;
     };
 }
 
