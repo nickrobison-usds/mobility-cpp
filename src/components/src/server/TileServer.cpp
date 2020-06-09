@@ -235,8 +235,8 @@ namespace components::server {
         spdlog::debug("Processing {} rows concurrently", dim._nr);
         hpx::lcos::local::sliding_semaphore sem(dim._nr);
         for (std::size_t t = 0; t < rows.size(); t++) {
-            const auto row = rows.at(t);
-            auto res = processor.processRow(row).then([&sem, &t](hpx::future<void> f) {
+            const auto row = std::make_shared<weekly_pattern>(rows.at(t));
+            auto res = processor.processRow(row).then([&sem, t](hpx::future<void> f) {
                 sem.signal(t);
             });
 //            const auto visits = extract_cbg_visits(row);

@@ -45,7 +45,7 @@ namespace components::server {
         std::for_each(layer->begin(), layer->end(), [&geoids](auto &feature) {
             geoids.push_back(feature->GetFieldAsString("GEOID"));
         });
-        std::sort(geoids.begin(), geoids.end());
+//        std::sort(geoids.begin(), geoids.end());
         std::for_each(geoids.begin(), geoids.end(), [&offsets, &idx](const auto &geoid) {
             offsets.emplace_back(geoid, idx);
             idx++;

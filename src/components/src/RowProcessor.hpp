@@ -23,7 +23,7 @@ namespace components {
                 {conf._time_count, MAX_CBG}), _start_date(start_date) {
             // Not used
         };
-        hpx::future<void> processRow(const weekly_pattern &row);
+        hpx::future<void> processRow(const std::shared_ptr<weekly_pattern> row);
 
     private:
         const TileConfiguration _conf;
@@ -32,8 +32,8 @@ namespace components {
         const detail::offset_bimap _offset_map;
         const date::sys_days _start_date;
         TemporalMatricies _matricies;
-        hpx::future<void> handle_row(const weekly_pattern &row, const joined_location &jl);
-        hpx::future<absl::flat_hash_map<std::string, OGRPoint>> get_centroid_map(const weekly_pattern &row, const std::vector<std::pair<std::string, std::uint16_t>> &visits);
+        hpx::future<void> handle_row(const std::shared_ptr<weekly_pattern> row, const std::shared_ptr<joined_location> jl);
+        hpx::future<absl::flat_hash_map<std::string, OGRPoint>> get_centroid_map(const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> visits);
         hpx::future<void> insert_rows(hpx::future<std::vector<v2>> rows);
     };
 }
