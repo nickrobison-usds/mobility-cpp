@@ -90,17 +90,13 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         return make_pair(fp,
                          file_date);
     });
-
-    // If we only have a single file, don't try and remove it
-    if (input_files.size() > 1) {
-        // Filter out everything that's not within our date range
-        input_files.erase(
-                std::remove_if(input_files.begin(), input_files.end(), [&start_date, &end_date](const auto &pair) {
-                    auto before_dif = chrono::duration_cast<days>(pair.second - start_date).count();
-                    auto after_dif = chrono::duration_cast<days>(pair.second - end_date).count();
-                    return !(before_dif >= 0 && after_dif <= 0);
-                }));
-    }
+    // Filter out everything that's not within our date range
+    input_files.erase(
+            std::remove_if(input_files.begin(), input_files.end(), [&start_date, &end_date](const auto &pair) {
+                auto before_dif = chrono::duration_cast<days>(pair.second - start_date).count();
+                auto after_dif = chrono::duration_cast<days>(pair.second - end_date).count();
+                return !(before_dif >= 0 && after_dif <= 0);
+            }), input_files.end());
 
     // Partition the inputs based on the number of locales;
     const auto split_files = SplitVector(input_files, locales.size());
