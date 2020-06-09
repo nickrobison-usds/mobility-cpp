@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
             ("output_directory", value<string>()->default_value("output/"), "Where to place the output files")
             ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
-            ("tile_partitions", value<uint16_t>()->default_value(2),
+            ("tile_partitions", value<uint16_t>()->default_value(1),
              "Number of partitions for each file (CBGs to process)");
 
     std::vector<std::string> const cfg = {

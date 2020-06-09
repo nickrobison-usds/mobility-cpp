@@ -3,9 +3,11 @@
 //
 
 #include "TileServer.hpp"
+#include "../RowProcessor.hpp"
 #include "../TileWriter.hpp"
 #include "../TemporalMatricies.hpp"
 #include "../vector_scaler.hpp"
+#include "../types.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <blaze/math/CompressedVector.h>
@@ -25,10 +27,6 @@
 static const boost::regex brackets("\\[|\\]");
 static const boost::regex cbg_map_replace("{|\"|}");
 
-
-typedef boost::bimap<std::string, std::size_t> offset_bimap;
-typedef offset_bimap::value_type position;
-
 namespace fs = boost::filesystem;
 
 namespace components::server {
@@ -39,7 +37,7 @@ namespace components::server {
      * @param cbg_code - CBG code (string)
      * @return offset
      */
-    size_t calculate_cbg_offset(const offset_bimap &map, const std::string &cbg_code) {
+    size_t calculate_cbg_offset(const detail::offset_bimap &map, const std::string &cbg_code) {
         return map.left.at(cbg_code);
     };
 
@@ -196,7 +194,8 @@ namespace components::server {
         return output;
     };
 
-    TileServer::TileServer(std::string output_dir, const std::string output_name) :_output_dir(std::move(output_dir)), _output_name(std::move(output_name)) {
+    TileServer::TileServer(std::string output_dir, const std::string &output_name) : _output_dir(std::move(output_dir)),
+                                                                                     _output_name(output_name) {
         // Not used
     };
 
@@ -214,11 +213,11 @@ namespace components::server {
 
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
-        offset_bimap cbg_offsets;
+        detail::offset_bimap cbg_offsets;
         s.build_offsets().then([&cbg_offsets](auto of) {
             const auto offsets = of.get();
             std::for_each(offsets.begin(), offsets.end(), [&cbg_offsets](const auto &pair) {
-                cbg_offsets.insert(position(pair.first, pair.second));
+                cbg_offsets.insert(detail::position(pair.first, pair.second));
             });
         }).get();
 
@@ -228,65 +227,71 @@ namespace components::server {
         std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
 
+        // Create the Row Processor
+        RowProcessor processor{dim, l, s, start_date};
+
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
         spdlog::debug("Processing {} rows concurrently", dim._nr);
         hpx::lcos::local::sliding_semaphore sem(dim._nr);
         for (std::size_t t = 0; t < rows.size(); t++) {
             const auto row = rows.at(t);
-            const auto visits = extract_cbg_visits(row);
-            std::vector<std::string> cbgs;
-            std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
-                return pair.first;
+            auto res = processor.processRow(row).then([&sem, &t](hpx::future<void> f) {
+                sem.signal(t);
             });
-
-            hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
-            hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
-
-            using hpx::dataflow;
-            using hpx::util::unwrapping;
-
-            auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
-                return map;
-            }));
-
-            auto distance_res = dataflow(unwrapping(
-                    [this](const joined_location &loc, const std::vector<v2> &patterns, const auto &centroids) {
-                        spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
-                        const OGRPoint loc_point(loc.longitude, loc.latitude);
-                        patterns.size();
-                        std::vector<v2> o;
-                        o.reserve(patterns.size());
-                        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
-                                       [&centroids, &loc_point, &loc](auto &row) {
-                                           const auto cbg_centroid = centroids.at(row.visit_cbg);
-                                           const auto distance = loc_point.Distance(&cbg_centroid);
-                                           v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg,
-                                                 row.visit_cbg, row.visits, distance, 0.0F};
-                                           return r2;
-                                       });
-                        spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
-                        return o;
-                    }), loc_future, row_future, centroid_future);
-
-            auto res = distance_res.then(
-                    [&start_date, &sem, t, &cbg_offsets, &matricies](hpx::future<std::vector<v2>> rows) {
-                        const auto expanded_rows = rows.get();
-                        spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
-                        std::for_each(expanded_rows.begin(), expanded_rows.end(),
-                                      [&start_date, &cbg_offsets, &matricies](const v2 &expanded_row) {
-                                          // Compute the temporal offset
-                                          const auto t_offset = compute_temporal_offset(start_date,
-                                                                                        expanded_row.visit_date);
-                                          matricies.insert(t_offset,
-                                                           calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
-                                                           calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
-                                                           expanded_row.visits, expanded_row.distance);
-                                      });
-                        spdlog::debug("Finished adding rows");
-                        sem.signal(t);
-                    });
+//            const auto visits = extract_cbg_visits(row);
+//            std::vector<std::string> cbgs;
+//            std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
+//                return pair.first;
+//            });
+//
+//            hpx::future<joined_location> loc_future = l.find_location(row.safegraph_place_id);
+//            hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+//
+//            using hpx::dataflow;
+//            using hpx::util::unwrapping;
+//
+//            auto centroid_future = s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
+//                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
+//                return map;
+//            }));
+//
+//            auto distance_res = dataflow(unwrapping(
+//                    [this](const joined_location &loc, const std::vector<v2> &patterns, const auto &centroids) {
+//                        spdlog::debug("Calculating distances for {}", loc.safegraph_place_id);
+//                        const OGRPoint loc_point(loc.longitude, loc.latitude);
+//                        patterns.size();
+//                        std::vector<v2> o;
+//                        o.reserve(patterns.size());
+//                        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
+//                                       [&centroids, &loc_point, &loc](auto &row) {
+//                                           const auto cbg_centroid = centroids.at(row.visit_cbg);
+//                                           const auto distance = loc_point.Distance(&cbg_centroid);
+//                                           v2 r2{row.safegraph_place_id, row.visit_date, loc.location_cbg,
+//                                                 row.visit_cbg, row.visits, distance, 0.0F};
+//                                           return r2;
+//                                       });
+//                        spdlog::debug("Finished calculating distances for {}", loc.safegraph_place_id);
+//                        return o;
+//                    }), loc_future, row_future, centroid_future);
+//
+//            auto res = distance_res.then(
+//                    [&start_date, &sem, t, &cbg_offsets, &matricies](hpx::future<std::vector<v2>> rows) {
+//                        const auto expanded_rows = rows.get();
+//                        spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
+//                        std::for_each(expanded_rows.begin(), expanded_rows.end(),
+//                                      [&start_date, &cbg_offsets, &matricies](const v2 &expanded_row) {
+//                                          // Compute the temporal offset
+//                                          const auto t_offset = compute_temporal_offset(start_date,
+//                                                                                        expanded_row.visit_date);
+//                                          matricies.insert(t_offset,
+//                                                           calculate_cbg_offset(cbg_offsets, expanded_row.location_cbg),
+//                                                           calculate_cbg_offset(cbg_offsets, expanded_row.visit_cbg),
+//                                                           expanded_row.visits, expanded_row.distance);
+//                                      });
+//                        spdlog::debug("Finished adding rows");
+//                        sem.signal(t);
+//                    });
 
             results.push_back(std::move(res));
             const auto sem_start = hpx::util::high_resolution_clock::now();
@@ -301,7 +306,8 @@ namespace components::server {
         hpx::wait_all(results);
 
         // Now, multiply the values and write them to disk
-        const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(), date::format("%F", start_date), _output_name);
+        const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(),
+                                                  date::format("%F", start_date), _output_name);
         const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
         TileWriter tw(std::string(p_file.string()), cbg_offsets);

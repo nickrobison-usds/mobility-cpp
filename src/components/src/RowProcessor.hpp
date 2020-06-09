@@ -1,0 +1,42 @@
+//
+// Created by Nicholas Robison on 6/9/20.
+//
+
+#ifndef MOBILITY_CPP_ROWPROCESSOR_HPP
+#define MOBILITY_CPP_ROWPROCESSOR_HPP
+
+#include <components/constants.hpp>
+#include <components/JoinedLocation.hpp>
+#include <components/ShapefileWrapper.hpp>
+#include <components/data.hpp>
+#include "TemporalMatricies.hpp"
+#include "TileConfiguration.hpp"
+#include "types.hpp"
+
+#include <hpx/lcos/future.hpp>
+
+namespace components {
+    class RowProcessor {
+
+    public:
+        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, const date::sys_days &start_date): _conf(conf), _l(l), _s(s), _matricies(
+                {conf._time_count, MAX_CBG}), _start_date(start_date) {
+            // Not used
+        };
+        hpx::future<void> processRow(const weekly_pattern &row);
+
+    private:
+        const TileConfiguration _conf;
+        const JoinedLocation _l;
+        const ShapefileWrapper _s;
+        const detail::offset_bimap _offset_map;
+        const date::sys_days _start_date;
+        TemporalMatricies _matricies;
+        hpx::future<void> handle_row(const weekly_pattern &row, const joined_location &jl);
+        hpx::future<absl::flat_hash_map<std::string, OGRPoint>> get_centroid_map(const weekly_pattern &row, const std::vector<std::pair<std::string, std::uint16_t>> &visits);
+        hpx::future<void> insert_rows(hpx::future<std::vector<v2>> rows);
+    };
+}
+
+
+#endif //MOBILITY_CPP_ROWPROCESSOR_HPP

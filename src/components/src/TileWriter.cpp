@@ -6,7 +6,7 @@
 
 namespace components {
 
-    TileWriter::TileWriter(const std::string &filename, const offset_bimap &map) : _p(io::Parquet(filename)),
+    TileWriter::TileWriter(const std::string &filename, const detail::offset_bimap &map) : _p(io::Parquet(filename)),
                                                                                    _map(map) {
 
     }
