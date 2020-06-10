@@ -29,7 +29,7 @@ namespace components {
 
         void insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance);
 
-        distance_matrix compute(const std::size_t i = 0);
+        distance_matrix compute(std::size_t i = 0);
 
     private:
         std::vector<MatrixPair> matricies;

@@ -194,8 +194,8 @@ namespace components::server {
         return output;
     };
 
-    TileServer::TileServer(std::string output_dir, const std::string &output_name) : _output_dir(std::move(output_dir)),
-                                                                                     _output_name(output_name) {
+    TileServer::TileServer(std::string output_dir, std::string output_name) : _output_dir(std::move(output_dir)),
+                                                                                     _output_name(std::move(output_name)) {
         // Not used
     };
 
@@ -220,9 +220,6 @@ namespace components::server {
                 cbg_offsets.insert(detail::position(pair.first, pair.second));
             });
         }).get();
-
-        // Initialize the Matricies
-        TemporalMatricies matricies(dim._time_count, cbg_offsets.size());
 
         std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
@@ -316,7 +313,7 @@ namespace components::server {
             const date::sys_days matrix_date = start_date + date::days{i};
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
 
-            const auto result = matricies.compute(i);
+            const auto result = processor.get_matricies().compute(i);
 
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);

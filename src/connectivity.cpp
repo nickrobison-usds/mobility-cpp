@@ -53,7 +53,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto output_path = build_path(data_dir, output_str);
     const auto output_name = vm["output_name"].as<string>();
     const auto nr = vm["nr"].as<uint16_t>();
-    const auto tile_parititions = vm["tile_partitions"].as<uint16_t>();
+    const auto tile_parititions = vm["np"].as<uint16_t>();
 
     if (!fs::exists(output_path)) {
         spdlog::debug("Creating output directory");
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
             ("output_directory", value<string>()->default_value("output/"), "Where to place the output files")
             ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
-            ("tile_partitions", value<uint16_t>()->default_value(1),
+            ("np", value<uint16_t>()->default_value(1),
              "Number of partitions for each file (CBGs to process)");
 
     std::vector<std::string> const cfg = {

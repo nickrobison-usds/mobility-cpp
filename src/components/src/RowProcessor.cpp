@@ -182,4 +182,8 @@ namespace components {
     size_t RowProcessor::calculate_cbg_offset(const std::string &cbg_code) const {
         return _offset_map.left.at(cbg_code);
     };
+
+    TemporalMatricies& RowProcessor::get_matricies() {
+        return _matricies;
+    }
 }

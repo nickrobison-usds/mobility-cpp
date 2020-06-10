@@ -33,8 +33,8 @@ namespace components {
         auto &lock = _locks.at(time);
         lock.Lock();
         MatrixPair &pair = matricies.at(time);
-        const auto v2 = pair.vm.at(x, y);
-        const auto d2 = pair.dm.at(x, y);
+        const std::uint32_t v2 = pair.vm.at(x, y);
+        const double d2 = pair.dm.at(x, y);
         pair.vm.set(x, y, visits + v2);
         pair.dm.set(x, y, distance + d2);
         lock.Unlock();

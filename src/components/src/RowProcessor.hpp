@@ -25,6 +25,7 @@ namespace components {
             // Not used
         };
         hpx::future<void> process_row(const shared_ptr<weekly_pattern> row);
+        TemporalMatricies& get_matricies();
 
     private:
         const TileConfiguration _conf;
