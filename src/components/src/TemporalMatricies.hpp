@@ -9,8 +9,8 @@
 #include <absl/synchronization/mutex.h>
 #include <blaze/math/CompressedMatrix.h>
 
-typedef blaze::CompressedMatrix<uint32_t> visit_matrix;
-typedef blaze::CompressedMatrix<double> distance_matrix;
+typedef blaze::CompressedMatrix<uint32_t, blaze::columnMajor> visit_matrix;
+typedef blaze::CompressedMatrix<double, blaze::columnMajor> distance_matrix;
 
 namespace components {
 
@@ -25,7 +25,7 @@ namespace components {
     class TemporalMatricies {
 
     public:
-        TemporalMatricies(size_t matricies, size_t dimensions);
+        TemporalMatricies(size_t matricies, size_t x_dimension, size_t y_dimension);
 
         void insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance);
 

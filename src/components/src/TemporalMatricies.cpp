@@ -7,25 +7,26 @@
 
 namespace components {
 
-    std::vector<MatrixPair> initializeMatricies(const size_t matricies, const size_t dimensions) {
-        spdlog::debug("Allocating {} matricies of size {}", matricies, dimensions);
+    std::vector<MatrixPair> initializeMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension) {
+        spdlog::debug("Allocating {} matricies of size {}/", matricies, x_dimension, y_dimension);
         std::vector<MatrixPair> pairs;
         pairs.reserve(matricies);
         for (int i = 0; i < matricies; i++) {
             pairs.emplace_back(
-                    visit_matrix(dimensions, dimensions, 0),
-                    distance_matrix(dimensions, dimensions, 0)
+                    visit_matrix(x_dimension, y_dimension, 0),
+                    distance_matrix(x_dimension, y_dimension, 0)
             );
         }
 
         return pairs;
     }
 
-    TemporalMatricies::TemporalMatricies(const size_t matricies, const size_t dimensions) : _locks(matricies),
+    TemporalMatricies::TemporalMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension) : _locks(matricies),
                                                                                             matricies(
                                                                                                     initializeMatricies(
                                                                                                             matricies,
-                                                                                                            dimensions)) {}
+                                                                                                            x_dimension,
+                                                                                                            y_dimension)) {}
 
     void
     TemporalMatricies::insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance) {

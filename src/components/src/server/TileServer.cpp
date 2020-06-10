@@ -6,12 +6,9 @@
 #include "../OffsetCalculator.hpp"
 #include "../RowProcessor.hpp"
 #include "../TileWriter.hpp"
-#include "../TemporalMatricies.hpp"
 #include "../vector_scaler.hpp"
-#include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <blaze/math/CompressedVector.h>
-#include <boost/bimap.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
@@ -310,7 +307,7 @@ namespace components::server {
 
             TileWriter tw(std::string(p_file.string()), offset_calculator);
 
-            const auto result = processor.get_matricies().compute(i);
+            const distance_matrix result = processor.get_matricies().compute(i);
 
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);

@@ -20,8 +20,8 @@ namespace components {
     class RowProcessor {
 
     public:
-        RowProcessor(const TileConfiguration &conf, JoinedLocation l, ShapefileWrapper s, const detail::OffsetCalculator &oc, const date::sys_days &start_date): _conf(conf), _l(std::move(l)), _s(std::move(s)), _matricies(
-                {conf._time_count, MAX_CBG}), _start_date(start_date), _offset_calculator(oc) {
+        RowProcessor(const TileConfiguration &conf, JoinedLocation l, ShapefileWrapper s, detail::OffsetCalculator oc, const date::sys_days &start_date): _conf(conf), _l(std::move(l)), _s(std::move(s)), _matricies(
+                {conf._time_count, conf._cbg_max - conf._cbg_min, MAX_CBG}), _start_date(start_date), _offset_calculator(std::move(oc)) {
             // Not used
         };
         hpx::future<void> process_row(const shared_ptr<weekly_pattern> row);
