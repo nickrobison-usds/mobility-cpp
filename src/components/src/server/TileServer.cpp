@@ -195,7 +195,7 @@ namespace components::server {
     };
 
     TileServer::TileServer(std::string output_dir, std::string output_name) : _output_dir(std::move(output_dir)),
-                                                                                     _output_name(std::move(output_name)) {
+                                                                              _output_name(std::move(output_name)) {
         // Not used
     };
 
@@ -221,7 +221,7 @@ namespace components::server {
             });
         }).get();
 
-        std::vector<hpx::future<void>> results;
+        std::vector <hpx::future<void>> results;
         results.reserve(rows.size());
 
         // Create the Row Processor
@@ -303,15 +303,15 @@ namespace components::server {
         hpx::wait_all(results);
 
         // Now, multiply the values and write them to disk
-        const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(),
-                                                  date::format("%F", start_date), _output_name);
-        const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
-
-        TileWriter tw(std::string(p_file.string()), cbg_offsets);
         for (uint i = 0; i < dim._time_count; i++) {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
+            const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(),
+                                                      date::format("%F", matrix_date), _output_name);
+            const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
+
+            TileWriter tw(std::string(p_file.string()), cbg_offsets);
 
             const auto result = processor.get_matricies().compute(i);
 
