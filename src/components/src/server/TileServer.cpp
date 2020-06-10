@@ -3,11 +3,11 @@
 //
 
 #include "TileServer.hpp"
+#include "../OffsetCalculator.hpp"
 #include "../RowProcessor.hpp"
 #include "../TileWriter.hpp"
 #include "../TemporalMatricies.hpp"
 #include "../vector_scaler.hpp"
-#include "../types.hpp"
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include <blaze/math/CompressedVector.h>
@@ -213,19 +213,15 @@ namespace components::server {
 
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
-        detail::offset_bimap cbg_offsets;
-        s.build_offsets().then([&cbg_offsets](auto of) {
-            const auto offsets = of.get();
-            std::for_each(offsets.begin(), offsets.end(), [&cbg_offsets](const auto &pair) {
-                cbg_offsets.insert(detail::position(pair.first, pair.second));
-            });
-        }).get();
 
-        std::vector <hpx::future<void>> results;
+        const auto of = s.build_offsets().get();
+        detail::OffsetCalculator offset_calculator(of, dim);
+
+        std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
 
         // Create the Row Processor
-        RowProcessor processor{dim, l, s, cbg_offsets, start_date};
+        RowProcessor processor{dim, l, s, offset_calculator, start_date};
 
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
@@ -307,11 +303,12 @@ namespace components::server {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
-            const auto parquet_filename = fmt::format("{}-{}-{}.parquet", hpx::get_locality_id(),
-                                                      date::format("%F", matrix_date), _output_name);
+            const auto parquet_filename = fmt::format("{}-{}-{}-{}-{}.parquet", hpx::get_locality_id(),
+                                                      date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
+                                                      _output_name);
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
-            TileWriter tw(std::string(p_file.string()), cbg_offsets);
+            TileWriter tw(std::string(p_file.string()), offset_calculator);
 
             const auto result = processor.get_matricies().compute(i);
 

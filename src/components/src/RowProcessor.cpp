@@ -104,7 +104,7 @@ namespace components {
         return _l.find_location(row->safegraph_place_id).then(
                 [this, row](hpx::future<joined_location> location_future) {
                     const auto jl = std::make_shared<joined_location>(location_future.get());
-                    const auto offset = calculate_cbg_offset(jl->location_cbg);
+                    const auto offset = _offset_calculator.calculate_cbg_offset(jl->location_cbg);
 //                     If the cbg is outside of our partition, then return immediately.
 //                     Otherwise, start the processing
                     if (offset < _conf._cbg_min || offset >= _conf._cbg_max) {
@@ -164,26 +164,18 @@ namespace components {
                           // Compute the temporal offset
                           const auto t_offset = compute_temporal_offset(_start_date,
                                                                         expanded_row.visit_date);
+                          const auto x_idx = _offset_calculator.calculate_local_offset(expanded_row.location_cbg);
+                          const auto y_idx = _offset_calculator.calculate_cbg_offset(expanded_row.visit_cbg);
                           _matricies.insert(t_offset,
-                                            calculate_cbg_offset(expanded_row.location_cbg),
-                                            calculate_cbg_offset(expanded_row.visit_cbg),
+                                            x_idx,
+                                            y_idx,
                                             expanded_row.visits, expanded_row.distance);
                       });
         spdlog::debug("Finished adding rows");
         return hpx::make_ready_future();
     }
 
-    /**
-     * Compute the local offset for a given CBG code
-     * @param map - Map of CBG-codes to their size_t matrix offset
-     * @param cbg_code - CBG code (string)
-     * @return offset
-     */
-    size_t RowProcessor::calculate_cbg_offset(const std::string &cbg_code) const {
-        return _offset_map.left.at(cbg_code);
-    };
-
-    TemporalMatricies& RowProcessor::get_matricies() {
+    TemporalMatricies &RowProcessor::get_matricies() {
         return _matricies;
     }
 }

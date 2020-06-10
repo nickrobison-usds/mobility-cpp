@@ -6,8 +6,8 @@
 
 namespace components {
 
-    TileWriter::TileWriter(const std::string &filename, const detail::offset_bimap &map) : _p(io::Parquet(filename)),
-                                                                                   _map(map) {
+    TileWriter::TileWriter(const std::string &filename, const detail::OffsetCalculator &oc) : _p(io::Parquet(filename)),
+                                                                                   _offset_calculator(oc) {
 
     }
 
@@ -16,7 +16,7 @@ namespace components {
 
         for (size_t i = 0; i < results.size(); i++) {
             // Reverse lookup the index with the matching CBG
-            const std::string cbg = _map.right.at(i);
+            const std::string cbg = _offset_calculator.cbg_from_local_offset(i);
             // Write it out
             status = _cbg_builder.Append(cbg);
             status = _date_builder.Append(result_date.time_since_epoch().count());
