@@ -18,7 +18,7 @@ add_library(components
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
         src/TemporalMatricies.cpp src/TemporalMatricies.hpp
         src/TileWriter.cpp src/TileWriter.hpp src/RowProcessor.cpp src/RowProcessor.hpp src/OffsetCalculator.cpp src/OffsetCalculator.hpp)
-target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::strings absl::synchronization Boost::regex)
+target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::strings absl::synchronization Boost::regex shared)
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

@@ -11,6 +11,7 @@ CHECK_FOR_AVX()
 
 add_subdirectory(io)
 add_subdirectory(components)
+add_subdirectory(shared)
 
 add_executable(splitter splitter.cpp)
 target_link_libraries(splitter PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)

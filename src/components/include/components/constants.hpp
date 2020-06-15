@@ -10,6 +10,13 @@
 namespace components {
     // The total number of Census Block Groups (CBGs) in the US
     const static std::size_t MAX_CBG = 220740;
+
+    enum SignPostCode {
+        EXPAND_ROW,
+        INSERT_ROWS,
+        COMPUTE_DISTANCES,
+        GET_CENTROIDS,
+    };
 }
 
 #endif //MOBILITY_CPP_CONSTANTS_HPP

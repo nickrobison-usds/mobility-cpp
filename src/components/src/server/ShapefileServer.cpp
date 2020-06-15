@@ -4,6 +4,8 @@
 
 #include "ShapefileServer.hpp"
 #include <absl/strings/str_join.h>
+#include <shared/debug.hpp>
+#include "components/constants.hpp"
 
 #include <algorithm>
 
@@ -13,6 +15,7 @@ namespace components::server {
     }
 
     std::vector<std::pair<std::string, OGRPoint>> ShapefileServer::get_centroids(const vector<std::string> &geoids) {
+        const auto dp = shared::DebugPoint::create_debug_point(SignPostCode::GET_CENTROIDS);
         const auto layer = _shapefile->GetLayer(0);
 
         // Join all of the CBGs into a single query statement
@@ -27,7 +30,7 @@ namespace components::server {
             feature->GetGeometryRef()->Centroid(&centroid);
             res.emplace_back(geoid, centroid);
         });
-
+        dp.stop();
         return res;
     }
 
