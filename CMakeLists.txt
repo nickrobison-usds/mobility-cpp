@@ -1,4 +1,18 @@
 cmake_minimum_required(VERSION 3.0.0)
+
+# ##############################################################################
+# Build type (needs to be handled before project command below)
+# ##############################################################################
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE
+            "Release"
+            CACHE
+            STRING
+            "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)"
+            FORCE
+            )
+endif()
+
 project(mobility-cpp VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,6 +35,9 @@ set(BENCHMARK_ENABLE_TESTING OFF)
 #Set options for Blaze Library
 set(BLAZE_SMP_THREADS HPX)
 set(BLAZE_USE_VECTORIZATION TRUE)
+
+# Set the default malloc implementation
+set(DEFAULT_MALLOC "system")
 
 enable_testing()
 
