@@ -15,15 +15,15 @@
 
 namespace shared {
 
-    class DebugPoint {
+    class DebugInterval {
     public:
-        static DebugPoint create_debug_point(int code) {
-            return DebugPoint(code);
+        static DebugInterval create_debug_point(int code) {
+            return DebugInterval(code);
         };
 
         void start() const {
             if constexpr(detail::debugEnabled()) {
-                _start();
+                kdebug_signpost_start(_code, 0, 0, 0, 0);
             } else {
                 // No-op
             }
@@ -31,26 +31,17 @@ namespace shared {
 
         void stop() const {
             if constexpr(detail::debugEnabled()) {
-                _stop();
+                kdebug_signpost_end(_code, 0, 0, 0, 0);
             } else {
                 // No-op
             }
         }
 
     private:
-        explicit DebugPoint(int code) : _code(code) {
-            // Not used
+        explicit DebugInterval(int code) : _code(code) {
+            start();
         }
-
-        void _start() const {
-            kdebug_signpost_start(_code, 0, 0, 0, 0);
-        }
-
-        void _stop() const {
-            kdebug_signpost_end(_code, 0, 0, 0, 0);
-        }
-
-        int _code;
+        const int _code;
 
     };
 }
