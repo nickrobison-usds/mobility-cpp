@@ -42,8 +42,9 @@ namespace components::server {
         const auto layer = _shapefile->GetLayer(0);
         // Reset the filter, since we want everything
         layer->SetAttributeFilter(nullptr);
-        offsets.reserve(layer->GetFeatureCount());
-        geoids.reserve(layer->GetFeatureCount());
+        const auto feature_count = layer->GetFeatureCount();
+        offsets.reserve(feature_count);
+        geoids.reserve(feature_count);
 
         std::for_each(layer->begin(), layer->end(), [&geoids](auto &feature) {
             geoids.push_back(feature->GetFieldAsString("GEOID"));
