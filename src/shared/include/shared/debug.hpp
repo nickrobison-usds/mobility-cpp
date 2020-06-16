@@ -22,25 +22,27 @@ namespace shared {
         };
 
         void start() const {
-            if constexpr(detail::debugEnabled()) {
-                kdebug_signpost_start(_code, 0, 0, 0, 0);
-            } else {
-                // No-op
-            }
+// TODO: I would love for this to be constexpr, but it's throwing errors on Linux. So I probably don't understand what's going on.
+#if __APPLE__
+            kdebug_signpost_start(_code, 0, 0, 0, 0);
+#else
+            // No op
+#endif
         }
 
         void stop() const {
-            if constexpr(detail::debugEnabled()) {
-                kdebug_signpost_end(_code, 0, 0, 0, 0);
-            } else {
-                // No-op
-            }
+#ifdef __APPLE__
+            kdebug_signpost_end(_code, 0, 0, 0, 0);
+#else
+            // No op
+#endif
         }
 
     private:
         explicit DebugInterval(int code) : _code(code) {
             start();
         }
+
         const int _code;
 
     };

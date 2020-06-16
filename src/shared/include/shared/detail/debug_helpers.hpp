@@ -5,9 +5,11 @@
 #ifndef MOBILITY_CPP_TYPE_HELPERS_HPP
 #define MOBILITY_CPP_TYPE_HELPERS_HPP
 
+
+
 namespace shared::detail {
 
-    constexpr bool debugEnabled() {
+    static constexpr bool debugEnabled() {
 #ifdef __APPLE__
         return true;
 #else
