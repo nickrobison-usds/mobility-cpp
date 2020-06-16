@@ -3,35 +3,33 @@
 //
 
 #include "ShapefileServer.hpp"
-#include <absl/strings/str_join.h>
 #include <shared/debug.hpp>
 #include "components/constants.hpp"
+#include "spdlog/spdlog.h"
 
 #include <algorithm>
 
 namespace components::server {
-    ShapefileServer::ShapefileServer(std::string shapefile): _shapefile(io::Shapefile(std::move(shapefile)).openFile()) {
+
+
+    ShapefileServer::ShapefileServer(std::string shapefile) : _shapefile(
+            io::Shapefile(std::move(shapefile)).openFile()), _centroid_map(build_centroid_map()) {
         // Not used
     }
 
     std::vector<std::pair<std::string, OGRPoint>> ShapefileServer::get_centroids(const vector<std::string> &geoids) {
         const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::GET_CENTROIDS);
-        const auto layer = _shapefile->GetLayer(0);
 
-        // Join all of the CBGs into a single query statement
-        const auto joined = absl::StrJoin(geoids, "','");
-        const auto query = absl::StrCat("GEOID IN ('", joined, "')");
+        std::vector<std::pair<std::string, OGRPoint>> centroids;
+        centroids.reserve(geoids.size());
 
-        layer->SetAttributeFilter(query.c_str());
-        std::vector<std::pair<std::string, OGRPoint>> res;
-        std::for_each(layer->begin(), layer->end(), [&res](OGRFeatureUniquePtr &feature) {
-            const auto geoid = feature->GetFieldAsString("GEOID");
-            OGRPoint centroid;
-            feature->GetGeometryRef()->Centroid(&centroid);
-            res.emplace_back(geoid, centroid);
+        std::transform(geoids.begin(), geoids.end(), std::back_inserter(centroids), [this](const auto &geoid) {
+            const auto centroid = _centroid_map.at(geoid);
+            return std::make_pair(geoid, centroid);
         });
+
         dp.stop();
-        return res;
+        return centroids;
     }
 
     ShapefileServer::offset_type ShapefileServer::build_offsets() const {
@@ -57,6 +55,25 @@ namespace components::server {
         });
 
         return offsets;
+    }
+
+    ShapefileServer::centroid_map ShapefileServer::build_centroid_map() {
+        spdlog::debug("Building centroid map");
+        centroid_map map;
+
+        const auto layer = _shapefile->GetLayer(0);
+        // Reset the filter, since we want everything
+        layer->SetAttributeFilter(nullptr);
+
+        std::for_each(layer->begin(), layer->end(), [&map](auto &feature) {
+            const auto geoid = feature->GetFieldAsString("GEOID");
+            OGRPoint centroid;
+            feature->GetGeometryRef()->Centroid(&centroid);
+            map.emplace(geoid, centroid);
+        });
+
+        spdlog::debug("Finished building centroid map");
+        return map;
     }
 
 }

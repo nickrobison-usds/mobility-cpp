@@ -170,7 +170,6 @@ namespace components::server {
         for (uint i = 0; i < dim._time_count; i++) {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
-            spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
             const auto parquet_filename = fmt::format("{}-{}-{}-{}-{}.parquet", hpx::get_locality_id(),
                                                       date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
                                                       _output_name);
@@ -178,6 +177,7 @@ namespace components::server {
 
             TileWriter tw(std::string(p_file.string()), offset_calculator);
 
+            const auto multiply_start = hpx::util::high_resolution_clock::now();
             const distance_matrix result = processor.get_matricies().compute(i);
 
             // Sum the total risk for each cbg
@@ -185,7 +185,10 @@ namespace components::server {
             const double max = blaze::max(cbg_risk_score);
 
             // scale it back down
+            spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
             const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler<double>(max));
+            const auto multiply_elapsed = hpx::util::high_resolution_clock::now() - multiply_start;
+            print_timing("Multiply", multiply_elapsed);
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
