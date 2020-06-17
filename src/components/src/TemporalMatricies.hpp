@@ -31,6 +31,8 @@ namespace components {
 
         distance_matrix compute(std::size_t i = 0);
 
+        MatrixPair& get_matrix_pair(std::size_t i);
+
     private:
         std::vector<MatrixPair> matricies;
         std::vector<absl::Mutex> _locks;

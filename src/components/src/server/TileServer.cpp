@@ -8,7 +8,9 @@
 #include "../TileWriter.hpp"
 #include "../vector_scaler.hpp"
 #include <absl/strings/str_split.h>
+#include <blaze/math/Math.h>
 #include <blaze/math/CompressedVector.h>
+#include <blaze/math/DynamicVector.h>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <components/JoinedLocation.hpp>
@@ -178,11 +180,14 @@ namespace components::server {
             TileWriter tw(std::string(p_file.string()), offset_calculator);
 
             const auto multiply_start = hpx::util::high_resolution_clock::now();
-            const distance_matrix result = processor.get_matricies().compute(i);
+            TemporalMatricies &matricies = processor.get_matricies();
+            const auto matrix_pair = matricies.get_matrix_pair(i);
+            const distance_matrix result = matricies.compute(i);
 
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
             const double max = blaze::max(cbg_risk_score);
+            const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(matrix_pair.vm);
 
             // scale it back down
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
@@ -192,7 +197,7 @@ namespace components::server {
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
-            const arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results);
+            const arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
             if (!status.ok()) {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }

@@ -7,7 +7,8 @@
 
 namespace components {
 
-    std::vector<MatrixPair> initializeMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension) {
+    std::vector<MatrixPair>
+    initializeMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension) {
         spdlog::debug("Allocating {} matricies of size {}/", matricies, x_dimension, y_dimension);
         std::vector<MatrixPair> pairs;
         pairs.reserve(matricies);
@@ -21,12 +22,12 @@ namespace components {
         return pairs;
     }
 
-    TemporalMatricies::TemporalMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension) : _locks(matricies),
-                                                                                            matricies(
-                                                                                                    initializeMatricies(
-                                                                                                            matricies,
-                                                                                                            x_dimension,
-                                                                                                            y_dimension)) {}
+    TemporalMatricies::TemporalMatricies(const size_t matricies, const size_t x_dimension, const size_t y_dimension)
+            : _locks(matricies),
+              matricies(initializeMatricies(
+                      matricies,
+                      x_dimension,
+                      y_dimension)) {}
 
     void
     TemporalMatricies::insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance) {
@@ -49,6 +50,11 @@ namespace components {
         spdlog::debug("Have {} non zero values.", result.nonZeros());
         lock.Unlock();
         return result;
+    }
+
+    MatrixPair &TemporalMatricies::get_matrix_pair(std::size_t i) {
+        return matricies.at(i);
     };
+
 }
 
