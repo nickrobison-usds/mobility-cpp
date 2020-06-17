@@ -6,6 +6,7 @@
 #include "../OffsetCalculator.hpp"
 #include "../RowProcessor.hpp"
 #include "../TileWriter.hpp"
+#include "../VisitMatrixWriter.hpp"
 #include "../vector_scaler.hpp"
 #include <absl/strings/str_split.h>
 #include <blaze/math/Math.h>
@@ -177,7 +178,14 @@ namespace components::server {
                                                       _output_name);
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
+            const auto visit_filename = fmt::format("{}-{}-{}-{}-visits-{}.parquet", hpx::get_locality_id(),
+                                                      date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
+                                                      _output_name);
+
+            const auto v_file = fs::path(_output_dir) /= fs::path(visit_filename);
+
             TileWriter tw(std::string(p_file.string()), offset_calculator);
+            VisitMatrixWriter vw(std::string(v_file.string()), offset_calculator);
 
             const auto multiply_start = hpx::util::high_resolution_clock::now();
             TemporalMatricies &matricies = processor.get_matricies();
@@ -187,7 +195,8 @@ namespace components::server {
             // Sum the total risk for each cbg
             const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
             const double max = blaze::max(cbg_risk_score);
-            const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(matrix_pair.vm);
+            const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
+                    matrix_pair.vm);
 
             // scale it back down
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
@@ -197,7 +206,11 @@ namespace components::server {
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
-            const arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
+            arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
+            if (!status.ok()) {
+                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+            }
+            status = vw.writeResults(start_date, matrix_pair.vm);
             if (!status.ok()) {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }
