@@ -36,9 +36,12 @@ fs::path build_path(const fs::path &root_path, const string &path_string) {
 
 
 int hpx_main(hpx::program_options::variables_map &vm) {
-    spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v");
     spdlog::info("Initializing connectivity calculator on locale {}", hpx::get_locality_id());
+
+    if (!vm.count("silent")) {
+        spdlog::set_level(spdlog::level::debug);
+    }
 
     // Build the file paths
     const string input_dir = vm["data_dir"].as<string>();
@@ -153,7 +156,8 @@ int main(int argc, char **argv) {
             ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
             ("np", value<uint16_t>()->default_value(1),
-             "Number of partitions for each file (CBGs to process)");
+             "Number of partitions for each file (CBGs to process)")
+            ("silent", "disable debug logging");
 
     std::vector<std::string> const cfg = {
             "hpx.run_hpx_main!=1"

@@ -10,4 +10,4 @@
 #SBATCH -o ./%j-connectivity-output.txt
 #SBATCH -e ./%j-connectivity-error.txt
 
-srun ../build/src/connectivity --data_dir=/lustre/or-hydra/cades-birthright/nickrobison/mobility-analysis/data
+srun ../build/src/connectivity --data_dir=/lustre/or-hydra/cades-birthright/nickrobison/mobility-analysis/data --silent
