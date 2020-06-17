@@ -37,7 +37,8 @@ set(BLAZE_SMP_THREADS HPX)
 set(BLAZE_USE_VECTORIZATION TRUE)
 
 # Set the default malloc implementation
-set(DEFAULT_MALLOC "system")
+set(DEFAULT_MALLOC "system" CACHE STRING "Set the default memory allocator")
+set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc")
 
 enable_testing()
 
