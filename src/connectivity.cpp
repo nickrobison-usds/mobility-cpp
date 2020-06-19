@@ -4,9 +4,11 @@
 
 #include <components/constants.hpp>
 #include <components/TileClient.hpp>
+#include <shared/HostnameLogger.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include "spdlog/spdlog.h"
+#include "spdlog/pattern_formatter.h"
 #include "utils.hpp"
 #include <chrono>
 #include <string>
@@ -36,7 +38,9 @@ fs::path build_path(const fs::path &root_path, const string &path_string) {
 
 
 int hpx_main(hpx::program_options::variables_map &vm) {
-    spdlog::set_pattern("[%H:%M:%S %z] [thread %t] %v");
+    auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
+    spdlog::set_formatter(std::move(formatter));
     spdlog::info("Initializing connectivity calculator on locale {}", hpx::get_locality_id());
 
     if (!vm.count("silent")) {
