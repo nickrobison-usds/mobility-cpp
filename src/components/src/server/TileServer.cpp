@@ -24,9 +24,6 @@
 #include <algorithm>
 #include <utility>
 
-static const boost::regex brackets("\\[|\\]");
-static const boost::regex cbg_map_replace("{|\"|}");
-
 namespace fs = boost::filesystem;
 
 namespace components::server {
@@ -39,7 +36,7 @@ namespace components::server {
     std::vector<weekly_pattern> extract_rows(const string &filename) {
 
         // Get date from filename
-        spdlog::debug("Reading {}", filename);
+        spdlog::info("Reading {}", filename);
         io::CSVLoader<17, true> l(filename);
 
         string safegraph_place_id;

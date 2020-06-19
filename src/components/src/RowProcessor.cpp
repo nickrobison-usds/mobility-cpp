@@ -112,6 +112,10 @@ namespace components {
         return _l.find_location(row->safegraph_place_id).then(
                 [this, row](hpx::future<joined_location> location_future) {
                     const auto jl = std::make_shared<joined_location>(location_future.get());
+                    if (jl->location_cbg.empty()) {
+                        spdlog::warn("Cannot find CBG for safegraph place: {}", row->safegraph_place_id);
+                        return hpx::make_ready_future();
+                    }
                     const auto offset = _offset_calculator.calculate_cbg_offset(jl->location_cbg);
                     if (!offset.has_value()) {
                         spdlog::error("Cannot find offset {} in map", jl->location_cbg);

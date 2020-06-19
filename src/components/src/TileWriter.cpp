@@ -27,9 +27,8 @@ namespace components {
                 status = _risk_builder.Append(results[i]);
                 status = _normalize_risk_builder.Append(norm_results[i]);
                 status = _visit_builder.Append(visits[i]);
-                throw std::invalid_argument("Index is out of bounds");
             } else {
-                spdlog::error("Cannot process index: {}", i);
+                spdlog::error("Cannot process index: `{}`", i);
             }
         }
 

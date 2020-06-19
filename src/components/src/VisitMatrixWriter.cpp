@@ -19,14 +19,14 @@ namespace components {
         for (size_t i = 0; i < matrix.columns(); i++) {
             const auto source_cbg = _offset_calculator.cbg_from_local_offset(i);
             if (!source_cbg.has_value()) {
-                spdlog::error("Cannot process source cbg: {}", i);
+                spdlog::error("Cannot process source cbg: `{}`", i);
                 continue;
             }
             for (visit_matrix::ConstIterator it = matrix.cbegin(i); it != matrix.cend(i); ++it) {
                 const auto dist = std::distance(matrix.cbegin(i), it);
                 const auto dest_cbg = _offset_calculator.cbg_from_local_offset(dist);
                 if (!dest_cbg.has_value()) {
-                    spdlog::error("Cannot process dest cbg: {}", dist);
+                    spdlog::error("Cannot process dest cbg: `{}`", dist);
                     continue;
                 }
                 status = _source_cbg_builder.Append(*source_cbg);
