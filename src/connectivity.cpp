@@ -39,7 +39,7 @@ fs::path build_path(const fs::path &root_path, const string &path_string) {
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
-    formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%h] [%H:%M:%S %z] [thread %t] %v");
+    formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
     spdlog::set_formatter(std::move(formatter));
     spdlog::info("Initializing connectivity calculator on locale {}", hpx::get_locality_id());
 
