@@ -52,10 +52,13 @@ namespace components {
         std::transform(visit_pairs.begin(), visit_pairs.end(), std::back_inserter(cbg_visits), [](const auto &kv_pair) {
             const std::pair<std::string, std::string> split_pair = absl::StrSplit(kv_pair, ':');
             std::uint16_t v = 0;
-            try {
-                v = std::stoi(split_pair.second);
-            } catch (std::invalid_argument &e) {
-                spdlog::error("Cannot convert {} for {}", split_pair.second, split_pair.first);
+            // If the value is empty, then we don't even need to try for the stoi. And we avoid throwing/catching the exception
+            if (!split_pair.second.empty()) {
+                try {
+                    v = std::stoi(split_pair.second);
+                } catch (std::invalid_argument &e) {
+                    spdlog::error("Cannot convert {} for {}", split_pair.second, split_pair.first);
+                }
             }
             return std::make_pair(split_pair.first, v);
         });
