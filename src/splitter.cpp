@@ -43,7 +43,7 @@ void gather_here(const string &output_file, hpx::future<vector<visit_row>> &resu
                               arrow::Status status;
                               status = loc_cbg_builder.Append(row.location_cbg);
                               status = visit_cbg_builder.Append(row.visit_cbg);
-                              status = visit_date_builder.Append(row.date);
+                              status = visit_date_builder.Append(row.date.time_since_epoch().count());
                               status = visit_count_builder.Append(row.visits);
                               status = distance_builder.Append(row.distance);
                               status = weight_builder.Append(row.weighted_total);

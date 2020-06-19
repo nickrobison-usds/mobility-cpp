@@ -5,7 +5,7 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 
 #include "catch2/catch.hpp"
-#include "io/ShapefileWrapper.hpp"
+#include "io/Shapefile.hpp"
 #include "ogrsf_frmts.h"
 
 using namespace std;
