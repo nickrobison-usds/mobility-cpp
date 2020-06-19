@@ -4,9 +4,11 @@
 
 #include "VisitMatrixWriter.hpp"
 
+#include <utility>
+
 namespace components {
     VisitMatrixWriter::VisitMatrixWriter(const std::string &filename, detail::OffsetCalculator oc) : _p(
-            io::Parquet(filename)), _offset_calculator(oc) {
+            io::Parquet(filename)), _offset_calculator(std::move(oc)) {
         // Not used
     }
 
@@ -14,12 +16,18 @@ namespace components {
         arrow::Status status;
 
         for (size_t i = 0; i < matrix.columns(); i++) {
-            const std::string source_cbg = _offset_calculator.cbg_from_local_offset(i);
+            const auto source_cbg = _offset_calculator.cbg_from_local_offset(i);
+            if (!source_cbg.has_value()) {
+                throw std::invalid_argument("Index is out of bounds");
+            }
             for (visit_matrix::ConstIterator it = matrix.cbegin(i); it != matrix.cend(i); ++it) {
-                const std::string dest_cbg = _offset_calculator.cbg_from_local_offset(
+                const auto dest_cbg = _offset_calculator.cbg_from_local_offset(
                         std::distance(matrix.cbegin(i), it));
-                status = _source_cbg_builder.Append(source_cbg);
-                status = _dest_cbg_builder.Append(dest_cbg);
+                if (!dest_cbg.has_value()) {
+                    throw std::invalid_argument("Index is out of bounds");
+                }
+                status = _source_cbg_builder.Append(*source_cbg);
+                status = _dest_cbg_builder.Append(*dest_cbg);
                 status = _date_builder.Append(result_date.time_since_epoch().count());
                 status = _visit_builder.Append(it->value());
             }

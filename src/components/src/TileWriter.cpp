@@ -18,9 +18,12 @@ namespace components {
 
         for (size_t i = 0; i < results.size(); i++) {
             // Reverse lookup the index with the matching CBG
-            const std::string cbg = _offset_calculator.cbg_from_local_offset(i);
+            const auto cbg = _offset_calculator.cbg_from_local_offset(i);
+            if (!cbg.has_value()) {
+                throw std::invalid_argument("Index is out of bounds");
+            }
             // Write it out
-            status = _cbg_builder.Append(cbg);
+            status = _cbg_builder.Append(*cbg);
             status = _date_builder.Append(result_date.time_since_epoch().count());
             status = _risk_builder.Append(results[i]);
             status = _normalize_risk_builder.Append(norm_results[i]);

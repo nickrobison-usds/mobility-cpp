@@ -110,10 +110,14 @@ namespace components {
                 [this, row](hpx::future<joined_location> location_future) {
                     const auto jl = std::make_shared<joined_location>(location_future.get());
                     const auto offset = _offset_calculator.calculate_cbg_offset(jl->location_cbg);
+                    if (!offset.has_value()) {
+                        spdlog::error("Cannot find offset {} in map", jl->location_cbg);
+                        return hpx::make_ready_future();
+                    }
 //                     If the cbg is outside of our partition, then return immediately.
 //                     Otherwise, start the processing
-                    if (offset < _conf._cbg_min || offset >= _conf._cbg_max) {
-                        spdlog::debug("CBG {} is outside of boundary {}/{}", offset, _conf._cbg_min, _conf._cbg_max);
+                    if (*offset < _conf._cbg_min || *offset >= _conf._cbg_max) {
+                        spdlog::debug("CBG {} is outside of boundary {}/{}", *offset, _conf._cbg_min, _conf._cbg_max);
                         return hpx::make_ready_future();
                     } else {
                         return handle_row(row, jl);
@@ -172,10 +176,15 @@ namespace components {
                                                                         expanded_row.visit_date);
                           const auto x_idx = _offset_calculator.calculate_local_offset(expanded_row.location_cbg);
                           const auto y_idx = _offset_calculator.calculate_cbg_offset(expanded_row.visit_cbg);
-                          _matricies.insert(t_offset,
-                                            x_idx,
-                                            y_idx,
-                                            expanded_row.visits, expanded_row.distance);
+                          if (y_idx.has_value()) {
+                              _matricies.insert(t_offset,
+                                                x_idx,
+                                                *y_idx,
+                                                expanded_row.visits, expanded_row.distance);
+                          } else {
+                              spdlog::error("CBG {} is not in map, skipping insert", expanded_row.visit_cbg);
+                          }
+
                       });
         spdlog::debug("Finished adding rows");
         dp.stop();

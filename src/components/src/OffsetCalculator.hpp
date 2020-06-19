@@ -8,6 +8,7 @@
 #include "server/ShapefileServer.hpp"
 #include "TileConfiguration.hpp"
 #include <boost/bimap.hpp>
+#include <optional>
 
 namespace components::detail {
 
@@ -23,11 +24,11 @@ namespace components::detail {
      * @param cbg_code - CBG code (string)
      * @return offset
      */
-        std::size_t calculate_cbg_offset(const std::string &cbg_code) const;
+        [[nodiscard]] std::optional<std::size_t> calculate_cbg_offset(const std::string &cbg_code) const;
 
-        std::size_t calculate_local_offset(const std::string &cbg_code) const;
+        [[nodiscard]] std::size_t calculate_local_offset(const std::string &cbg_code) const;
 
-        std::string cbg_from_local_offset(const size_t cbg_idx) const;
+        [[nodiscard]] std::optional<std::string> cbg_from_local_offset(size_t cbg_idx) const;
 
     private:
         const std::size_t _start_idx;
