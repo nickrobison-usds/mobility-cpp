@@ -19,8 +19,8 @@ namespace components {
     private:
         const io::Parquet _p;
         const detail::OffsetCalculator _offset_calculator;
-        arrow::StringBuilder _source_cbg_builder;
-        arrow::StringBuilder _dest_cbg_builder;
+        arrow::StringBuilder _poi_cbg_builder;
+        arrow::StringBuilder _visitor_cbg_builder;
         arrow::Date32Builder _date_builder;
         arrow::UInt32Builder _visit_builder;
     };
