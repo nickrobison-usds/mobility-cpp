@@ -16,7 +16,7 @@ namespace components {
     class TileWriter {
     public:
         TileWriter(const std::string& filename, detail::OffsetCalculator oc);
-        arrow::Status writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results, const blaze::CompressedVector<double> &norm_results, const blaze::CompressedVector<std::uint32_t, blaze::rowVector> &visits);
+        arrow::Status writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double, blaze::rowVector> &results, const blaze::CompressedVector<double, blaze::rowVector> &norm_results, const blaze::CompressedVector<std::uint32_t, blaze::rowVector> &visits);
     private:
         const io::Parquet _p;
         const detail::OffsetCalculator _offset_calculator;

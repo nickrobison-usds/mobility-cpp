@@ -24,7 +24,7 @@ namespace components {
             }
             for (visit_matrix::ConstIterator it = matrix.cbegin(i); it != matrix.cend(i); ++it) {
                 const auto dist = std::distance(matrix.cbegin(i), it);
-                const auto dest_cbg = _offset_calculator.cbg_from_local_offset(dist);
+                const auto dest_cbg = _offset_calculator.cbg_from_offset(dist);
                 if (!dest_cbg.has_value()) {
                     spdlog::error("Cannot process dest cbg: `{}`", dist);
                     continue;

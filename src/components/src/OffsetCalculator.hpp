@@ -30,6 +30,8 @@ namespace components::detail {
 
         [[nodiscard]] std::optional<std::string> cbg_from_local_offset(size_t cbg_idx) const;
 
+        [[nodiscard]] optional<string> cbg_from_offset(size_t cbg_idx) const;
+
     private:
         const std::size_t _start_idx;
         const std::size_t _end_idx;

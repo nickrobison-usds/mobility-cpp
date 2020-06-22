@@ -190,7 +190,7 @@ namespace components::server {
             const distance_matrix result = matricies.compute(i);
 
             // Sum the total risk for each cbg
-            const blaze::CompressedVector<double> cbg_risk_score = blaze::sum<blaze::rowwise>(result);
+            const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(result);
             const double max = blaze::max(cbg_risk_score);
             const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
                     matrix_pair.vm);

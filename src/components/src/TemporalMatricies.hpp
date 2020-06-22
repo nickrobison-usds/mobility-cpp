@@ -25,9 +25,9 @@ namespace components {
     class TemporalMatricies {
 
     public:
-        TemporalMatricies(size_t matricies, size_t x_dimension, size_t y_dimension);
+        TemporalMatricies(size_t matricies, size_t col_dimension, size_t row_dimension);
 
-        void insert(std::size_t time, std::size_t x, std::size_t y, std::uint16_t visits, double distance);
+        void insert(std::size_t time, std::size_t col, std::size_t row, std::uint16_t visits, double distance);
 
         distance_matrix compute(std::size_t i = 0);
 

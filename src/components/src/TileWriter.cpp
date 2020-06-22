@@ -14,7 +14,7 @@ namespace components {
 
     }
 
-    arrow::Status TileWriter::writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double> &results, const blaze::CompressedVector<double> &norm_results, const blaze::CompressedVector<std::uint32_t, blaze::rowVector> &visits) {
+    arrow::Status TileWriter::writeResults(const date::sys_days &result_date, const blaze::CompressedVector<double, blaze::rowVector> &results, const blaze::CompressedVector<double, blaze::rowVector> &norm_results, const blaze::CompressedVector<std::uint32_t, blaze::rowVector> &visits) {
         arrow::Status status;
 
         for (size_t i = 0; i < results.size(); i++) {

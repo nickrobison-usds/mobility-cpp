@@ -129,12 +129,6 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     components::TileClient t(output_path.string(), output_name);
 
     for (const auto &tile : locale_tiles) {
-        // Ignore
-//        if (!tile.first.empty()) {
-        // Create the Tile Server and start it up
-//            size_t ds = tile.second.time_since_epoch().count();
-//            components::TileConfiguration dim{string(""), 0, 100, ds, 7, cbg_path.string(), poi_path.string(), nr};
-
         auto init_future = t.init(tile, 1);
         init_future.get();
 //        }
