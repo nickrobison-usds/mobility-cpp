@@ -116,7 +116,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
                       for (size_t i = 0; i < components::MAX_CBG; i += stride) {
                           components::TileConfiguration dim{pair.first, i, std::min(i + stride, components::MAX_CBG),
-                                                            ds, 7, cbg_path.string(), poi_path.string(), nr};
+                                                            ds, 7, nr};
                           tiles.push_back(dim);
                       }
                   });
@@ -126,7 +126,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     const auto locale_tiles = split_tiles.at(hpx::get_locality_id());
 
-    components::TileClient t(output_path.string(), output_name);
+    components::TileClient t(output_path.string(), output_name, cbg_path.string(), poi_path.string());
 
     for (const auto &tile : locale_tiles) {
         auto init_future = t.init(tile, 1);

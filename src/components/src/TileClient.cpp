@@ -8,7 +8,7 @@
 
 namespace components {
 
-    TileClient::TileClient(const std::string &output_dir, const std::string &output_name): client_base(hpx::new_<server::TileServer>(hpx::find_here(), output_dir, output_name)) {
+    TileClient::TileClient(const std::string &output_dir, const std::string &output_name, const std::string &cbg_shp, const std::string &poi_parquet): client_base(hpx::new_<server::TileServer>(hpx::find_here(), output_dir, output_name, cbg_shp, poi_parquet)) {
         // Not used
     };
 

@@ -19,7 +19,7 @@ add_library(components
         src/TemporalMatricies.cpp src/TemporalMatricies.hpp
         src/TileWriter.cpp src/TileWriter.hpp src/RowProcessor.cpp src/RowProcessor.hpp src/OffsetCalculator.cpp src/OffsetCalculator.hpp
         src/VisitMatrixWriter.cpp src/VisitMatrixWriter.hpp)
-target_link_libraries(components PUBLIC hpx blaze date PRIVATE io spdlog GEOS::GEOS absl::flat_hash_map absl::synchronization Boost::regex shared)
+target_link_libraries(components PUBLIC hpx blaze date absl::flat_hash_map PRIVATE io spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
 target_include_directories(components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

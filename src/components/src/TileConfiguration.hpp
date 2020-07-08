@@ -18,15 +18,13 @@ namespace components {
         std::size_t _cbg_max;  // Max X
         std::size_t _time_offset; // Min Z
         std::size_t _time_count; // Max Z
-        std::string _cbg_shp;
-        std::string _poi_parquet;
         std::uint16_t _nr; // Number of concurrent rows
 
         friend class hpx::serialization::access;
 
         template<typename Archive>
         void serialize(Archive &ar, const unsigned int version) {
-            ar & _filename & _cbg_min & _cbg_max & _time_offset & _time_count & _cbg_shp & _poi_parquet & _nr;
+            ar & _filename & _cbg_min & _cbg_max & _time_offset & _time_count & _nr;
         }
     };
 }

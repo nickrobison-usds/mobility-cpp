@@ -7,10 +7,15 @@
 
 #include "../TileConfiguration.hpp"
 #include "components/data.hpp"
+#include <components/JoinedLocation.hpp>
+#include <components/ShapefileWrapper.hpp>
 #include <hpx/include/components.hpp>
 #include <blaze/math/CompressedMatrix.h>
 
 #include <cstddef>
+
+class JoinedLocation;
+class ShapefileWrapper;
 
 namespace components::server {
 
@@ -20,7 +25,7 @@ namespace components::server {
         typedef blaze::CompressedMatrix<int> visit_matrix;
         typedef blaze::CompressedMatrix<double> distance_matrix;
 
-        TileServer(std::string output_dir, std::string output_name);
+        TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp, const std::string poi_parquet);
 
         void init(const TileConfiguration &dim, std::size_t num_nodes);
 
@@ -29,6 +34,8 @@ namespace components::server {
     private:
         const std::string _output_dir;
         const std::string _output_name;
+        JoinedLocation _l;
+        ShapefileWrapper _s;
     };
 }
 

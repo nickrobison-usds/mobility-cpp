@@ -14,8 +14,6 @@
 #include <blaze/math/DynamicVector.h>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <components/JoinedLocation.hpp>
-#include <components/ShapefileWrapper.hpp>
 #include <hpx/parallel/execution.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
 #include <io/csv_reader.hpp>
@@ -116,8 +114,10 @@ namespace components::server {
                 visitor_home_cbgs);
     }
 
-    TileServer::TileServer(std::string output_dir, std::string output_name) : _output_dir(std::move(output_dir)),
-                                                                              _output_name(std::move(output_name)) {
+    TileServer::TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp, const std::string poi_parquet) : _output_dir(std::move(output_dir)),
+                                                                              _output_name(std::move(output_name)),
+                                                                              _l({}, poi_parquet, poi_parquet),
+                                                                              _s(cbg_shp){
         // Not used
     };
 
@@ -129,20 +129,20 @@ namespace components::server {
 
         // iterate through each of the rows, figure out its CBG and expand it.
         spdlog::debug("Initializing location join component");
-        JoinedLocation l({}, dim._poi_parquet, dim._poi_parquet);
+//        JoinedLocation l({}, dim._poi_parquet, dim._poi_parquet);
         spdlog::debug("Initializing shapefile component");
-        ShapefileWrapper s(dim._cbg_shp);
+//        ShapefileWrapper s(dim._cbg_shp);
 
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
-        const auto of = s.build_offsets().get();
+        const auto of = _s.build_offsets().get();
         detail::OffsetCalculator offset_calculator(of, dim);
 
         std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
 
         // Create the Row Processor
-        RowProcessor processor{dim, l, s, offset_calculator, start_date};
+        RowProcessor processor{dim, _l, _s, offset_calculator, start_date};
 
         // Semaphore for limiting the number of rows to process concurrently.
         // This should help make sure we make progress across all the threads
