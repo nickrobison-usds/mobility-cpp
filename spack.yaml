@@ -5,8 +5,7 @@
 spack:
   packages:
     all:
-      compiler: [gcc]
-      version: [9]
+      compiler: [gcc@9, cce@9]
       target: []
       buildable: true
       modules: {}
@@ -20,5 +19,7 @@ spack:
     - geos@3.6.2
     - gdal+geos
     - gperftools
+    - hdf5+threadsafe+cxx+hl~mpi
+    - ncurses~termlib+symlinks
   view: true
   concretization: together
