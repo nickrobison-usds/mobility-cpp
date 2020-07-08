@@ -43,7 +43,7 @@ namespace components {
         return o;
     }
 
-    std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const std::shared_ptr<weekly_pattern> row) {
+    std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const std::shared_ptr<weekly_pattern> &row) {
         // Extract the CBGs which get visited
         const auto cbg_replaced = boost::regex_replace(row->visitor_home_cbgs, cbg_map_replace, "");
         // Split into key/pairs, then split the pairs
@@ -73,7 +73,7 @@ namespace components {
 
     std::vector<v2>
     expandRow(const std::shared_ptr<weekly_pattern> row,
-              const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> cbg_visits) {
+              const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> &cbg_visits) {
         const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::EXPAND_ROW);
         // Extract the number of visits each day
         const auto replaced = boost::regex_replace(row->visits_by_day, brackets, std::string(""));
@@ -108,7 +108,7 @@ namespace components {
         return output;
     };
 
-    hpx::future<void> RowProcessor::process_row(const std::shared_ptr<weekly_pattern> row) {
+    hpx::future<void> RowProcessor::process_row(const std::shared_ptr<weekly_pattern> &row) {
         return _l.find_location(row->safegraph_place_id).then(
                 [this, row](hpx::future<joined_location> location_future) {
                     const auto jl = std::make_shared<joined_location>(location_future.get());
@@ -133,44 +133,27 @@ namespace components {
     };
 
     hpx::future<void>
-    RowProcessor::handle_row(const std::shared_ptr<weekly_pattern> row, const std::shared_ptr<joined_location> jl) {
+    RowProcessor::handle_row(const std::shared_ptr<weekly_pattern> &row, const std::shared_ptr<joined_location> &jl) {
         const auto visits = std::make_shared<std::vector<std::pair<std::string, std::uint16_t>>>(
                 extract_cbg_visits(row));
         auto centroid_future = get_centroid_map(visits);
         std::vector<v2> row_expanded = expandRow(row, visits);
-//        hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
         auto distances = compute_distance(jl, row_expanded, centroid_future);
         insert_rows(distances);
 
         return hpx::make_ready_future<void>();
-
-//        auto distance_res = dataflow(unwrapping(&compute_distance), hpx::make_ready_future(jl), row_future,
-//                                     centroid_future);
-
-        // Not sure why I can't just call the member function directly, but this seems ok
-//        return distance_res.then([this](hpx::future<std::vector<v2>> distance_future) {
-//            return insert_rows(std::move(distance_future));
-//        });
     };
 
     absl::flat_hash_map<std::string, OGRPoint>
-    RowProcessor::get_centroid_map(const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> visits) {
-            std::vector<std::string> cbgs;
-            std::transform(visits->begin(), visits->end(), std::back_inserter(cbgs), [](const auto &pair) {
-                return pair.first;
-            });
+    RowProcessor::get_centroid_map(const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> &visits) {
+        std::vector<std::string> cbgs;
+        std::transform(visits->begin(), visits->end(), std::back_inserter(cbgs), [](const auto &pair) {
+            return pair.first;
+        });
 
-            const auto centroids = _s.get_centroids(cbgs).get();
+        const auto centroids = _s.get_centroids(cbgs).get();
 
-            return absl::flat_hash_map<std::string, OGRPoint>(centroids.begin(), centroids.end());
-
-//        return cbg_future.then([this](auto f) {
-//            const auto cbgs = f.get();
-//            return _s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-//                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
-//                return map;
-//            }));
-//        });
+        return absl::flat_hash_map<std::string, OGRPoint>(centroids.begin(), centroids.end());
     };
 
     void RowProcessor::insert_rows(std::vector<v2> &expanded_rows) {
