@@ -5,7 +5,7 @@
 #include <io/sizer.hpp>
 #include <ostream>
 #include "catch2/catch.hpp"
-#include "io/hdf5.hpp"
+#include "io/simple_hdf5.hpp"
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
@@ -88,7 +88,7 @@ TEST_CASE("Creates HDF5 Table", "[hdf5]") {
             {"Row 3", 10, 1.3},
     };
 
-    const auto t = io::HDF5Table<sample_row>(path.string() + "/test.h5", "Test Table", "Test Table");
+    const auto t = io::SimpleHDF5Table<sample_row>(path.string() + "/test.h5", "Test Table", "Test Table");
     t.createTable();
     t.writeRows(rows);
     const auto read = t.readRows();

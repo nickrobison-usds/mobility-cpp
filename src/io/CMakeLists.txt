@@ -1,16 +1,19 @@
 find_package(GDAL REQUIRED)
 
 # Find HDF5
-set(HDF5_PREFER_PARALLEL False)
+set(HDF5_PREFER_PARALLEL True)
 
 find_package(HDF5 REQUIRED COMPONENTS HL)
 
-add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/hdf5.hpp)
-target_link_libraries(io PUBLIC arrow parquet gdal ${HDF5_C_LIBRARIES} ${HDF5_C_HL_LIBRARIES} PRIVATE spdlog)
+if (NOT HDF5_IS_PARALLEL)
+    message(FATAL_ERROR "HDF5 C++ library must be thread-safe")
+endif ()
+
+add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp src/hdf5.cpp include/io/hdf5.hpp)
+target_link_libraries(io PUBLIC arrow parquet GDAL hdf5::hdf5-static hdf5::hdf5_hl-static PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-        ${HDF5_C_INCLUDE_DIRS})
+        $<INSTALL_INTERFACE:include>)
 
 add_executable(testio test/shapefile_test.cpp test/csv_test.cpp test/hdf_test.cpp)
 target_link_libraries(testio Catch2::Catch2 io Boost::filesystem)

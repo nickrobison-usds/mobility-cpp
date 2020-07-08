@@ -4,6 +4,7 @@ find_package(Arrow REQUIRED)
 find_package(Boost COMPONENTS filesystem regex program_options system REQUIRED)
 find_package(HPX CONFIG REQUIRED)
 find_package(TCMalloc)
+find_package(MPI)
 
 # Include AVX, if it's available
 include(FindAVX)
