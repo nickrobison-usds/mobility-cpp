@@ -137,43 +137,48 @@ namespace components {
         const auto visits = std::make_shared<std::vector<std::pair<std::string, std::uint16_t>>>(
                 extract_cbg_visits(row));
         auto centroid_future = get_centroid_map(visits);
-        hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+        std::vector<v2> row_expanded = expandRow(row, visits);
+//        hpx::future<std::vector<v2>> row_future = hpx::async(&expandRow, row, visits);
+        auto distances = compute_distance(jl, row_expanded, centroid_future);
+        insert_rows(distances);
 
-        auto distance_res = dataflow(unwrapping(&compute_distance), hpx::make_ready_future(jl), row_future,
-                                     centroid_future);
+        return hpx::make_ready_future<void>();
+
+//        auto distance_res = dataflow(unwrapping(&compute_distance), hpx::make_ready_future(jl), row_future,
+//                                     centroid_future);
 
         // Not sure why I can't just call the member function directly, but this seems ok
-        return distance_res.then([this](hpx::future<std::vector<v2>> distance_future) {
-            return insert_rows(std::move(distance_future));
-        });
+//        return distance_res.then([this](hpx::future<std::vector<v2>> distance_future) {
+//            return insert_rows(std::move(distance_future));
+//        });
     };
 
-    hpx::future<absl::flat_hash_map<std::string, OGRPoint>>
+    absl::flat_hash_map<std::string, OGRPoint>
     RowProcessor::get_centroid_map(const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> visits) {
-        auto cbg_future = hpx::async([visits]() {
             std::vector<std::string> cbgs;
             std::transform(visits->begin(), visits->end(), std::back_inserter(cbgs), [](const auto &pair) {
                 return pair.first;
             });
-            return cbgs;
-        });
 
-        return cbg_future.then([this](auto f) {
-            const auto cbgs = f.get();
-            return _s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
-                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
-                return map;
-            }));
-        });
+            const auto centroids = _s.get_centroids(cbgs).get();
+
+            return absl::flat_hash_map<std::string, OGRPoint>(centroids.begin(), centroids.end());
+
+//        return cbg_future.then([this](auto f) {
+//            const auto cbgs = f.get();
+//            return _s.get_centroids(cbgs).then(unwrapping([](const auto &centroids) {
+//                absl::flat_hash_map<std::string, OGRPoint> map(centroids.begin(), centroids.end());
+//                return map;
+//            }));
+//        });
     };
 
-    hpx::future<void> RowProcessor::insert_rows(hpx::future<std::vector<v2>> rows) {
-        const auto expanded_rows = rows.get();
+    void RowProcessor::insert_rows(std::vector<v2> &expanded_rows) {
         const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::INSERT_ROWS);
 
         if (expanded_rows.empty()) {
             spdlog::debug("No rows to add, skipping insert");
-            return hpx::make_ready_future();
+            return;
         }
         spdlog::debug("Adding {} rows to matrices", expanded_rows.size());
         std::for_each(expanded_rows.begin(), expanded_rows.end(),
@@ -195,7 +200,6 @@ namespace components {
                       });
         spdlog::debug("Finished adding rows");
         dp.stop();
-        return hpx::make_ready_future();
     }
 
     TemporalMatricies &RowProcessor::get_matricies() {
