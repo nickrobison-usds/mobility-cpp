@@ -10,6 +10,7 @@
 #include <array>
 #include <iostream>
 #include <utility>
+#include <vector>
 #include "hdf5_hl.h"
 
 namespace io {
