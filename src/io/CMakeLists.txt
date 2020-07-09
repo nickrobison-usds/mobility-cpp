@@ -18,3 +18,10 @@ target_include_directories(io PUBLIC
 add_executable(testio test/shapefile_test.cpp test/csv_test.cpp test/hdf_test.cpp)
 target_link_libraries(testio Catch2::Catch2 io Boost::filesystem)
 add_test(testio testio WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/io/test)
+
+add_executable(testio_mpi test/hdf_mpi_test.cpp)
+target_link_libraries(testio_mpi Catch2::Catch2 io Boost::filesystem)
+set(test_parameters ${MPIEXEC_NUMPROC_FLAG} 2 "./testio_mpi")
+set(MPIEXEC_NUMPROC_FLAG 5)
+add_test(testio_mpi testio_mpi WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/io/test COMMAND ${MPIEXEC} ${test_parameters})
+message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} ${MPIEXEC_PREFLAGS} EXECUTABLE ${MPIEXEC_POSTFLAGS} ARGS")

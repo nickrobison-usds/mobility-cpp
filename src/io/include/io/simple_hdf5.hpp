@@ -93,6 +93,9 @@ namespace io {
             // Figure out how many rows to read
             hsize_t field_count, row_count;
             auto err = H5TBget_table_info(hdf5_table, _table_name.c_str(), &field_count, &row_count);
+            if (err) {
+                std::cout << err << std::endl;
+            }
 
             std::vector<Row> rows(row_count);
             err = H5TBread_table(hdf5_table, _table_name.c_str(), recordSize, offsets.data(), field_sizes.data(), rows.data());
