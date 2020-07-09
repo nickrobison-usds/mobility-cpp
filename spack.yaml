@@ -16,8 +16,6 @@ spack:
         mpich %gcc: openmpi
         mpich %intel: openmpi/3.1.5-intel19
       buildable: false
-    cmake:
-      compiler: [gcc@9]
     hdf5:
       modules:
         hdf5 %gcc: hdf5
