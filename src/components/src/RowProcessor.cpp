@@ -18,7 +18,7 @@ namespace components {
 
     size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
         const auto diff = row_date - start_date;
-        return diff.count();
+        return std::abs(diff.count());
     }
 
     std::vector<v2>

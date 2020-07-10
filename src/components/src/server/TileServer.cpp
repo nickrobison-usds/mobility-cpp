@@ -127,12 +127,6 @@ namespace components::server {
         const auto rows = extract_rows(dim._filename);
         const date::sys_days start_date = date::sys_days{} + date::days(dim._time_offset);
 
-        // iterate through each of the rows, figure out its CBG and expand it.
-        spdlog::debug("Initializing location join component");
-//        JoinedLocation l({}, dim._poi_parquet, dim._poi_parquet);
-        spdlog::debug("Initializing shapefile component");
-//        ShapefileWrapper s(dim._cbg_shp);
-
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
         const auto of = _s.build_offsets().get();
