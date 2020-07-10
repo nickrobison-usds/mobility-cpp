@@ -20,7 +20,7 @@ namespace io {
 
     class SerialHDF5Provider {
     public:
-        SerialHDF5Provider(const std::string &filename): _file_id(openSerialFile(filename)) {
+        explicit SerialHDF5Provider(const std::string &filename): _file_id(openSerialFile(filename)) {
 
         }
 
@@ -31,7 +31,7 @@ namespace io {
         }
 
 
-        const hid_t& provide() const {
+        [[nodiscard]] const hid_t& provide() const {
             return _file_id;
         }
 

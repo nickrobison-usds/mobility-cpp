@@ -9,12 +9,17 @@
 #include <hdf5.h>
 #include "string"
 #include <iostream>
+#include <vector>
+#include <numeric>
+#include <algorithm>
 
 namespace io {
+
     template<class DataType, int Dimensions>
     class ParallelHDF5 {
     public:
-        ParallelHDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims): _dimensions(dims) {
+        ParallelHDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims)
+                : _dimensions(dims) {
             // Initialize the MPI values
             MPI_Comm comm = MPI_COMM_WORLD;
             MPI_Info info = MPI_INFO_NULL;
@@ -30,27 +35,16 @@ namespace io {
             // Create the dataset
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
-            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT,
+                                  H5P_DEFAULT);
             H5Sclose(filespace);
         }
 
-        void write(const std::size_t offset, const std::size_t count, const std::vector<DataType> &data) {
+        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset, const std::vector<DataType> &data) {
 
-            // Create the required dimensions
-            std::array<hsize_t, Dimensions> count_arry;
-            std::array<hsize_t, Dimensions> offset_arry;
-            for(int i = 0; i < Dimensions; i ++) {
-                count_arry[i] = _dimensions[i];
-                offset_arry[i] = 0;
-            }
-            // Set the count based on the tile size along with the starting offset
-            count_arry[0] = count;
-            offset_arry[0] = offset;
-
-
-            _memspace = H5Screate_simple(Dimensions, count_arry.data(), nullptr);
+            _memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
             _filespace = H5Dget_space(_dset_id);
-            H5Sselect_hyperslab(_filespace, H5S_SELECT_SET, offset_arry.data(), nullptr, count_arry.data(), nullptr);
+            H5Sselect_hyperslab(_filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
 
             const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
             H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
@@ -62,10 +56,34 @@ namespace io {
             }
         }
 
+        std::vector<DataType> read(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset) const {
 
+            // Create a memory space to read into
+            const auto memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
 
+            const auto dataspace = H5Dget_space(_dset_id);
+            auto status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset.data(), nullptr, count.data(),
+                                                      nullptr);
+            if (status) {
+                std::cout << status << std::endl;
+            }
 
-        const std::string hello() const {
+            // Compute return size;
+            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<size_t>());
+            std::vector<DataType> results(rs);
+
+            status = H5Dread(_dset_id, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, results.data());
+            if (status) {
+                std::cout << status << std::endl;
+            }
+            // TODO: This needs to be closed correctly.
+            H5Sclose(memspace);
+            H5Sclose(dataspace);
+
+            return results;
+        }
+
+        [[nodiscard]] std::string hello() const {
             return "hello";
         }
 
