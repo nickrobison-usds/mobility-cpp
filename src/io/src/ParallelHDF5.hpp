@@ -32,10 +32,27 @@ namespace io {
             _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
             H5Pclose(plist_id);
 
+            // Register the type
+            constexpr std::size_t type_sz = sizeof(DataType);
+            constexpr int columns = DataType::columns;
+            constexpr std::array<const char *, columns> vals = DataType::names();
+            constexpr std::array<size_t, columns> offsets = DataType::offsets();
+            // This can't be constexpr, because the HDF5 methods aren't constexpr
+            std::array<const hid_t, columns> types = DataType::types();
+            _data_type = H5Tcreate(H5T_COMPOUND, type_sz);
+
+            herr_t status;
+            for (std::size_t i = 0 ; i < columns; i ++) {
+                status = H5Tinsert(_data_type, vals[i], offsets[i], types[i]);
+                if (status) {
+                    std::cout << status << std::endl;
+                }
+            }
+
             // Create the dataset
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
-            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT,
+            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), _data_type, filespace, H5P_DEFAULT, H5P_DEFAULT,
                                   H5P_DEFAULT);
             H5Sclose(filespace);
         }
@@ -49,7 +66,7 @@ namespace io {
             const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
             H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
-            const herr_t status = H5Dwrite(_dset_id, H5T_NATIVE_INT, _memspace, _filespace, plist_id, data.data());
+            const herr_t status = H5Dwrite(_dset_id, _data_type, _memspace, _filespace, plist_id, data.data());
 
             if (status) {
                 std::cout << status << std::endl;
@@ -72,7 +89,7 @@ namespace io {
             const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<size_t>());
             std::vector<DataType> results(rs);
 
-            status = H5Dread(_dset_id, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, results.data());
+            status = H5Dread(_dset_id, _data_type, memspace, dataspace, H5P_DEFAULT, results.data());
             if (status) {
                 std::cout << status << std::endl;
             }
@@ -87,6 +104,14 @@ namespace io {
             return "hello";
         }
 
+        ~ParallelHDF5() {
+            H5Tclose(_data_type);
+            H5Sclose(_filespace);
+            H5Sclose(_memspace);
+            H5Dclose(_dset_id);
+            H5Fclose(_file_id);
+        }
+
     private:
         int mpi_size;
         int mpi_rank;
@@ -94,6 +119,7 @@ namespace io {
         hid_t _dset_id;
         hid_t _filespace;
         hid_t _memspace;
+        hid_t _data_type;
         const std::array<hsize_t, Dimensions> _dimensions;
     };
 }

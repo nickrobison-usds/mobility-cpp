@@ -6,18 +6,10 @@
 #include <ostream>
 #include "catch2/catch.hpp"
 #include "io/simple_hdf5.hpp"
+#include "io/helpers.hpp"
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
-
-inline int64_t stringSize(int maxSize) {
-    auto string_type = H5Tcopy(H5T_C_S1);
-    const auto err = H5Tset_size(string_type, maxSize);
-    if (err) {
-        std::cout << err << std::endl;
-    }
-    return string_type;
-}
 
 inline bool compare_float(double x, double y, double epsilon = 0.0000001f){
     return fabs(x - y) < epsilon;
@@ -54,13 +46,14 @@ struct sample_row {
 
     static std::array<const int64_t, sample_row::columns> types() {
         return {
-                stringSize(16),
+                io::helpers::stringSize(16),
                 H5T_NATIVE_INT,
                 H5T_NATIVE_DOUBLE
         };
     }
 
     static constexpr std::array<size_t, sample_row::columns> offsets() {
+        using namespace io::helpers;
         return {
                 offset_of<sample_row>(&sample_row::name),
                 offset_of<sample_row>(&sample_row::value),
