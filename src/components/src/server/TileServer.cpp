@@ -166,6 +166,12 @@ namespace components::server {
         spdlog::debug("Waiting for {} rows", results.size());
         hpx::wait_all(results);
 
+        // Create the HDF5 file
+        std::array<hsize_t, 3> dims{7, 100, 100};
+        const auto hdf5_filename = fmt::format("{}", "connectivity-graph.hdf5");
+        const auto h_file = fs::path(_output_dir) /= fs::path(hdf5_filename);
+        io::ParallelHDF5<connectivity_output, 3> shared_file(h_file.string(), "connectivity_graph", dims);
+
         // Now, multiply the values and write them to disk
         for (uint i = 0; i < dim._time_count; i++) {
             // Some nice pretty-printing of the dates
@@ -176,8 +182,8 @@ namespace components::server {
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
             const auto visit_filename = fmt::format("{}-{}-{}-{}-visits-{}.parquet", hpx::get_locality_id(),
-                                                      date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
-                                                      _output_name);
+                                                    date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
+                                                    _output_name);
 
             const auto v_file = fs::path(_output_dir) /= fs::path(visit_filename);
 
@@ -190,7 +196,8 @@ namespace components::server {
             const distance_matrix result = matricies.compute(i);
 
             // Sum the total risk for each cbg
-            const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(result);
+            const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(
+                    result);
             const double max = blaze::max(cbg_risk_score);
             const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
                     matrix_pair.vm);
@@ -203,16 +210,54 @@ namespace components::server {
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
-            arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
-            if (!status.ok()) {
-                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+
+            std::vector<connectivity_output> results_to_write;
+//            results_to_write.reserve(matrix_pair.vm.paddiin());
+
+            // Write out to the HDF5 file
+            for (std::size_t hi = 0; hi < matrix_pair.vm.columns(); hi++) {
+                const auto poi_cbg = offset_calculator.cbg_from_local_offset(hi);
+                if (!poi_cbg.has_value()) {
+                    spdlog::error("Cannot process source cbg: `{}`", hi);
+                    continue;
+                }
+
+                for (auto pair = std::make_pair(matrix_pair.vm.cbegin(hi), matrix_pair.dm.cbegin(hi));
+                     pair.first != matrix_pair.vm.cend(hi); ++pair.first, ++pair.second) {
+                    const auto vm_dist = std::distance(matrix_pair.vm.cbegin(hi), pair.first);
+                    const auto dm_dist = std::distance(matrix_pair.dm.cbegin(hi), pair.second);
+                    const auto visitor_cbg = offset_calculator.cbg_from_offset(vm_dist);
+                    if (!visitor_cbg.has_value()) {
+                        spdlog::error("Cannot process dest cbg: `{}`", vm_dist);
+                        continue;
+                    }
+                    auto pc2 = *poi_cbg->c_str();
+                    auto vc2 = *visitor_cbg->c_str();
+                    connectivity_output o{&pc2, &vc2, pair.first->value(), pair.second->value(), 0.0};
+                    results_to_write.push_back(o);
+                }
             }
-            status = vw.writeResults(start_date, matrix_pair.vm);
-            if (!status.ok()) {
-                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
-            }
+
+            std::array<hsize_t, 3> count{1, 1, MAX_CBG};
+            std::array<hsize_t, 3> offset{i, dim._cbg_min, 0};
+            // Write it out
+            shared_file.write(count, offset, results_to_write);
             const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
             print_timing("File Write", write_elapsed);
+
+
+
+
+
+//            arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
+//            if (!status.ok()) {
+//                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+//            }
+//            status = vw.writeResults(start_date, matrix_pair.vm);
+//            if (!status.ok()) {
+//                spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+//            }
+
         }
 
         spdlog::info("Tile computation complete");

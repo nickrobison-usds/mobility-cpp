@@ -138,6 +138,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 }
 
 int main(int argc, char **argv) {
+    spdlog::info("Running main");
     using namespace hpx::program_options;
 
     options_description desc_commandline;
@@ -158,7 +159,8 @@ int main(int argc, char **argv) {
             ("silent", "disable debug logging");
 
     std::vector<std::string> const cfg = {
-            "hpx.run_hpx_main!=1"
+//            "hpx.run_hpx_main!=1",
+            "hpx.parcel.mpi.enable=1"
     };
 
     return hpx::init(desc_commandline, argc, argv, cfg);

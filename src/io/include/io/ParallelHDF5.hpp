@@ -12,6 +12,7 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace io {
 
@@ -26,10 +27,12 @@ namespace io {
             MPI_Comm_size(comm, &mpi_size);
             MPI_Comm_rank(comm, &mpi_rank);
 
+            spdlog::debug("Initializing MPI rank {} of {}", mpi_rank, mpi_size);
+
             // Create the file
             const auto plist_id = H5Pcreate(H5P_FILE_ACCESS);
             H5Pset_fapl_mpio(plist_id, comm, info);
-            _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+            _file_id = H5Fcreate(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT, plist_id);
             H5Pclose(plist_id);
 
             // Register the type
@@ -57,7 +60,7 @@ namespace io {
             H5Sclose(filespace);
         }
 
-        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset, const std::vector<DataType> &data) {
+        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {
 
             _memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
             _filespace = H5Dget_space(_dset_id);
