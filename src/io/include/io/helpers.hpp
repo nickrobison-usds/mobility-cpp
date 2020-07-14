@@ -5,6 +5,7 @@
 #ifndef MOBILITY_CPP_HELPERS_HPP
 #define MOBILITY_CPP_HELPERS_HPP
 
+#include <hdf5.h>
 #include <iostream>
 
 #endif //MOBILITY_CPP_HELPERS_HPP
