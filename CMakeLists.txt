@@ -30,11 +30,15 @@ endif()
 
 find_package(Sanitizers)
 
+# Set options for external dependencies
+
 # Disable GTest dependency, since we use Catch
 set(BENCHMARK_ENABLE_TESTING OFF)
 #Set options for Blaze Library
-set(BLAZE_SMP_THREADS HPX)
-set(BLAZE_USE_VECTORIZATION TRUE)
+set(BLAZE_SMP_THREADS HPX CACHE STRING "Use HPX threads")
+set(BLAZE_USE_VECTORIZATION ON CACHE BOOL "Vectorize")
+set(HDF5_ENABLE_PARALLEL ON CACHE BOOL "HDF5 Parallel")
+set(HDF5_BUILD_CPP_LIB OFF CACHE BOOL "No HDF5 CPP lib")
 
 # Set the default malloc implementation
 set(DEFAULT_MALLOC "system" CACHE STRING "Set the default memory allocator")
@@ -48,6 +52,7 @@ add_subdirectory(extern/benchmark)
 add_subdirectory(extern/blaze)
 add_subdirectory(extern/abseil)
 add_subdirectory(extern/date)
+add_subdirectory(extern/hdf5)
 
 add_subdirectory(benchmarks)
 add_subdirectory(tests)

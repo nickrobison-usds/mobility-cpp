@@ -5,6 +5,7 @@
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
 #include <hpx/collectives.hpp>
+#include <mpi.h>
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
 
 const char* scatter_basename = "/mobility/locale/scatter/";
@@ -60,6 +61,15 @@ int hpx_main(boost::program_options::variables_map &vm) {
     const auto nl = localities.size();
 
     std::cout << "Running on locales" << std::endl;
+
+    // Initialize the MPI values
+    int mpi_size, mpi_rank;
+    MPI_Comm comm = MPI_COMM_WORLD;
+    MPI_Info info = MPI_INFO_NULL;
+    MPI_Comm_size(comm, &mpi_size);
+    MPI_Comm_rank(comm, &mpi_rank);
+
+    fmt::print("Initializing MPI rank {} of {}\n", mpi_rank, mpi_size);
 
     hello_component component(nl);
 

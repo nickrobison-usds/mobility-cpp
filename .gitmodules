@@ -19,3 +19,6 @@
 [submodule "extern/sanitizers-cmake"]
 	path = extern/sanitizers-cmake
 	url = ../../arsenm/sanitizers-cmake.git
+[submodule "extern/hdf5"]
+	path = extern/hdf5
+	url = ../../HDFGroup/hdf5.git

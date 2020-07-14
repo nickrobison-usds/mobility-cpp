@@ -2,18 +2,18 @@
 // Created by Nicholas Robison on 6/1/20.
 //
 
+#include <hpx/hpx_init.hpp>
 #include <components/constants.hpp>
 #include <components/TileClient.hpp>
 #include <shared/HostnameLogger.hpp>
 #include <hpx/program_options.hpp>
-#include <hpx/hpx_init.hpp>
+#include <hpx/runtime/find_localities.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
 #include "utils.hpp"
 #include <chrono>
 #include <string>
 #include <iomanip>
-#include <hpx/runtime/find_localities.hpp>
 
 using namespace std;
 
@@ -116,7 +116,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
                       for (size_t i = 0; i < components::MAX_CBG; i += stride) {
                           components::TileConfiguration dim{pair.first, i, std::min(i + stride, components::MAX_CBG),
-                                                            ds, 7, nr};
+                                                            ds, 7, cbg_path.string(), poi_path.string(), nr};
                           tiles.push_back(dim);
                       }
                   });
@@ -126,7 +126,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     const auto locale_tiles = split_tiles.at(hpx::get_locality_id());
 
-    components::TileClient t(output_path.string(), output_name, cbg_path.string(), poi_path.string());
+    components::TileClient t(output_path.string(), output_name);
 
     for (const auto &tile : locale_tiles) {
         auto init_future = t.init(tile, 1);
@@ -159,8 +159,7 @@ int main(int argc, char **argv) {
             ("silent", "disable debug logging");
 
     std::vector<std::string> const cfg = {
-//            "hpx.run_hpx_main!=1",
-            "hpx.parcel.mpi.enable=1"
+            "hpx.run_hpx_main!=1",
     };
 
     return hpx::init(desc_commandline, argc, argv, cfg);
