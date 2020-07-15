@@ -8,7 +8,7 @@
 #include <array>
 #include <io/sizer.hpp>
 #include "catch2/catch.hpp"
-#include "io/HDF5.hpp"
+#include "io/hdf5.hpp"
 
 struct SimpleInt {
     int x;

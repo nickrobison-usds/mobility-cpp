@@ -72,12 +72,9 @@ namespace io {
             const auto filespace = H5Dget_space(_dset_id);
             H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
 
-            hid_t plist_id;
+            hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
             if (_mpi_enabled) {
-                plist_id = H5Pcreate(H5P_DATASET_XFER);
                 H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-            } else {
-                plist_id = H5Pcreate(H5P_DEFAULT);
             }
 
             const herr_t status = H5Dwrite(_dset_id, _data_type, memspace, filespace, plist_id, data.data());

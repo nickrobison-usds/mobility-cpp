@@ -9,8 +9,8 @@ if (NOT HDF5_IS_PARALLEL)
     message(FATAL_ERROR "HDF5 C++ library must be thread-safe")
 endif ()
 
-add_library(io src/parquet.cpp include/io/parquet.hpp src/shapefile.cpp include/io/shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/simple_hdf5.hpp include/io/ParallelHDF5.hpp include/io/helpers.hpp)
-target_link_libraries(io PUBLIC arrow parquet GDAL ${HDF5_SHARED_LIBRARY} ${HDF5_HL_SHARED_LIBRARY} MPI::MPI_CXX PRIVATE spdlog)
+add_library(io src/parquet.cpp include/io/parquet.hpp src/shapefile.cpp include/io/shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/simple_hdf5.hpp include/io/HDF5.hpp include/io/helpers.hpp)
+target_link_libraries(io PUBLIC arrow parquet GDAL hdf5_hl-static hdf5-static MPI::MPI_CXX PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

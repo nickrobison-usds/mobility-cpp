@@ -13,7 +13,7 @@
 #include <date/date.h>
 #include <io/helpers.hpp>
 #include <io/sizer.hpp>
-#include <io/HDF5.hpp>
+#include <io/hdf5.hpp>
 
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/fmt/fmt.h"
