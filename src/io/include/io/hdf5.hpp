@@ -20,13 +20,11 @@ namespace io {
     class HDF5 {
     public:
         HDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims)
-                : _dimensions(dims) {
+                : _dimensions(dims), _mpi_enabled(is_mpi_enabled()) {
 
             // Initialize MPI, if it's available
-            const auto plist_id = H5Pcreate(H5P_FILE_ACCESS);
-            int mpi_init;
-            MPI_Initialized(&mpi_init);
-            if (mpi_init) {
+            const hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+            if (_mpi_enabled) {
                 // Initialize the MPI values
                 MPI_Comm comm = MPI_COMM_WORLD;
                 MPI_Info info = MPI_INFO_NULL;
@@ -40,7 +38,7 @@ namespace io {
             }
 
             // Create the file
-            _file_id = H5Fcreate(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT, plist_id);
+            _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
             H5Pclose(plist_id);
 
             // Register the type
@@ -70,14 +68,23 @@ namespace io {
 
         void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {
 
-            _memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
-            _filespace = H5Dget_space(_dset_id);
-            H5Sselect_hyperslab(_filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
+            const auto memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
+            const auto filespace = H5Dget_space(_dset_id);
+            H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
 
-            const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
-            H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+            hid_t plist_id;
+            if (_mpi_enabled) {
+                plist_id = H5Pcreate(H5P_DATASET_XFER);
+                H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+            } else {
+                plist_id = H5Pcreate(H5P_DEFAULT);
+            }
 
-            const herr_t status = H5Dwrite(_dset_id, _data_type, _memspace, _filespace, plist_id, data.data());
+            const herr_t status = H5Dwrite(_dset_id, _data_type, memspace, filespace, plist_id, data.data());
+            H5Pclose(plist_id);
+            // TODO: This needs to be closed correctly.
+            H5Sclose(memspace);
+            H5Sclose(filespace);
 
             if (status) {
                 std::cout << status << std::endl;
@@ -100,10 +107,16 @@ namespace io {
             const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<size_t>());
             std::vector<DataType> results(rs);
 
-            status = H5Dread(_dset_id, _data_type, memspace, dataspace, H5P_DEFAULT, results.data());
+            const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
+            if (_mpi_enabled) {
+                H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+            }
+
+            status = H5Dread(_dset_id, _data_type, memspace, dataspace, plist_id, results.data());
             if (status) {
                 std::cout << status << std::endl;
             }
+            H5Pclose(plist_id);
             // TODO: This needs to be closed correctly.
             H5Sclose(memspace);
             H5Sclose(dataspace);
@@ -117,21 +130,24 @@ namespace io {
 
         ~HDF5() {
             H5Tclose(_data_type);
-            H5Sclose(_filespace);
-            H5Sclose(_memspace);
             H5Dclose(_dset_id);
             H5Fclose(_file_id);
         }
 
     private:
+        bool _mpi_enabled;
         int mpi_size;
         int mpi_rank;
         hid_t _file_id;
         hid_t _dset_id;
-        hid_t _filespace;
-        hid_t _memspace;
         hid_t _data_type;
         const std::array<hsize_t, Dimensions> _dimensions;
+
+        static bool is_mpi_enabled() {
+            int mpi_init;
+            MPI_Initialized(&mpi_init);
+            return mpi_init;
+        }
     };
 }
 
