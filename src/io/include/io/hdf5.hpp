@@ -59,11 +59,18 @@ namespace io {
             }
 
             // Create the dataset
+            // Set chunking and compression
+            const auto dset_plist = H5Pcreate(H5P_DATASET_CREATE);
+            // A chunk is a single column (1 location_cbg, all possible visit_cbgs)
+            std::array<hsize_t, 3> chunk = {1, 1, 220740};
+            H5Pset_chunk(dset_plist, Dimensions, chunk.data());
+            H5Pset_deflate(dset_plist, 6);
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
-            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), _data_type, filespace, H5P_DEFAULT, H5P_DEFAULT,
+            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), _data_type, filespace, H5P_DEFAULT, dset_plist,
                                   H5P_DEFAULT);
             H5Sclose(filespace);
+            H5Pclose(dset_plist);
         }
 
         void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {

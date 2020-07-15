@@ -114,10 +114,11 @@ namespace components::server {
                 visitor_home_cbgs);
     }
 
-    TileServer::TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp, const std::string poi_parquet) : _output_dir(std::move(output_dir)),
-                                                                              _output_name(std::move(output_name)),
-                                                                              _l({}, poi_parquet, poi_parquet),
-                                                                              _s(cbg_shp){
+    TileServer::TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp,
+                           const std::string poi_parquet) : _output_dir(std::move(output_dir)),
+                                                            _output_name(std::move(output_name)),
+                                                            _l({}, poi_parquet, poi_parquet),
+                                                            _s(cbg_shp) {
         // Not used
     };
 
@@ -161,7 +162,7 @@ namespace components::server {
         hpx::wait_all(results);
 
         // Create the HDF5 file
-        std::array<hsize_t, 3> dims{7, 100, 100};
+        std::array<hsize_t, 3> dims{7, MAX_CBG, MAX_CBG};
         const auto hdf5_filename = fmt::format("{}", "connectivity-graph.hdf5");
         const auto h_file = fs::path(_output_dir) /= fs::path(hdf5_filename);
         io::HDF5<connectivity_output, 3> shared_file(h_file.string(), "connectivity_graph", dims);
@@ -205,9 +206,6 @@ namespace components::server {
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
 
-            std::vector<connectivity_output> results_to_write;
-//            results_to_write.reserve(matrix_pair.vm.paddiin());
-
             // Write out to the HDF5 file
             for (std::size_t hi = 0; hi < matrix_pair.vm.columns(); hi++) {
                 const auto poi_cbg = offset_calculator.cbg_from_local_offset(hi);
@@ -216,6 +214,7 @@ namespace components::server {
                     continue;
                 }
 
+                std::vector<connectivity_output> results_to_write(MAX_CBG);
                 for (auto pair = std::make_pair(matrix_pair.vm.cbegin(hi), matrix_pair.dm.cbegin(hi));
                      pair.first != matrix_pair.vm.cend(hi); ++pair.first, ++pair.second) {
                     const auto vm_dist = std::distance(matrix_pair.vm.cbegin(hi), pair.first);
@@ -228,20 +227,16 @@ namespace components::server {
                     auto pc2 = *poi_cbg->c_str();
                     auto vc2 = *visitor_cbg->c_str();
                     connectivity_output o{&pc2, &vc2, pair.first->value(), pair.second->value(), 0.0};
-                    results_to_write.push_back(o);
+                    results_to_write.at(vm_dist) = o;
                 }
-            }
 
-            std::array<hsize_t, 3> count{1, dim._cbg_max - dim._cbg_min, MAX_CBG};
-            std::array<hsize_t, 3> offset{i, dim._cbg_min, 0};
-            // Write it out
-            shared_file.write(count, offset, results_to_write);
+                std::array<hsize_t, 3> count{1, 1, MAX_CBG};
+                std::array<hsize_t, 3> offset{i, dim._cbg_min + hi, 0};
+                // Write it out
+                shared_file.write(count, offset, results_to_write);
+            }
             const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
             print_timing("File Write", write_elapsed);
-
-
-
-
 
 //            arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
 //            if (!status.ok()) {
