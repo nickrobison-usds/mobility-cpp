@@ -2,11 +2,34 @@
 Try to fix some issues with our python analysis and make it more performant.
 
 ## Setup
+```bash
 git submodule update --init --recursive
 
-brew install mpich
+```
 
-vcpkg install geos tbb arrow range-v3 gdal
+### Local machine
+
+You'll need to install HPX and HDF5 to make use of MPI
+
+```bash
+brew install hwloc boost openmpi
+```
+
+> Don't use MPICH on Mac OS, it statically links its own version of hwloc and segfaults.
 
 ## Cluster
-spack install geos tbb arrow range-v3
+
+### CADES
+
+```bash
+module load gcc/9.2.0
+module load mpich
+cmake ..
+```
+
+### CORI
+```bash
+module swap PrgEnv-intel PrgEnv-cray
+ cmake -DCMAKE_CXX_COMPILER=CC -DCMAKE_C_COMPILER=cc -DHPX_IGNORE_COMPILER_COMPATIBILITY=ON ..
+```
+

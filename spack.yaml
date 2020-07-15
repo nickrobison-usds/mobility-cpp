@@ -8,19 +8,14 @@ spack:
       compiler: [intel@19, cce@9, gcc@9]
       target: []
       buildable: true
-      providers: {}
+      providers:
+        mpi: [mpich]
       paths: {}
     mpich:
       modules:
         mpich %cce: cray-mpich
-        mpich %gcc: openmpi
+        mpich %gcc: mpich
         mpich %intel: openmpi/3.1.5-intel19
-      buildable: false
-    hdf5:
-      modules:
-        hdf5 %gcc: hdf5
-        hdf5 %cce: cray-hdf5
-        hdf5 %intel: hdf5/1.10.3-intel19
       buildable: false
 
   specs:
@@ -28,11 +23,11 @@ spack:
     - openssl@1.0.2 # We need 1.0.x on CORI
     - boost cxxstd=17
     - arrow+parquet
-    - hpx@master
+    - hpx@master networking=mpi
     - geos@3.6.2
     - gdal+geos
     - gperftools
-    - hdf5
+    - hdf5+mpi+hl
     - ncurses~termlib+symlinks # We need to disable termlib on CORI
   view: true
   concretization: together
