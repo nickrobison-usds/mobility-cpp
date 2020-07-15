@@ -1,98 +1,137 @@
 //
-// Created by Nicholas Robison on 5/28/20.
+// Created by Nicholas Robison on 7/8/20.
 //
 
 #ifndef MOBILITY_CPP_HDF5_HPP
 #define MOBILITY_CPP_HDF5_HPP
 
-#include "hdf5.h"
-#include <string>
-#include <array>
+#include <mpi.h>
+#include <hdf5.h>
+#include "string"
 #include <iostream>
-#include <utility>
 #include <vector>
+#include <numeric>
+#include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace io {
 
-    hid_t openFile(const std::string &filename) {
-        return H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    }
-
-
-    template<class Row>
-    class HDF5Table {
-
+    template<class DataType, int Dimensions>
+    class HDF5 {
     public:
-        explicit HDF5Table(const std::string &filename, std::string tablename, std::string tabletitle) : _hdf5(
-                openFile(filename)), _table_name(std::move(tablename)), _table_title(std::move(tabletitle)) {};
+        HDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims)
+                : _dimensions(dims) {
 
-        HDF5Table(const HDF5Table &hdf5) = delete;
+            // Initialize MPI, if it's available
+            const auto plist_id = H5Pcreate(H5P_FILE_ACCESS);
+            int mpi_init;
+            MPI_Initialized(&mpi_init);
+            if (mpi_init) {
+                // Initialize the MPI values
+                MPI_Comm comm = MPI_COMM_WORLD;
+                MPI_Info info = MPI_INFO_NULL;
+                MPI_Comm_size(comm, &mpi_size);
+                MPI_Comm_rank(comm, &mpi_rank);
 
-        HDF5Table &operator=(const HDF5Table &hdf5) = delete;
+                spdlog::debug("Initializing MPI rank {} of {}", mpi_rank, mpi_size);
+                H5Pset_fapl_mpio(plist_id, comm, info);
+            } else {
+                spdlog::debug("MPI not available, running in serial");
+            }
 
-        ~HDF5Table() {
-            H5Fclose(_hdf5);
-        };
+            // Create the file
+            _file_id = H5Fcreate(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT, plist_id);
+            H5Pclose(plist_id);
 
-        void createTable() const {
-            constexpr size_t recordSize = sizeof(Row);
-            constexpr int columns = Row::columns;
-            constexpr std::array<const char *, columns> vals = Row::names();
-            constexpr std::array<size_t, columns> offsets = Row::offsets();
+            // Register the type
+            constexpr std::size_t type_sz = sizeof(DataType);
+            constexpr int columns = DataType::columns;
+            constexpr std::array<const char *, columns> vals = DataType::names();
+            constexpr std::array<size_t, columns> offsets = DataType::offsets();
             // This can't be constexpr, because the HDF5 methods aren't constexpr
-            std::array<const hid_t, columns> types = Row::types();
+            std::array<const hid_t, columns> types = DataType::types();
+            _data_type = H5Tcreate(H5T_COMPOUND, type_sz);
 
-            const auto err = H5TBmake_table(_table_title.c_str(), _hdf5, _table_name.c_str(), vals.size(), 0,
-                                            recordSize, const_cast<const char **>(vals.data()), offsets.data(),
-                                            types.data(),
-                                            100, nullptr, 0, nullptr);
-
-            if (err) {
-                std::cout << err << std::endl;
+            herr_t status;
+            for (std::size_t i = 0 ; i < columns; i ++) {
+                status = H5Tinsert(_data_type, vals[i], offsets[i], types[i]);
+                if (status) {
+                    std::cout << status << std::endl;
+                }
             }
-        };
 
-        void writeRows(std::vector<Row> rows) const {
-            constexpr size_t recordSize = sizeof(Row);
-            constexpr int columns = Row::columns;
-            constexpr std::array<const char *, columns> vals = Row::names();
-            constexpr std::array<size_t, columns> offsets = Row::offsets();
-            constexpr std::array<size_t, columns> field_sizes = Row::field_sizes();
-            const size_t num_rows = rows.size();
+            // Create the dataset
+            const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
-            const auto err = H5TBappend_records(_hdf5, _table_name.c_str(), num_rows, recordSize, offsets.data(),
-                                                field_sizes.data(), rows.data());
-            if (err) {
-                std::cout << err << std::endl;
+            _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), _data_type, filespace, H5P_DEFAULT, H5P_DEFAULT,
+                                  H5P_DEFAULT);
+            H5Sclose(filespace);
+        }
+
+        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {
+
+            _memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
+            _filespace = H5Dget_space(_dset_id);
+            H5Sselect_hyperslab(_filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
+
+            const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
+            H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+
+            const herr_t status = H5Dwrite(_dset_id, _data_type, _memspace, _filespace, plist_id, data.data());
+
+            if (status) {
+                std::cout << status << std::endl;
             }
         }
 
-        std::vector<Row> readRows() const {
-            constexpr size_t recordSize = sizeof(Row);
-            constexpr int columns = Row::columns;
-            constexpr std::array<const char *, columns> vals = Row::names();
-            constexpr std::array<size_t, columns> offsets = Row::offsets();
-            constexpr std::array<size_t, columns> field_sizes = Row::field_sizes();
+        std::vector<DataType> read(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset) const {
 
-            // Figure out how many rows to read
-            hsize_t field_count, row_count;
-            auto err = H5TBget_table_info(_hdf5, _table_name.c_str(), &field_count, &row_count);
+            // Create a memory space to read into
+            const auto memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
 
-            std::vector<Row> rows(row_count);
-            err = H5TBread_table(_hdf5, _table_name.c_str(), recordSize, offsets.data(), field_sizes.data(), rows.data());
-
-            if (err) {
-                std::cout << err << std::endl;
+            const auto dataspace = H5Dget_space(_dset_id);
+            auto status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset.data(), nullptr, count.data(),
+                                                      nullptr);
+            if (status) {
+                std::cout << status << std::endl;
             }
 
-            return rows;
+            // Compute return size;
+            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<size_t>());
+            std::vector<DataType> results(rs);
+
+            status = H5Dread(_dset_id, _data_type, memspace, dataspace, H5P_DEFAULT, results.data());
+            if (status) {
+                std::cout << status << std::endl;
+            }
+            // TODO: This needs to be closed correctly.
+            H5Sclose(memspace);
+            H5Sclose(dataspace);
+
+            return results;
         }
 
+        [[nodiscard]] std::string hello() const {
+            return "hello";
+        }
+
+        ~HDF5() {
+            H5Tclose(_data_type);
+            H5Sclose(_filespace);
+            H5Sclose(_memspace);
+            H5Dclose(_dset_id);
+            H5Fclose(_file_id);
+        }
 
     private:
-        const hid_t _hdf5;
-        const std::string _table_name;
-        const std::string _table_title;
+        int mpi_size;
+        int mpi_rank;
+        hid_t _file_id;
+        hid_t _dset_id;
+        hid_t _filespace;
+        hid_t _memspace;
+        hid_t _data_type;
+        const std::array<hsize_t, Dimensions> _dimensions;
     };
 }
 

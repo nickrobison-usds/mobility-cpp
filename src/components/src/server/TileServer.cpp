@@ -170,7 +170,7 @@ namespace components::server {
         std::array<hsize_t, 3> dims{7, 100, 100};
         const auto hdf5_filename = fmt::format("{}", "connectivity-graph.hdf5");
         const auto h_file = fs::path(_output_dir) /= fs::path(hdf5_filename);
-        io::ParallelHDF5<connectivity_output, 3> shared_file(h_file.string(), "connectivity_graph", dims);
+        io::HDF5<connectivity_output, 3> shared_file(h_file.string(), "connectivity_graph", dims);
 
         // Now, multiply the values and write them to disk
         for (uint i = 0; i < dim._time_count; i++) {

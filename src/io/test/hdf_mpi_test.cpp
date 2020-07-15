@@ -8,7 +8,7 @@
 #include <array>
 #include <io/sizer.hpp>
 #include "catch2/catch.hpp"
-#include "io/ParallelHDF5.hpp"
+#include "io/HDF5.hpp"
 
 struct SimpleInt {
     int x;
@@ -72,7 +72,7 @@ TEST_CASE("2D dataset set", "[hdf5-par]") {
     MPI_Comm comm  = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &mpi_size);
     MPI_Comm_rank(comm, &mpi_rank);
-    io::ParallelHDF5<SimpleInt, 2> p5("./test-par.h5", "test-dataset", dims);
+    io::HDF5<SimpleInt, 2> p5("./test-par.h5", "test-dataset", dims);
     {
         p5.write(dims, {0, 0}, data);
     }
@@ -102,7 +102,7 @@ TEST_CASE("3D dataset set", "[hdf5-par]") {
         return SimpleInt{i};
     });
     std::array<hsize_t , 3> dims{2, 3,2};
-    io::ParallelHDF5<SimpleInt, 3> p5("./test-par.h5", "test-dataset", dims);
+    io::HDF5<SimpleInt, 3> p5("./test-par.h5", "test-dataset", dims);
     {
         p5.write(dims, {0, 0, 0}, data);
     }
