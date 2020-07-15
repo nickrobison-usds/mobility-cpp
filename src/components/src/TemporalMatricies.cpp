@@ -37,8 +37,8 @@ namespace components {
         MatrixPair &pair = matricies.at(time);
         const std::uint32_t v2 = pair.vm.at(row, col);
         const double d2 = pair.dm.at(row, col);
-        pair.vm.set(row, col, visits + v2);
-        pair.dm.set(row, col,distance + d2);
+        pair.vm(row, col) = visits + v2;
+        pair.dm(row, col) = distance + d2;
         lock.Unlock();
     };
 

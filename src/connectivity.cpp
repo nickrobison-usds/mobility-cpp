@@ -110,8 +110,8 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // For each file, we need to build a tile parameter, partitioning if necessary
     vector<components::TileConfiguration> tiles;
     std::for_each(input_files.begin(), input_files.end(),
-                  [&tiles, &tile_parititions, &cbg_path, &poi_path, &nr](const auto &pair) {
-                      size_t ds = pair.second.time_since_epoch().count();
+                  [&tiles, &tile_parititions, &cbg_path, &poi_path, &nr, &start_date](const auto &pair) {
+                      const size_t ds = chrono::duration_cast<days>(start_date.time_since_epoch()).count();
                       const auto stride = components::MAX_CBG / tile_parititions;
 
                       for (size_t i = 0; i < components::MAX_CBG; i += stride) {
