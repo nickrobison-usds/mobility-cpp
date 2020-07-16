@@ -156,7 +156,8 @@ int main(int argc, char **argv) {
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
             ("np", value<uint16_t>()->default_value(1),
              "Number of partitions for each file (CBGs to process)")
-            ("silent", "disable debug logging");
+            ("silent", "disable debug logging")
+            ("Output format", value<string>()->default_value("parquet"), "Output format");
 
     std::vector<std::string> const cfg = {
             "hpx.run_hpx_main!=1",

@@ -207,7 +207,14 @@ namespace components::server {
             const auto write_start = hpx::util::high_resolution_clock::now();
 
             // Write out to the HDF5 file
+            // TODO: This should be chunked in some way
             for (std::size_t hi = 0; hi < matrix_pair.vm.columns(); hi++) {
+
+                if (matrix_pair.vm.nonZeros(hi) == 0 ) {
+                    spdlog::debug("No values, skipping column");
+                    continue;
+                }
+
                 const auto poi_cbg = offset_calculator.cbg_from_local_offset(hi);
                 if (!poi_cbg.has_value()) {
                     spdlog::error("Cannot process source cbg: `{}`", hi);
@@ -226,7 +233,7 @@ namespace components::server {
                     }
                     auto pc2 = *poi_cbg->c_str();
                     auto vc2 = *visitor_cbg->c_str();
-                    connectivity_output o{&pc2, &vc2, pair.first->value(), pair.second->value(), 0.0};
+                    connectivity_output o{pair.first->value(), static_cast<float>(pair.second->value()), 0.0};
                     results_to_write.at(vm_dist) = o;
                 }
 

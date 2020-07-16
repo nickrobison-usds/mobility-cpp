@@ -37,9 +37,12 @@ namespace io {
                 spdlog::debug("MPI not available, running in serial");
             }
 
+            spdlog::debug("MPI init finished");
+
             // Create the file
             _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
             H5Pclose(plist_id);
+            spdlog::debug("File created");
 
             // Register the type
             constexpr std::size_t type_sz = sizeof(DataType);
@@ -61,16 +64,22 @@ namespace io {
             // Create the dataset
             // Set chunking and compression
             const auto dset_plist = H5Pcreate(H5P_DATASET_CREATE);
+//            if (_mpi_enabled) {
+//                H5Pset_dxpl_mpio(dset_plist, H5FD_MPIO_COLLECTIVE);
+//            }
             // A chunk is a single column (1 location_cbg, all possible visit_cbgs)
-            std::array<hsize_t, 3> chunk = {1, 1, 220740};
+            std::array<hsize_t, Dimensions> chunk = {1, 1, 50000};
+//            std::array<hsize_t, Dimensions> chunk = {1, 1, 220740};
             H5Pset_chunk(dset_plist, Dimensions, chunk.data());
             H5Pset_deflate(dset_plist, 6);
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
+            spdlog::debug("Creating dataset");
             _dset_id = H5Dcreate2(_file_id, dsetname.c_str(), _data_type, filespace, H5P_DEFAULT, dset_plist,
                                   H5P_DEFAULT);
             H5Sclose(filespace);
             H5Pclose(dset_plist);
+            spdlog::debug("Dataset created");
         }
 
         void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {
@@ -108,7 +117,7 @@ namespace io {
             }
 
             // Compute return size;
-            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<size_t>());
+            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<>());
             std::vector<DataType> results(rs);
 
             const auto plist_id = H5Pcreate(H5P_DATASET_XFER);

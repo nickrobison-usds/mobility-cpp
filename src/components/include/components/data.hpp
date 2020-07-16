@@ -124,34 +124,29 @@ struct safegraph_location {
 };
 
 struct connectivity_output {
-    char *location_cbg;
-    char *visit_cbg;
     uint32_t visits;
-    double distance;
-    double weighted_distance;
+    float distance;
+    float weighted_distance;
 
-    static constexpr int columns = 5;
+    static constexpr int columns = 3;
 
     static constexpr std::array<const char *, connectivity_output::columns> names() {
-        return {"Location_CBG", "Visit_CBG",
+        return {
+//            "Location_CBG", "Visit_CBG",
                 "Visits", "Distance", "Weighted_Distance"};
     }
 
     static std::array<const int64_t, connectivity_output::columns> types() {
         return {
-                io::helpers::stringSize(),
-                io::helpers::stringSize(),
                 H5T_NATIVE_UINT32,
-                H5T_NATIVE_DOUBLE,
-                H5T_NATIVE_DOUBLE
+                H5T_NATIVE_FLOAT,
+                H5T_NATIVE_FLOAT
         };
     }
 
     static constexpr std::array<size_t, connectivity_output::columns> offsets() {
         using namespace io::helpers;
         return {
-                offset_of<connectivity_output>(&connectivity_output::location_cbg),
-                offset_of<connectivity_output>(&connectivity_output::visit_cbg),
                 offset_of<connectivity_output>(&connectivity_output::visits),
                 offset_of<connectivity_output>(&connectivity_output::distance),
                 offset_of<connectivity_output>(&connectivity_output::weighted_distance)
@@ -160,8 +155,6 @@ struct connectivity_output {
 
     static constexpr std::array<size_t, connectivity_output::columns> field_sizes() {
         return {
-                sizeof(connectivity_output::location_cbg),
-                sizeof(connectivity_output::visit_cbg),
                 sizeof(connectivity_output::visits),
                 sizeof(connectivity_output::distance),
                 sizeof(connectivity_output::weighted_distance)
