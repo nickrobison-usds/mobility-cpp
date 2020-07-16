@@ -165,12 +165,16 @@ namespace components::server {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             const auto parquet_filename = fmt::format("{}-{}-{}-{}-{}.parquet", hpx::get_locality_id(),
-                                                      date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
+                                                      date::format("%F", matrix_date),
+                                                      *offset_calculator.cbg_from_offset(dim._cbg_min),
+                                                      *offset_calculator.cbg_from_offset(dim._cbg_max),
                                                       _output_name);
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
             const auto visit_filename = fmt::format("{}-{}-{}-{}-visits-{}.parquet", hpx::get_locality_id(),
-                                                      date::format("%F", matrix_date), dim._cbg_min, dim._cbg_max,
+                                                      date::format("%F", matrix_date),
+                                                      *offset_calculator.cbg_from_offset(dim._cbg_min),
+                                                      *offset_calculator.cbg_from_offset(dim._cbg_max),
                                                       _output_name);
 
             const auto v_file = fs::path(_output_dir) /= fs::path(visit_filename);
