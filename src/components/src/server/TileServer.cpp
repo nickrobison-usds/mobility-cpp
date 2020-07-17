@@ -114,10 +114,11 @@ namespace components::server {
                 visitor_home_cbgs);
     }
 
-    TileServer::TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp, const std::string poi_parquet) : _output_dir(std::move(output_dir)),
-                                                                              _output_name(std::move(output_name)),
-                                                                              _l({}, poi_parquet, poi_parquet),
-                                                                              _s(cbg_shp){
+    TileServer::TileServer(const std::string output_dir, const std::string output_name, const std::string cbg_shp,
+                           const std::string poi_parquet) : _output_dir(std::move(output_dir)),
+                                                            _output_name(std::move(output_name)),
+                                                            _l({}, poi_parquet, poi_parquet),
+                                                            _s(cbg_shp) {
         // Not used
     };
 
@@ -165,17 +166,17 @@ namespace components::server {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
             const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
-                                                      date::format("%F", matrix_date),
+                                                      _output_name,
                                                       *offset_calculator.cbg_from_offset(dim._cbg_min),
                                                       *offset_calculator.cbg_from_offset(dim._cbg_max),
-                                                      _output_name);
+                                                      date::format("%F", matrix_date));
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
-            const auto visit_filename = fmt::format("{}-{}-{}-visits-{}.parquet",
-                                                      date::format("%F", matrix_date),
-                                                      *offset_calculator.cbg_from_offset(dim._cbg_min),
-                                                      *offset_calculator.cbg_from_offset(dim._cbg_max),
-                                                      _output_name);
+            const auto visit_filename = fmt::format("{}-visits-{}-{}-{}.parquet",
+                                                    _output_name,
+                                                    *offset_calculator.cbg_from_offset(dim._cbg_min),
+                                                    *offset_calculator.cbg_from_offset(dim._cbg_max),
+                                                    date::format("%F", matrix_date));
 
             const auto v_file = fs::path(_output_dir) /= fs::path(visit_filename);
 
@@ -188,7 +189,8 @@ namespace components::server {
             const distance_matrix result = matricies.compute(i);
 
             // Sum the total risk for each cbg
-            const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(result);
+            const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(
+                    result);
             const double max = blaze::max(cbg_risk_score);
             const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
                     matrix_pair.vm);
@@ -201,11 +203,11 @@ namespace components::server {
 
             spdlog::info("Beginning tile write");
             const auto write_start = hpx::util::high_resolution_clock::now();
-            arrow::Status status = tw.writeResults(start_date, cbg_risk_score, scaled_results, visit_sum);
+            arrow::Status status = tw.writeResults(matrix_date, cbg_risk_score, scaled_results, visit_sum);
             if (!status.ok()) {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }
-            status = vw.writeResults(start_date, matrix_pair.vm);
+            status = vw.writeResults(matrix_date, matrix_pair.vm);
             if (!status.ok()) {
                 spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
             }
