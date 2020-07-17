@@ -165,7 +165,9 @@ namespace components::server {
         std::array<hsize_t, 3> dims{7, MAX_CBG, MAX_CBG};
         const auto hdf5_filename = fmt::format("{}", "connectivity-graph.hdf5");
         const auto h_file = fs::path(_output_dir) /= fs::path(hdf5_filename);
-        io::HDF5<connectivity_output, 3> shared_file(h_file.string(), "connectivity_graph", dims);
+//         A chunk is a single column (1 location_cbg, all possible visit_cbgs)
+        static constexpr std::array<hsize_t, 3> chunk = {1, 1, MAX_CBG};
+        io::HDF5<connectivity_output, 3, &chunk> shared_file(h_file.string(), "connectivity_graph", dims);
 
         // Now, multiply the values and write them to disk
         for (uint i = 0; i < dim._time_count; i++) {
@@ -210,9 +212,11 @@ namespace components::server {
             // TODO: This should be chunked in some way
             for (std::size_t hi = 0; hi < matrix_pair.vm.columns(); hi++) {
 
-                if (matrix_pair.vm.nonZeros(hi) == 0 ) {
+                if (matrix_pair.vm.nonZeros(hi) == 0) {
                     spdlog::debug("No values, skipping column");
                     continue;
+                } else {
+                    spdlog::debug("Writing values!");
                 }
 
                 const auto poi_cbg = offset_calculator.cbg_from_local_offset(hi);

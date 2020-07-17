@@ -58,21 +58,22 @@ std::ostream &operator<<(std::ostream &os, const SimpleInt &row) {
 
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
+    int mpi_size, mpi_rank;
+    MPI_Comm comm  = MPI_COMM_WORLD;
+    MPI_Comm_size(comm, &mpi_size);
+    MPI_Comm_rank(comm, &mpi_rank);
+    std::cerr << "I am " << mpi_rank << "/" << mpi_size << std::endl;
     int result = Catch::Session().run(argc, argv);
     MPI_Finalize();
     return result;
 }
 
 TEST_CASE("2D dataset set", "[hdf5-par]") {
-    const std::string filename = "./test-par.h5";
+    const std::string filename = "./test-par-2d.h5";
     const std::string datasetname = "par-dset";
     const std::vector<SimpleInt> data{{1}, {2}, {3}, {4}, {5}, {6}};
     std::array<hsize_t , 2> dims{2, 3};
-    int mpi_size, mpi_rank;
-    MPI_Comm comm  = MPI_COMM_WORLD;
-    MPI_Comm_size(comm, &mpi_size);
-    MPI_Comm_rank(comm, &mpi_rank);
-    io::HDF5<SimpleInt, 2> p5("./test-par.h5", "test-dataset", dims);
+    io::HDF5<SimpleInt, 2> p5(filename, datasetname, dims);
     {
         p5.write(dims, {0, 0}, data);
     }
@@ -102,7 +103,43 @@ TEST_CASE("3D dataset set", "[hdf5-par]") {
         return SimpleInt{i};
     });
     std::array<hsize_t , 3> dims{2, 3,2};
-    io::HDF5<SimpleInt, 3> p5("./test-par.h5", "test-dataset", dims);
+    io::HDF5<SimpleInt, 3> p5(filename, datasetname, dims);
+    {
+        p5.write(dims, {0, 0, 0}, data);
+    }
+
+    // Read everything back out
+    const auto results = p5.read({2, 3, 2}, {0, 0, 0});
+    REQUIRE(results == data);
+
+    // Read the first row
+    const auto row_results = p5.read({1, 3, 1}, {1, 0, 0});
+    REQUIRE(row_results.size() == 3);
+    REQUIRE(row_results.at(0) == 10);
+    REQUIRE(row_results.at(2) == 14);
+
+    // Read the second Z tile
+    const auto second_tile = p5.read({2, 3, 1}, {0, 0, 1});
+    REQUIRE(second_tile.size() == 6);
+    REQUIRE(std::accumulate(second_tile.begin(), second_tile.end(), SimpleInt{0}) == SimpleInt{51});
+
+    // Read a single Z-index
+    const auto middle_elems = p5.read({1, 1, 2}, {1, 1, 0});
+    REQUIRE(middle_elems.size() == 2);
+    REQUIRE(std::accumulate(middle_elems.begin(), middle_elems.end(), SimpleInt{0}) == SimpleInt{25});
+}
+
+TEST_CASE("3D dataset set (Compressed)", "[hdf5-par]") {
+    const std::string filename = "./test-par-compressed.h5";
+    const std::string datasetname = "par-dset";
+    const std::vector<int> d1{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15};
+    std::vector<SimpleInt> data;
+    std::transform(d1.begin(), d1.end(), std::back_inserter(data), [](const auto &i) {
+        return SimpleInt{i};
+    });
+    std::array<hsize_t , 3> dims{2, 3,2};
+    static constexpr std::array<hsize_t, 3> chunks = {1, 2, 1};
+    io::HDF5<SimpleInt, 3, &chunks> p5(filename, datasetname, dims);
     {
         p5.write(dims, {0, 0, 0}, data);
     }

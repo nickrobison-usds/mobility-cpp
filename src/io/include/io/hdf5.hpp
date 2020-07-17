@@ -16,7 +16,7 @@
 
 namespace io {
 
-    template<class DataType, int Dimensions>
+    template<class DataType, int Dimensions, const std::array<hsize_t, Dimensions>* Chunks = nullptr>
     class HDF5 {
     public:
         HDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims)
@@ -33,11 +33,10 @@ namespace io {
 
                 spdlog::debug("Initializing MPI rank {} of {}", mpi_rank, mpi_size);
                 H5Pset_fapl_mpio(plist_id, comm, info);
+                spdlog::debug("MPI init finished");
             } else {
                 spdlog::debug("MPI not available, running in serial");
             }
-
-            spdlog::debug("MPI init finished");
 
             // Create the file
             _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
@@ -62,16 +61,13 @@ namespace io {
             }
 
             // Create the dataset
-            // Set chunking and compression
+            // Set chunking and compression, if desired
             const auto dset_plist = H5Pcreate(H5P_DATASET_CREATE);
-//            if (_mpi_enabled) {
-//                H5Pset_dxpl_mpio(dset_plist, H5FD_MPIO_COLLECTIVE);
-//            }
-            // A chunk is a single column (1 location_cbg, all possible visit_cbgs)
-            std::array<hsize_t, Dimensions> chunk = {1, 1, 50000};
-//            std::array<hsize_t, Dimensions> chunk = {1, 1, 220740};
-            H5Pset_chunk(dset_plist, Dimensions, chunk.data());
+            if (Chunks != nullptr) {
+            H5Pset_chunk(dset_plist, Dimensions, Chunks->data());
             H5Pset_deflate(dset_plist, 6);
+            }
+
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
 
             spdlog::debug("Creating dataset");
@@ -88,7 +84,7 @@ namespace io {
             const auto filespace = H5Dget_space(_dset_id);
             H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset.data(), nullptr, count.data(), nullptr);
 
-            hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
+            const hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
             if (_mpi_enabled) {
                 H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
             }
@@ -142,9 +138,11 @@ namespace io {
         }
 
         ~HDF5() {
+            std::cerr << "Doing the close" << std::endl;
             H5Tclose(_data_type);
             H5Dclose(_dset_id);
             H5Fclose(_file_id);
+            std::cerr << "Close done" << std::endl;
         }
 
     private:
