@@ -164,14 +164,14 @@ namespace components::server {
         for (uint i = 0; i < dim._time_count; i++) {
             // Some nice pretty-printing of the dates
             const date::sys_days matrix_date = start_date + date::days{i};
-            const auto parquet_filename = fmt::format("{}-{}-{}-{}-{}.parquet", hpx::get_locality_id(),
+            const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
                                                       date::format("%F", matrix_date),
                                                       *offset_calculator.cbg_from_offset(dim._cbg_min),
                                                       *offset_calculator.cbg_from_offset(dim._cbg_max),
                                                       _output_name);
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
-            const auto visit_filename = fmt::format("{}-{}-{}-{}-visits-{}.parquet", hpx::get_locality_id(),
+            const auto visit_filename = fmt::format("{}-{}-{}-visits-{}.parquet",
                                                       date::format("%F", matrix_date),
                                                       *offset_calculator.cbg_from_offset(dim._cbg_min),
                                                       *offset_calculator.cbg_from_offset(dim._cbg_max),
