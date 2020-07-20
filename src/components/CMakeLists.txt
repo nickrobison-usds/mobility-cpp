@@ -5,7 +5,7 @@ find_package(GEOS REQUIRED)
 include(FindAVX)
 CHECK_FOR_AVX()
 
-add_library(components
+add_library(mcpp-components
         src/WeekSplitter.cpp src/vector_scaler.hpp include/components/constants.hpp
         include/components/WeekSplitter.hpp include/components/data.hpp
         include/components/serializers.hpp include/components/serializers.cpp
@@ -19,15 +19,16 @@ add_library(components
         src/TemporalMatricies.cpp src/TemporalMatricies.hpp
         src/TileWriter.cpp src/TileWriter.hpp src/RowProcessor.cpp src/RowProcessor.hpp src/OffsetCalculator.cpp src/OffsetCalculator.hpp
         src/VisitMatrixWriter.cpp src/VisitMatrixWriter.hpp)
-target_link_libraries(components PUBLIC HPX::hpx blaze date absl::flat_hash_map PRIVATE io spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
-target_include_directories(components PUBLIC
+target_link_libraries(mcpp-components PUBLIC hpx blaze date absl::flat_hash_map PRIVATE io spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
+target_include_directories(mcpp-components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
-target_compile_options(components PUBLIC "-march=native")
+target_compile_options(mcpp-components PUBLIC "-march=native")
 
-add_sanitizers(components)
+add_sanitizers(mcpp-components)
 
+#add_library(MCPP::components ALIAS components)
 
 add_executable(testcomponents test/test_scaler.cpp)
-target_link_libraries(testcomponents Catch2::Catch2 components)
+target_link_libraries(testcomponents Catch2::Catch2 mcpp-components)
 add_test(testcomponents testcomponents)
