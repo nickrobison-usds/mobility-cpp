@@ -1,7 +1,7 @@
 set(HPX_WITH_MALLOC "jemalloc")
 
 find_package(Arrow REQUIRED)
-find_package(Boost COMPONENTS filesystem regex program_options system REQUIRED)
+find_package(Boost COMPONENTS filesystem regex program_options system iostreams REQUIRED)
 find_package(HPX CONFIG REQUIRED)
 find_package(TCMalloc)
 
@@ -12,6 +12,7 @@ CHECK_FOR_AVX()
 add_subdirectory(io)
 add_subdirectory(components)
 add_subdirectory(shared)
+add_subdirectory(map-tile)
 
 add_executable(splitter splitter.cpp)
 target_link_libraries(splitter PRIVATE io components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog hpx)
