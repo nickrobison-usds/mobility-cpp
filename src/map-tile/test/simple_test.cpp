@@ -5,9 +5,10 @@
 
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 
+#include <absl/strings/str_split.h>
 #include "catch2/catch.hpp"
+#include "map-tile/Context.hpp"
 #include "map-tile/MapTileServer.hpp"
-#include "../../io/include/io/csv_reader.hpp"
 
 struct FlightInfo {
     std::string airline;
@@ -21,42 +22,24 @@ struct FlightInfo {
     int equipment;
 };
 
-template<typename>
-struct FlightProvider {
-
-    explicit FlightProvider(const std::string &file): _loader(file) {
-        // Not used
-    }
-
-    std::vector<FlightInfo> provide() {
-        std::string airline;
-        std::string airline_id;
-        std::string src_airport;
-        std::string src_airport_id;
-        std::string dest_airport;
-        std::string dest_airport_id;
-        std::string code_share;
-        int stops;
-        int equipment;
-
-        return _loader.read<FlightInfo>([](const std::string &airline, const std::string &airline_id, const std::string &src_airport, const std::string ) {
-            struct FlightInfo f;
-
-            return f;
-        });
-    }
-
-
-
-private:
-    io::CSVLoader<9, false> _loader;
-};
-
 template<typename, typename>
 struct FlightMapper {
+    void map(const mt::MapContext<FlightInfo> &ctx, const std::string &info) {
+        const std::vector<std::string> splits = absl::StrSplit(info, ',');
+        splits.size();
+        const FlightInfo f{
+            splits[0],
+            splits[1],
+            splits[2],
+            splits[3],
+            splits[4],
+            splits[5],
+            splits[6] != "",
+            0,
+            0
+        };
 
-    void map(const std::string &info) {
-        // Not used
+        ctx.emit(f);
     }
 };
 

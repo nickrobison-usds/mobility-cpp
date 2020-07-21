@@ -10,6 +10,7 @@
 #include <vector>
 #include <io/csv_reader.hpp>
 
+#include "Context.hpp"
 #include "../../src/FileProvider.hpp"
 
 using namespace std;
@@ -29,21 +30,24 @@ namespace mt::server {
         }
 
         void tile() {
+            // Instantiate the context
+            const auto ctx = make_shared<mt::Context<MapKey, false>>();
             // Load the CSV files
             // Let's do it all in memory for right now
-            for_each(_files.begin(), _files.end(), [](const string &filename) {
+            for_each(_files.begin(), _files.end(), [&ctx](const string &filename) {
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
-
                 // Map each one
                 Mapper<MapKey, ReduceKey> mapper;
                 // Setup
 
                 //Map
-                for_each(keys.begin(), keys.end(), [&mapper](const auto &key) {
-                    mapper.map(key);
+                for_each(keys.begin(), keys.end(), [&mapper, &ctx](const auto &key) {
+                    mapper.map(*ctx, key);
                 });
             });
+
+            // Now, tile
         }
 
     private:
