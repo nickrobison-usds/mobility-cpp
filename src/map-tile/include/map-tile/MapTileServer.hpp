@@ -12,6 +12,7 @@
 
 #include "Context.hpp"
 #include "../../src/FileProvider.hpp"
+#include "server/MapServer.hpp"
 
 using namespace std;
 
@@ -19,7 +20,7 @@ namespace mt::server {
     template<
             class MapKey,
             class ReduceKey,
-            template<typename = MapKey, typename = ReduceKey> class Mapper,
+            class Mapper,
             class InputKey = std::string,
             template<typename = InputKey> class Provider = io::FileProvider
             >
@@ -31,19 +32,23 @@ namespace mt::server {
 
         void tile() {
             // Instantiate the context
-            const auto ctx = make_shared<mt::Context<MapKey, false>>();
+            const auto ctx = make_shared<mt::Context<MapKey>>();
             // Load the CSV files
             // Let's do it all in memory for right now
             for_each(_files.begin(), _files.end(), [&ctx](const string &filename) {
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one
-                Mapper<MapKey, ReduceKey> mapper;
+
+//                Mapper<MapKey, ReduceKey> mapper;
                 // Setup
 
                 //Map
-                for_each(keys.begin(), keys.end(), [&mapper, &ctx](const auto &key) {
-                    mapper.map(*ctx, key);
+                for_each(keys.begin(), keys.end(), [&ctx](const auto &key) {
+//                    mt::server::MapServer<MapKey, ReduceKey, Mapper> m_client(*ctx);
+//                    m_client.map(ctx, key);
+//                    m_client.map(key).get();
+
                 });
             });
 

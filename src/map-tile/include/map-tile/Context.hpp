@@ -14,7 +14,7 @@ namespace mt {
     class Context {
 
     public:
-        // TODO: I would like to conditionally enable this
+        template<typename = typename std::enable_if<!std::is_same_v<Reducer, nullptr_t>>>
         void emit(const Key &key) const {
             std::cout << "Emitting" << std::endl;
             spdlog::debug("Emitting Key");

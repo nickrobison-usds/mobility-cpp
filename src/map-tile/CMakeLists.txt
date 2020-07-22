@@ -1,4 +1,4 @@
-add_library(map-tile src/server/MapTileServer.cpp include/map-tile/MapTileServer.hpp src/FileProvider.cpp src/FileProvider.hpp include/map-tile/Context.hpp)
+add_library(map-tile src/server/MapTileServer.cpp include/map-tile/MapTileServer.hpp src/FileProvider.cpp src/FileProvider.hpp include/map-tile/Context.hpp include/map-tile/server/MapServer.hpp include/map-tile/MapServerClient.hpp)
 
 target_link_libraries(map-tile PUBLIC HPX::hpx INTERFACE spdlog PRIVATE Boost::iostreams io shared)
 target_include_directories(map-tile PUBLIC

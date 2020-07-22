@@ -9,6 +9,12 @@
 #include "catch2/catch.hpp"
 #include "map-tile/Context.hpp"
 #include "map-tile/MapTileServer.hpp"
+#include "map-tile/server/MapServer.hpp"
+
+#include <hpx/include/actions.hpp>
+#include <hpx/include/components.hpp>
+
+#include <hpx/preprocessor/cat.hpp>
 
 struct FlightInfo {
     std::string airline;
@@ -22,9 +28,8 @@ struct FlightInfo {
     int equipment;
 };
 
-template<typename, typename>
 struct FlightMapper {
-    void map(const mt::MapContext<FlightInfo> &ctx, const std::string &info) {
+    void map(const mt::MapContext<FlightInfo> &ctx, const std::string &info) const {
         const std::vector<std::string> splits = absl::StrSplit(info, ',');
         splits.size();
         const FlightInfo f{
@@ -34,7 +39,7 @@ struct FlightMapper {
             splits[3],
             splits[4],
             splits[5],
-            splits[6] != "",
+            !splits[6].empty(),
             0,
             0
         };
@@ -42,6 +47,8 @@ struct FlightMapper {
         ctx.emit(f);
     }
 };
+
+REGISTER_MAPPER(std::string, FlightInfo, FlightMapper);
 
 TEST_CASE("Compiles", "[map-tile]") {
     std::vector<string> files{"data/routes.csv"};
