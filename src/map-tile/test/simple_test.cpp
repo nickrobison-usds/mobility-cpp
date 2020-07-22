@@ -3,18 +3,17 @@
 //
 
 
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
+#define CATCH_CONFIG_RUNNER
 
+#include <hpx/hpx_main.hpp>
 #include <absl/strings/str_split.h>
 #include "catch2/catch.hpp"
 #include "map-tile/Context.hpp"
-#include "map-tile/MapTileServer.hpp"
-#include "map-tile/server/MapServer.hpp"
+#include "map-tile/MapTileClient.hpp"
 
-#include <hpx/include/actions.hpp>
-#include <hpx/include/components.hpp>
-
-#include <hpx/preprocessor/cat.hpp>
+int main(int argc, char* argv[]) {
+    return Catch::Session().run(argc, argv);
+}
 
 struct FlightInfo {
     std::string airline;
@@ -48,11 +47,11 @@ struct FlightMapper {
     }
 };
 
-REGISTER_MAPPER(std::string, FlightInfo, FlightMapper);
+REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, std::string, mt::io::FileProvider);
 
 TEST_CASE("Compiles", "[map-tile]") {
     std::vector<string> files{"data/routes.csv"};
-    mt::server::MapTileServer<FlightInfo, FlightInfo, FlightMapper> server(files);
+    mt::MapTileClient<FlightInfo, FlightInfo, FlightMapper> server(files);
     server.tile();
     REQUIRE(1 == 1);
 }
