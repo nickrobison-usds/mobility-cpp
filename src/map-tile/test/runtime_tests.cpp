@@ -5,11 +5,13 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#include <hpx/config.hpp>
 #include <hpx/hpx_main.hpp>
 #include <absl/strings/str_split.h>
 #include "catch2/catch.hpp"
 #include "map-tile/Context.hpp"
 #include "map-tile/MapTileClient.hpp"
+#include "map-tile/server/LocaleLocator.hpp"
 
 int main(int argc, char* argv[]) {
     return Catch::Session().run(argc, argv);
@@ -50,6 +52,7 @@ struct FlightMapper {
 REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, std::string, mt::io::FileProvider);
 
 TEST_CASE("Compiles", "[map-tile]") {
+    mt::coordinates::LocaleLocator({});
     std::vector<string> files{"data/routes.csv"};
     mt::MapTileClient<FlightInfo, FlightInfo, FlightMapper> server(files);
     server.tile();
