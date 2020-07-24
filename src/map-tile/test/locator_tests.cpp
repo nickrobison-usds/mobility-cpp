@@ -20,8 +20,8 @@ TEST_CASE("Simple Locator Test", "[locator]") {
     const auto d2 = Coordinate2D(5, 5);
 
     const auto l = LocaleLocator({
-                          LocaleLocator::value{LocaleLocator::mt_tile(c1, c2), 1},
-                          LocaleLocator::value{LocaleLocator::mt_tile(d1, d2), 2},
+                          LocaleLocator::value{mt_tile(c1, c2), 1},
+                          LocaleLocator::value{mt_tile(d1, d2), 2},
                   });
 
     // Try in the center of one

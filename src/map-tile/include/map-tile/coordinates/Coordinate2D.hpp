@@ -5,6 +5,7 @@
 #ifndef MOBILITY_CPP_COORDINATE2D_HPP
 #define MOBILITY_CPP_COORDINATE2D_HPP
 
+#include <hpx/serialization/array.hpp>
 #include <hpx/serialization/serialize.hpp>
 #include <boost/geometry.hpp>
 #include <array>
@@ -29,15 +30,18 @@ namespace mt::coordinates {
         void set_dim0(const std::size_t &dim0);
         void set_dim1(const std::size_t &dim1);
 
-    private:
-        std::array<std::size_t, dimensions> _dims;
+        bool operator==(const Coordinate2D &rhs) const;
 
         // HPX required serialization
         friend class hpx::serialization::access;
         template<typename Archive>
         void serialize(Archive &ar, const unsigned int version) {
-            ar & _dims;
+            ar & _dim0 & _dim1;
         }
+
+    private:
+        std::size_t _dim0;
+        std::size_t _dim1;
     };
 }
 

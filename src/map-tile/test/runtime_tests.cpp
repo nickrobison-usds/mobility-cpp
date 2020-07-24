@@ -77,7 +77,6 @@ struct FlightTile {
 REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
 
 TEST_CASE("Flight Mapper", "[integration]") {
-
     using namespace mt::coordinates;
     // Create a single tile of size 100
     const auto c1 = Coordinate2D(0, 0);
