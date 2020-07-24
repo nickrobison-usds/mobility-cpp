@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 7/22/20.
 //
 
-#include "map-tile/server/Coordinate2D.hpp"
+#include "map-tile/coordinates/Coordinate2D.hpp"
 
 namespace mt::coordinates {
 

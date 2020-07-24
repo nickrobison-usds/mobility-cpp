@@ -13,7 +13,7 @@
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
 
-#include "map-tile/Context.hpp"
+#include "map-tile/ctx/Context.hpp"
 #include "../../../src/FileProvider.hpp"
 #include "MapServer.hpp"
 
@@ -32,21 +32,23 @@ namespace mt::server {
             class MapKey,
             class ReduceKey,
             class Mapper,
+            class Tiler,
             class InputKey = std::string,
             template<typename = InputKey> class Provider = io::FileProvider
     >
     class MapTileServer
-            : public hpx::components::component_base<MapTileServer<MapKey, ReduceKey, Mapper, InputKey, Provider>> {
+            : public hpx::components::component_base<MapTileServer<MapKey, ReduceKey, Mapper, Tiler, InputKey, Provider>> {
     public:
-        explicit MapTileServer(const coordinates::LocaleLocator &locator, vector<string> files) : _files(std::move(files)), _locator(locator) {
+        explicit MapTileServer(const coordinates::LocaleLocator &locator, vector<string> files) : _files(
+                std::move(files)), _locator(locator), _tiler(Tiler{}), _ctx(make_shared<ctx::Context<MapKey>>(locator)) {
             // Not used
         }
 
         void tile() {
             // Instantiate the context
-            const auto ctx = make_shared<mt::Context<MapKey>>(_locator);
             // Load the CSV files
             // Let's do it all in memory for right now
+            const auto ctx = _ctx;
             for_each(_files.begin(), _files.end(), [&ctx](const string &filename) {
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
@@ -65,31 +67,34 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const coordinates::Coordinate2D &key, const MapKey &value) {
-            // Do things here
+            _tiler.receive(*_ctx, key, value);
         }
+
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
 
     private:
         const vector<string> _files;
         const coordinates::LocaleLocator _locator;
+        const shared_ptr<const ctx::Context<MapKey>> _ctx;
+        Tiler _tiler;
 
     };
 }
 
-#define REGISTER_MAPPER(map_key, reduce_key, mapper, input_key, provider)                        \
+#define REGISTER_MAPPER(map_key, reduce_key, mapper, tiler, input_key, provider)                        \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, reduce_key, mapper, input_key, provider>::tile_action;  \
+         ::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>::tile_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_tile_action_, mapper));                      \
         \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, reduce_key, mapper, input_key, provider>::receive_action;  \
+         ::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                      \
         \
-    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, reduce_key, mapper, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
+    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \
 
 #endif //MOBILITY_CPP_MAPTILESERVER_HPP

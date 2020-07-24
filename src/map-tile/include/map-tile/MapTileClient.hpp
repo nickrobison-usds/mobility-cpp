@@ -10,21 +10,22 @@
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
 
-namespace mt {
+namespace mt::client {
 
     template<
             class MapKey,
             class ReduceKey,
-            class Mapper
+            class Mapper,
+            class Tiler
     >
     class MapTileClient
             : public hpx::components::client_base<
-                    MapTileClient<MapKey, ReduceKey, Mapper>,
-                    ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper>> {
+                    MapTileClient<MapKey, ReduceKey, Mapper, Tiler>,
+                    mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>> {
 
-        typedef typename ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper> MTS;
+        typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler> MTS;
         typedef hpx::components::client_base<
-                MapTileClient<MapKey, ReduceKey, Mapper>,
+                MapTileClient<MapKey, ReduceKey, Mapper, Tiler>,
                 MTS> base_type;
 
     public:
@@ -34,18 +35,19 @@ namespace mt {
 
         explicit MapTileClient(hpx::id_type &&f) : base_type(std::move(f)) {};
 
-        explicit MapTileClient(const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(hpx::new_<MTS>(hpx::find_here(), locator, files)) {
+        explicit MapTileClient(const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(
+                hpx::new_<MTS>(hpx::find_here(), locator, files)) {
             // Not used
         }
 
         void tile() {
-            typedef typename ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper>::tile_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::tile_action action_type;
             return action_type()(this->get_id());
         }
 
-        void receive(const coordinates::Coordinate2D key, const MapKey value) {
-            typedef typename ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper>::receive_action action_type;
-            return action_type()(this->get_id(), key, value);
+        void receive(hpx::launch::apply_policy, const coordinates::Coordinate2D key, const MapKey value) {
+            typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::receive_action action_type;
+            return hpx::apply<action_type>(this->get_id(), key, value);
         }
     };
 }

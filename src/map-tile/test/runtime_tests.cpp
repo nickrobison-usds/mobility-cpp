@@ -9,13 +9,18 @@
 #include <hpx/hpx_main.hpp>
 #include <absl/strings/str_split.h>
 #include "catch2/catch.hpp"
-#include "map-tile/Context.hpp"
+#include "map-tile/ctx/Context.hpp"
 #include "map-tile/MapTileClient.hpp"
-#include "map-tile/server/LocaleLocator.hpp"
+#include "map-tile/coordinates/LocaleLocator.hpp"
+#include <atomic>
 
 int main(int argc, char* argv[]) {
     return Catch::Session().run(argc, argv);
 }
+
+// Some atomics
+std::atomic_int flights;
+
 
 struct FlightInfo {
     std::string airline;
@@ -39,7 +44,7 @@ struct FlightInfo {
 };
 
 struct FlightMapper {
-    void map(const mt::MapContext<FlightInfo> &ctx, const std::string &info) const {
+    void map(const mt::ctx::MapContext<FlightInfo> &ctx, const std::string &info) const {
         const std::vector<std::string> splits = absl::StrSplit(info, ',');
         splits.size();
         const FlightInfo f{
@@ -54,17 +59,35 @@ struct FlightMapper {
             0
         };
 
-//        ctx.emit(f);
+        ctx.emit(mt::coordinates::Coordinate2D(10, 10), f);
     }
 };
 
-REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, std::string, mt::io::FileProvider);
+struct FlightTile {
+
+    void receive(const mt::ctx::ReduceContext<FlightInfo> &ctx, const mt::coordinates::Coordinate2D &key, const FlightInfo &value) {
+        // Just increment a simple counter
+        flights++;
+    }
+
+};
+
+REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, FlightTile,std::string, mt::io::FileProvider);
 
 TEST_CASE("Compiles", "[map-tile]") {
-    const mt::coordinates::LocaleLocator l{};
+
+    using namespace mt::coordinates;
+
+    // Create a single tile of size 100
+    const auto c1 = Coordinate2D(0, 0);
+    const auto c2 = Coordinate2D(100, 100);
+    const auto here = hpx::find_here();
+    const mt::coordinates::LocaleLocator l({
+        {LocaleLocator::value{mt_tile(c1, c2), here}}
+    });
     std::vector<string> files{"data/routes.csv"};
-    mt::MapTileClient<FlightInfo, FlightInfo, FlightMapper> server(l, files);
+    mt::client::MapTileClient<FlightInfo, FlightInfo, FlightMapper, FlightTile> server(l, files);
     server.tile();
-    REQUIRE(1 == 1);
+    REQUIRE(flights == 100);
 }
 

@@ -6,6 +6,7 @@
 #define MOBILITY_CPP_LOCALELOCATOR_HPP
 
 #include "Coordinate2D.hpp"
+#include <hpx/include/naming.hpp>
 #include <boost/geometry/geometries/geometries.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/geometry/index/indexable.hpp>
@@ -23,12 +24,12 @@ namespace mt::coordinates {
     class LocaleLocator {
 
     public:
-        typedef std::pair<mt_tile, std::size_t> value;
+        typedef std::pair<mt_tile, hpx::naming::id_type> value;
 
         explicit LocaleLocator(const std::vector<value> &tiles);
         LocaleLocator() = default;
 
-        [[nodiscard]] std::size_t get_locale(const Coordinate2D &coords) const;
+        [[nodiscard]] hpx::naming::id_type get_locale(const Coordinate2D &coords) const;
 
     private:
         const bg::index::rtree<value, boost::geometry::index::linear<10>> _index;

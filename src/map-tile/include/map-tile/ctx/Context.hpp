@@ -5,10 +5,11 @@
 #ifndef MOBILITY_CPP_CONTEXT_HPP
 #define MOBILITY_CPP_CONTEXT_HPP
 
-#include "server/LocaleLocator.hpp"
+#include "../coordinates/LocaleLocator.hpp"
+//#include "../MapTileClient.hpp"
 #include <spdlog/spdlog.h>
 
-namespace mt {
+namespace mt::ctx {
 
     template<class Key, class Reducer = nullptr_t>
     class Context {
@@ -24,7 +25,8 @@ namespace mt {
             // Find the locale
             const auto loc = _loc.get_locale(coord);
 
-            // Send along the value
+//            const client::MapTileClient m(loc);
+//            m.receive(coord, key);
         }
 
     private:

@@ -5,7 +5,7 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 
 #include "catch2/catch.hpp"
-#include "map-tile/server/LocaleLocator.hpp"
+#include "map-tile/coordinates/LocaleLocator.hpp"
 
 using namespace std;
 using namespace mt::coordinates;

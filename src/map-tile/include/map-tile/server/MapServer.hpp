@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_MAPSERVER_HPP
 #define MOBILITY_CPP_MAPSERVER_HPP
 
-#include "../Context.hpp"
+#include "../ctx/Context.hpp"
 #include <hpx/include/actions.hpp>
 #include <hpx/include/components.hpp>
 
@@ -15,7 +15,7 @@ namespace mt::server {
     class MapServer : public hpx::components::component_base<MapServer<InputKey, MapKey, Mapper>> {
 
     public:
-        MapServer(MapContext <MapKey> ctx) : _ctx(ctx), _m(Mapper()) {
+        MapServer(ctx::MapContext <MapKey> ctx) : _ctx(ctx), _m(Mapper()) {
             // Not used
         };
 
@@ -26,7 +26,7 @@ namespace mt::server {
 
 
     private:
-        const MapContext <MapKey> _ctx;
+        const ctx::MapContext <MapKey> _ctx;
         const Mapper _m;
     };
 }
