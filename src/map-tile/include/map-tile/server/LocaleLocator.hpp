@@ -18,18 +18,27 @@ namespace bg = boost::geometry;
 
 namespace mt::coordinates {
 
+    typedef bg::model::box<Coordinate2D> mt_tile;
+
     class LocaleLocator {
 
     public:
-        typedef bg::model::box<Coordinate2D> mt_tile;
         typedef std::pair<mt_tile, std::size_t> value;
 
         explicit LocaleLocator(const std::vector<value> &tiles);
+        LocaleLocator() = default;
 
         [[nodiscard]] std::size_t get_locale(const Coordinate2D &coords) const;
 
     private:
         const bg::index::rtree<value, boost::geometry::index::linear<10>> _index;
+
+        // HPX required serialization
+        // TODO: This actually needs to be serializable
+        friend class hpx::serialization::access;
+        template<typename Archive>
+        void serialize(Archive &ar, const unsigned int version) {
+        }
 
     };
 }

@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_CONTEXT_HPP
 #define MOBILITY_CPP_CONTEXT_HPP
 
-#include <iostream>
+#include "server/LocaleLocator.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mt {
@@ -14,11 +14,21 @@ namespace mt {
     class Context {
 
     public:
-        template<typename = typename std::enable_if<!std::is_same_v<Reducer, nullptr_t>>>
-        void emit(const Key &key) const {
-            std::cout << "Emitting" << std::endl;
-            spdlog::debug("Emitting Key");
+
+        explicit Context(const coordinates::LocaleLocator &loc): _loc(loc) {
+
         }
+
+        void emit(const coordinates::Coordinate2D &coord, const Key &key) const {
+            spdlog::debug("Emitting Key");
+            // Find the locale
+            const auto loc = _loc.get_locale(coord);
+
+            // Send along the value
+        }
+
+    private:
+        const coordinates::LocaleLocator _loc;
 
     };
 

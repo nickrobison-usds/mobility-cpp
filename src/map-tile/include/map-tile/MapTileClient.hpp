@@ -34,13 +34,18 @@ namespace mt {
 
         explicit MapTileClient(hpx::id_type &&f) : base_type(std::move(f)) {};
 
-        explicit MapTileClient(std::vector<std::string> files) : base_type(hpx::new_<MTS>(hpx::find_here(), files)) {
+        explicit MapTileClient(const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(hpx::new_<MTS>(hpx::find_here(), locator, files)) {
             // Not used
         }
 
         void tile() {
             typedef typename ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper>::tile_action action_type;
             return action_type()(this->get_id());
+        }
+
+        void receive(const coordinates::Coordinate2D key, const MapKey value) {
+            typedef typename ::mt::server::MapTileServer<MapKey, ReduceKey, Mapper>::receive_action action_type;
+            return action_type()(this->get_id(), key, value);
         }
     };
 }

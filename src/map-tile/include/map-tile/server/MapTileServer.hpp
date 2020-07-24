@@ -20,6 +20,14 @@
 using namespace std;
 
 namespace mt::server {
+
+
+    void tile() {
+        const auto locales = hpx::find_all_localities();
+        // For each locality, create a tile
+    }
+
+
     template<
             class MapKey,
             class ReduceKey,
@@ -30,13 +38,13 @@ namespace mt::server {
     class MapTileServer
             : public hpx::components::component_base<MapTileServer<MapKey, ReduceKey, Mapper, InputKey, Provider>> {
     public:
-        explicit MapTileServer(vector<string> files) : _files(std::move(files)) {
+        explicit MapTileServer(const coordinates::LocaleLocator &locator, vector<string> files) : _files(std::move(files)), _locator(locator) {
             // Not used
         }
 
         void tile() {
             // Instantiate the context
-            const auto ctx = make_shared<mt::Context<MapKey>>();
+            const auto ctx = make_shared<mt::Context<MapKey>>(_locator);
             // Load the CSV files
             // Let's do it all in memory for right now
             for_each(_files.begin(), _files.end(), [&ctx](const string &filename) {
@@ -52,14 +60,18 @@ namespace mt::server {
                     mapper.map(*ctx, key);;
                 });
             });
-
-            // Now, tile
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
+        void receive(const coordinates::Coordinate2D &key, const MapKey &value) {
+            // Do things here
+        }
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
+
     private:
         const vector<string> _files;
+        const coordinates::LocaleLocator _locator;
 
     };
 }
@@ -70,6 +82,12 @@ namespace mt::server {
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_tile_action_, mapper));                      \
+        \
+    using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, reduce_key, mapper, input_key, provider>::receive_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                      \
         \
     typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, reduce_key, mapper, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \

@@ -27,6 +27,15 @@ struct FlightInfo {
     bool code_share;
     int stops;
     int equipment;
+
+    friend class hpx::serialization::access;
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & airline & airline_id
+        & src_airport & src_airport_id
+        & dest_airport & dest_airport_id
+        & code_share & stops & equipment;
+    }
 };
 
 struct FlightMapper {
@@ -45,16 +54,16 @@ struct FlightMapper {
             0
         };
 
-        ctx.emit(f);
+//        ctx.emit(f);
     }
 };
 
 REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, std::string, mt::io::FileProvider);
 
 TEST_CASE("Compiles", "[map-tile]") {
-    mt::coordinates::LocaleLocator({});
+    const mt::coordinates::LocaleLocator l{};
     std::vector<string> files{"data/routes.csv"};
-    mt::MapTileClient<FlightInfo, FlightInfo, FlightMapper> server(files);
+    mt::MapTileClient<FlightInfo, FlightInfo, FlightMapper> server(l, files);
     server.tile();
     REQUIRE(1 == 1);
 }
