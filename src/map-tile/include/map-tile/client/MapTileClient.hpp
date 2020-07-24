@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_MAPTILECLIENT_HPP
 #define MOBILITY_CPP_MAPTILECLIENT_HPP
 
-#include "server/MapTileServer.hpp"
+#include "map-tile/server/MapTileServer.hpp"
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
@@ -29,15 +29,13 @@ namespace mt::client {
                 MTS> base_type;
 
     public:
-
-
         explicit MapTileClient(hpx::future<hpx::id_type> &&f) : base_type(std::move(f)) {};
 
         explicit MapTileClient(hpx::id_type &&f) : base_type(std::move(f)) {};
 
         explicit MapTileClient(const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(
                 hpx::new_<MTS>(hpx::find_here(), locator, files)) {
-            // Not used
+            hpx::register_with_basename("mt/base/0", this->get_id(), 0);
         }
 
         void tile() {

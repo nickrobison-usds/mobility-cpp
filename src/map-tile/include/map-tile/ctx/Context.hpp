@@ -5,32 +5,28 @@
 #ifndef MOBILITY_CPP_CONTEXT_HPP
 #define MOBILITY_CPP_CONTEXT_HPP
 
-#include "../coordinates/LocaleLocator.hpp"
-//#include "../MapTileClient.hpp"
+#include "map-tile/coordinates/LocaleLocator.hpp"
 #include <spdlog/spdlog.h>
+#include <functional>
 
 namespace mt::ctx {
 
-    template<class Key, class Reducer = nullptr_t>
+    template<class Key,  class Reducer = nullptr_t>
     class Context {
 
     public:
-
-        explicit Context(const coordinates::LocaleLocator &loc): _loc(loc) {
+        typedef std::function<void(const coordinates::Coordinate2D&, const Key&)> emit_handler;
+        explicit Context(const emit_handler &handler): _handler(handler) {
 
         }
 
         void emit(const coordinates::Coordinate2D &coord, const Key &key) const {
             spdlog::debug("Emitting Key");
-            // Find the locale
-            const auto loc = _loc.get_locale(coord);
-
-//            const client::MapTileClient m(loc);
-//            m.receive(coord, key);
+            _handler(coord, key);
         }
 
     private:
-        const coordinates::LocaleLocator _loc;
+        const emit_handler _handler;
 
     };
 

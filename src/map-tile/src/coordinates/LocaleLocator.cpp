@@ -9,7 +9,7 @@ namespace mt::coordinates {
     LocaleLocator::LocaleLocator(const std::vector<value> &tiles) : _index(tiles.begin(), tiles.end()) {
     }
 
-    hpx::naming::id_type LocaleLocator::get_locale(const mt::coordinates::Coordinate2D &coords) const {
+    std::uint64_t LocaleLocator::get_locale(const mt::coordinates::Coordinate2D &coords) const {
         std::vector<value> values;
 
         // Use the index to filter down the list
@@ -18,6 +18,7 @@ namespace mt::coordinates {
         if (values.empty()) {
             throw std::invalid_argument("Out of bounds");
         }
+
         return values[0].second;
     }
 }

@@ -13,9 +13,11 @@
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
 
+#include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/ctx/Context.hpp"
 #include "../../../src/FileProvider.hpp"
-#include "MapServer.hpp"
+
+#include <functional>
 
 using namespace std;
 
@@ -40,7 +42,9 @@ namespace mt::server {
             : public hpx::components::component_base<MapTileServer<MapKey, ReduceKey, Mapper, Tiler, InputKey, Provider>> {
     public:
         explicit MapTileServer(const coordinates::LocaleLocator &locator, vector<string> files) : _files(
-                std::move(files)), _locator(locator), _tiler(Tiler{}), _ctx(make_shared<ctx::Context<MapKey>>(locator)) {
+                std::move(files)), _locator(locator), _tiler(Tiler{}), _ctx(std::bind(&MapTileServer::handle_emit, this,
+                                                                                      std::placeholders::_1,
+                                                                                      std::placeholders::_2)) {
             // Not used
         }
 
@@ -59,7 +63,7 @@ namespace mt::server {
 
                 //Map
                 for_each(keys.begin(), keys.end(), [&ctx, &mapper](const auto &key) {
-                    mapper.map(*ctx, key);;
+                    mapper.map(ctx, key);;
                 });
             });
         }
@@ -67,7 +71,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const coordinates::Coordinate2D &key, const MapKey &value) {
-            _tiler.receive(*_ctx, key, value);
+            _tiler.receive(_ctx, key, value);
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
@@ -75,9 +79,21 @@ namespace mt::server {
     private:
         const vector<string> _files;
         const coordinates::LocaleLocator _locator;
-        const shared_ptr<const ctx::Context<MapKey>> _ctx;
+        const ctx::Context<MapKey> _ctx;
         Tiler _tiler;
 
+        void handle_emit(const coordinates::Coordinate2D &key, const MapKey &value) const {
+            // We do this manually to avoid pull in the MapClient header
+            const auto locale_num = _locator.get_locale(key);
+            const auto id = hpx::find_from_basename("/mt/base/0", locale_num).get();
+
+            typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::receive_action action_type;
+            try {
+                hpx::async<action_type>(id, key, value).get();
+            } catch (const std::exception &e) {
+                e.what();
+            }
+        }
     };
 }
 
