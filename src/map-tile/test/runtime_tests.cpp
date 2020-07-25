@@ -8,10 +8,13 @@
 #include <hpx/config.hpp>
 #include <hpx/hpx_main.hpp>
 #include <absl/strings/str_split.h>
+#include <boost/bimap.hpp>
 #include "catch2/catch.hpp"
+#include <io/csv_reader.hpp>
 #include "map-tile/ctx/Context.hpp"
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/coordinates/LocaleLocator.hpp"
+#include <Eigen/Sparse>
 #include <atomic>
 
 int main(int argc, char *argv[]) {
@@ -20,6 +23,9 @@ int main(int argc, char *argv[]) {
 
 // Some atomics
 std::atomic_int flights(0);
+
+typedef boost::bimap<std::string, std::size_t> flight_bimap;
+typedef flight_bimap::value_type position;
 
 
 struct FlightInfo {
@@ -45,6 +51,22 @@ struct FlightInfo {
 };
 
 struct FlightMapper {
+
+    void setup() {
+        io::CSVLoader<2, true> loader("data/airports.csv");
+
+        int id;
+        std::string airport;
+
+        const auto v  = loader.read<position>([](const int &id, const std::string &apt) {
+            return position(apt, id);
+        }, id, airport);
+
+        std::for_each(v.begin(), v.end(), [this](const auto &pair) {
+            _airports.insert(pair);
+        });
+    }
+
     void map(const mt::ctx::MapContext<FlightInfo> &ctx, const std::string &info) const {
         const std::vector<std::string> splits = absl::StrSplit(info, ',');
         splits.size();
@@ -60,18 +82,43 @@ struct FlightMapper {
                 0
         };
 
-        ctx.emit(mt::coordinates::Coordinate2D(10, 10), f);
+        // Lookup the airport ID
+        const auto src_iter = _airports.left.find(f.src_airport);
+        if (src_iter == _airports.left.end()) {
+            throw new std::invalid_argument("Cannot find airport ID");
+        }
+        const auto dest_iter = _airports.left.find(f.dest_airport);
+        if (dest_iter == _airports.left.end()) {
+            throw new std::invalid_argument("Cannot find airport ID");
+        }
+
+        const mt::coordinates::Coordinate2D coord(src_iter->second, dest_iter->second);
+
+        ctx.emit(coord, f);
     }
+
+private:
+    flight_bimap _airports;
 };
 
 struct FlightTile {
 
+    FlightTile(): _flight_matrix(3425, 3425) {
+        // Not used
+    }
+
     void receive(const mt::ctx::ReduceContext<FlightInfo> &ctx, const mt::coordinates::Coordinate2D &key,
                  const FlightInfo &value) {
         // Just increment a simple counter
-        flights++;
+        _flight_matrix.coeffRef(key.get_dim0(), key.get_dim1()) += 1;
     }
 
+    void compute() {
+        flights += _flight_matrix.sum();
+    }
+
+private:
+    Eigen::SparseMatrix<unsigned int> _flight_matrix;
 };
 
 REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
@@ -80,7 +127,7 @@ TEST_CASE("Flight Mapper", "[integration]") {
     using namespace mt::coordinates;
     // Create a single tile of size 100
     const auto c1 = Coordinate2D(0, 0);
-    const auto c2 = Coordinate2D(100, 100);
+    const auto c2 = Coordinate2D(3425, 3425);
     const mt::coordinates::LocaleLocator l({
                                                    {LocaleLocator::value{mt_tile(c1, c2), 0}}
                                            });

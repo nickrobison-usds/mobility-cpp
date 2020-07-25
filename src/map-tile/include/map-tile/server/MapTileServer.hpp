@@ -59,6 +59,8 @@ namespace mt::server {
                 // Map each one
 
                 Mapper mapper;
+                // This should be a const expr check
+                mapper.setup();
                 // Setup
 
                 //Map
@@ -66,6 +68,8 @@ namespace mt::server {
                     mapper.map(ctx, key);;
                 });
             });
+
+            _tiler.compute();
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
