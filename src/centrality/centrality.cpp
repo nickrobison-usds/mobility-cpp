@@ -2,14 +2,19 @@
 // Created by Nicholas Robison on 7/27/20.
 //
 
-#include <shared/HostnameLogger.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
+#include <shared/HostnameLogger.hpp>
+#include <shared/DateUtils.hpp>
+#include <shared/DirectoryUtils.hpp>
 #include <yaml-cpp/yaml.h>
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
 
 #include "config.cpp"
+
+// The total number of Census Block Groups (CBGs) in the US
+const static std::size_t MAX_CBG = 220740;
 
 using namespace std;
 
@@ -24,8 +29,18 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     }
 
     const auto config_path = vm["config_file"].as<string>();
-
     const auto config = YAML::LoadFile(config_path).as<CentralityConfig>();
+
+    // Compute the Z-index, the number of days in the analysis
+    const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
+    // Build the dataset space
+    const std::array<std::size_t, 3> dimensions{7, MAX_CBG, MAX_CBG};
+
+    // Get the input files
+    const auto files = shared::DirectoryUtils::enumerate_files(shared::DirectoryUtils::build_path(config.data_dir, "safegraph/weekly-patterns/").string(), ".*patterns\\.csv");
+
+    // Tile the input space
+
 
     return hpx::finalize();
 }
@@ -36,9 +51,6 @@ int main(int argc, char **argv) {
 
     options_description desc_commandline;
     desc_commandline.add_options()
-            ("start_date", value<string>()->default_value("2020-03-01"), "First date to handle")
-            ("end_date", value<string>()->default_value(""), "Last date to handle")
-            ("data_dir", value<string>()->default_value("test-dir/"), "Root of data directory")
             ("cbg_shp", value<string>()->default_value("reference/census/block_groups.shp"), "CBG shapefile")
             ("poi_parquet", value<string>()->default_value("reference/Joined_POI.parquet"),
              "Parquet file with POI information")

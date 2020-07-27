@@ -9,6 +9,8 @@
 #include <string>
 
 namespace shared {
+    typedef std::chrono::duration<int, std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type> days;
+
     class DateUtils {
         /**
          * Parse Y-M-D date from string.
