@@ -89,12 +89,14 @@ namespace mt::server {
         void handle_emit(const coordinates::Coordinate2D &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
-            const auto id = hpx::find_from_basename("/mt/base/0", locale_num).get();
+            const auto id = hpx::find_from_basename("/mt/base", locale_num).get();
 
             typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::receive_action action_type;
             try {
+                std::cout << "Sending" << std::endl;
                 hpx::async<action_type>(id, key, value).get();
             } catch (const std::exception &e) {
+                std::cout << "Wrong" << std::endl;
                 e.what();
             }
         }

@@ -33,14 +33,14 @@ namespace mt::client {
 
         explicit MapTileClient(hpx::id_type &&f) : base_type(std::move(f)) {};
 
-        explicit MapTileClient(const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(
-                hpx::new_<MTS>(hpx::find_here(), locator, files)) {
-            hpx::register_with_basename("mt/base/0", this->get_id(), 0);
+        explicit MapTileClient(const hpx::id_type &id, const coordinates::LocaleLocator &locator, std::vector<std::string> files) : base_type(
+                hpx::new_<MTS>(id, locator, files)) {
+            hpx::register_with_basename("mt/base", this->get_id());
         }
 
-        void tile() {
+        hpx::future<void> tile() {
             typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::tile_action action_type;
-            return action_type()(this->get_id());
+            return hpx::async<action_type>(this->get_id());
         }
 
         void receive(hpx::launch::apply_policy, const coordinates::Coordinate2D key, const MapKey value) {
