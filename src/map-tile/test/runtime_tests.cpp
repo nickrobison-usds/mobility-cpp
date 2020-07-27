@@ -16,6 +16,7 @@
 #include "map-tile/coordinates/LocaleLocator.hpp"
 #include <Eigen/Sparse>
 #include <atomic>
+#include <map-tile/coordinates/LocaleTiler.hpp>
 
 int main(int argc, char *argv[]) {
     return Catch::Session().run(argc, argv);
@@ -125,16 +126,22 @@ REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, FlightTile, std::string, m
 
 TEST_CASE("Flight Mapper", "[integration]") {
     using namespace mt::coordinates;
-    // Create a single tile of size 100
+    const auto locales = hpx::get_num_localities().get();
     const auto c1 = Coordinate2D(0, 0);
     const auto c2 = Coordinate2D(3425, 3425);
-    const mt::coordinates::LocaleLocator l({
-                                                   {LocaleLocator::value{mt_tile(c1, c2), 0}}
-                                           });
+
+    // Divide up the stride based on the number of locales that we have
+    const std::size_t x_stride = floor(3425 / locales);
+
+    const auto tiles = LocaleTiler::tile(c1, c2, {
+        x_stride,
+        3425
+    });
+    const mt::coordinates::LocaleLocator l(tiles);
     std::vector<string> files{"data/routes.csv"};
 
     mt::client::MapTileClient<FlightInfo, FlightInfo, FlightMapper, FlightTile> server(l, files);
     server.tile();
-    REQUIRE(flights == 67663);
+    REQUIRE(flights == (67663 * locales));
 }
 
