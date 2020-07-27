@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
 }
 
 TEST_CASE("2D dataset set", "[hdf5-par]") {
+    std::cerr << "2D" << std::endl;
     const std::string filename = "./test-par-2d.h5";
     const std::string datasetname = "par-dset";
     const std::vector<SimpleInt> data{{1}, {2}, {3}, {4}, {5}, {6}};
@@ -95,6 +96,7 @@ TEST_CASE("2D dataset set", "[hdf5-par]") {
 }
 
 TEST_CASE("3D dataset set", "[hdf5-par]") {
+    std::cerr << "3D" << std::endl;
     const std::string filename = "./test-par.h5";
     const std::string datasetname = "par-dset";
     const std::vector<int> d1{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15};
@@ -130,6 +132,7 @@ TEST_CASE("3D dataset set", "[hdf5-par]") {
 }
 
 TEST_CASE("3D dataset set (Compressed)", "[hdf5-par]") {
+    std::cout << "Compressed" << std::endl;
     const std::string filename = "./test-par-compressed.h5";
     const std::string datasetname = "par-dset";
     const std::vector<int> d1{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15};

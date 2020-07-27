@@ -10,10 +10,12 @@ if (NOT HDF5_IS_PARALLEL)
 endif ()
 
 add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/simple_hdf5.hpp include/io/hdf5.hpp include/io/helpers.hpp)
-target_link_libraries(io PUBLIC arrow parquet gdal hdf5_hl-static hdf5-static MPI::MPI_CXX PRIVATE spdlog)
+target_link_libraries(io PUBLIC arrow parquet gdal hdf5_hl-static hdf5-static MPI::MPI_CXX blosc_filter_shared PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>)
+        $<INSTALL_INTERFACE:include>
+        ${CMAKE_SOURCE_DIR}/extern/hdf5-blosc/src
+        ${CMAKE_BINARY_DIR}/extern/hdf5-blosc/blosc/include)
 
 add_executable(testio test/shapefile_test.cpp test/csv_test.cpp test/hdf_test.cpp)
 target_link_libraries(testio Catch2::Catch2 io Boost::filesystem)

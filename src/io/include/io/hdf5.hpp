@@ -7,24 +7,31 @@
 
 #include <mpi.h>
 #include <hdf5.h>
+#include <spdlog/spdlog.h>
 #include "string"
 #include <iostream>
 #include <vector>
+#include <mutex>
 #include <numeric>
 #include <algorithm>
-#include <spdlog/spdlog.h>
+#include <array>
+#include "blosc_filter.h"
+
+std::once_flag f1;
 
 namespace io {
 
-    template<class DataType, int Dimensions, const std::array<hsize_t, Dimensions>* Chunks = nullptr>
+    template<class DataType, int Dimensions, const std::array<hsize_t, Dimensions> *Chunks = nullptr>
     class HDF5 {
     public:
         HDF5(const std::string &filename, const std::string &dsetname, std::array<hsize_t, Dimensions> &dims)
                 : _dimensions(dims), _mpi_enabled(is_mpi_enabled()) {
+            std::cout << "debugging" << std::endl;
 
             // Initialize MPI, if it's available
             const hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
             if (_mpi_enabled) {
+                int mpi_size, mpi_rank;
                 // Initialize the MPI values
                 MPI_Comm comm = MPI_COMM_WORLD;
                 MPI_Info info = MPI_INFO_NULL;
@@ -39,7 +46,9 @@ namespace io {
             }
 
             // Create the file
+            std::cout << "Creating file" << std::endl;
             _file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+            std::cout << "closing plist" << std::endl;
             H5Pclose(plist_id);
             spdlog::debug("File created");
 
@@ -53,7 +62,7 @@ namespace io {
             _data_type = H5Tcreate(H5T_COMPOUND, type_sz);
 
             herr_t status;
-            for (std::size_t i = 0 ; i < columns; i ++) {
+            for (std::size_t i = 0; i < columns; i++) {
                 status = H5Tinsert(_data_type, vals[i], offsets[i], types[i]);
                 if (status) {
                     std::cout << status << std::endl;
@@ -64,8 +73,20 @@ namespace io {
             // Set chunking and compression, if desired
             const auto dset_plist = H5Pcreate(H5P_DATASET_CREATE);
             if (Chunks != nullptr) {
-            H5Pset_chunk(dset_plist, Dimensions, Chunks->data());
-            H5Pset_deflate(dset_plist, 6);
+                // Register blosc
+                std::call_once(f1, []() {
+                    spdlog::debug("Registering blosc plugin");
+                    char *version, *date;
+                    const int registered = register_blosc(&version, &date);
+                });
+                std::array<unsigned int, 7> blosc_options{};
+                const auto avail = H5Zfilter_avail(FILTER_BLOSC);
+                blosc_options[4] = 4;
+                blosc_options[5] = 1;
+                blosc_options[6] = BLOSC_BLOSCLZ;
+                H5Pset_chunk(dset_plist, Dimensions, Chunks->data());
+                H5Pset_filter(dset_plist, FILTER_BLOSC, H5Z_FLAG_MANDATORY, 7, blosc_options.data());
+                H5Pset_deflate(dset_plist, 6);
             }
 
             const auto filespace = H5Screate_simple(Dimensions, _dimensions.data(), nullptr);
@@ -76,9 +97,12 @@ namespace io {
             H5Sclose(filespace);
             H5Pclose(dset_plist);
             spdlog::debug("Dataset created");
+            std::cout << "Done with init" << std::endl;
         }
 
-        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset, const std::vector<DataType> &data) {
+        void write(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> &offset,
+                   const std::vector<DataType> &data) {
+            std::cout << "start write" << std::endl;
 
             const auto memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
             const auto filespace = H5Dget_space(_dset_id);
@@ -89,6 +113,7 @@ namespace io {
                 H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
             }
 
+            std::cout << "Do actual write" << std::endl;
             const herr_t status = H5Dwrite(_dset_id, _data_type, memspace, filespace, plist_id, data.data());
             H5Pclose(plist_id);
             // TODO: This needs to be closed correctly.
@@ -98,22 +123,25 @@ namespace io {
             if (status) {
                 std::cout << status << std::endl;
             }
+            std::cout << "Done write" << std::endl;
         }
 
-        std::vector<DataType> read(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset) const {
+        std::vector<DataType>
+        read(const std::array<hsize_t, Dimensions> &count, const std::array<hsize_t, Dimensions> offset) const {
+            std::cout << "start read" << std::endl;
 
             // Create a memory space to read into
             const auto memspace = H5Screate_simple(Dimensions, count.data(), nullptr);
 
             const auto dataspace = H5Dget_space(_dset_id);
             auto status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset.data(), nullptr, count.data(),
-                                                      nullptr);
+                                              nullptr);
             if (status) {
                 std::cout << status << std::endl;
             }
 
             // Compute return size;
-            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1,std::multiplies<>());
+            const std::size_t rs = std::accumulate(count.begin(), count.end(), 1, std::multiplies<>());
             std::vector<DataType> results(rs);
 
             const auto plist_id = H5Pcreate(H5P_DATASET_XFER);
@@ -130,6 +158,7 @@ namespace io {
             H5Sclose(memspace);
             H5Sclose(dataspace);
 
+            std::cout << "Done read" << std::endl;
             return results;
         }
 
@@ -138,23 +167,21 @@ namespace io {
         }
 
         ~HDF5() {
-            std::cerr << "Doing the close" << std::endl;
+            std::cout << "Doing the close" << std::endl;
             H5Tclose(_data_type);
             H5Dclose(_dset_id);
             H5Fclose(_file_id);
-            std::cerr << "Close done" << std::endl;
+            std::cout << "Close done" << std::endl;
         }
 
     private:
         bool _mpi_enabled;
-        int mpi_size;
-        int mpi_rank;
         hid_t _file_id;
         hid_t _dset_id;
         hid_t _data_type;
         const std::array<hsize_t, Dimensions> _dimensions;
 
-        static bool is_mpi_enabled() {
+        bool is_mpi_enabled() {
             int mpi_init;
             MPI_Initialized(&mpi_init);
             return mpi_init;

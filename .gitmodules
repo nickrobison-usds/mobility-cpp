@@ -22,3 +22,6 @@
 [submodule "extern/hdf5"]
 	path = extern/hdf5
 	url = ../../HDFGroup/hdf5.git
+[submodule "extern/hdf5-blosc"]
+	path = extern/hdf5-blosc
+	url = ../../Blosc/hdf5-blosc
