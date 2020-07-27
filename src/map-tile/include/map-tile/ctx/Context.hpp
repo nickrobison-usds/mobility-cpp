@@ -11,16 +11,16 @@
 
 namespace mt::ctx {
 
-    template<class Key,  class Reducer = nullptr_t>
+    template<class Key, class Coordinate, class Reducer = nullptr_t>
     class Context {
 
     public:
-        typedef std::function<void(const coordinates::Coordinate2D&, const Key&)> emit_handler;
+        typedef std::function<void(const Coordinate&, const Key&)> emit_handler;
         explicit Context(const emit_handler &handler): _handler(handler) {
 
         }
 
-        void emit(const coordinates::Coordinate2D &coord, const Key &key) const {
+        void emit(const Coordinate &coord, const Key &key) const {
             spdlog::debug("Emitting Key");
             _handler(coord, key);
         }
@@ -30,10 +30,10 @@ namespace mt::ctx {
 
     };
 
-    template<class Key>
-    using MapContext = Context<Key>;
-    template<class Key>
-    using ReduceContext = Context<Key>;
+    template<class Key, class Coordinate>
+    using MapContext = Context<Key, Coordinate>;
+    template<class Key, class Coordinate>
+    using ReduceContext = Context<Key, Coordinate>;
 }
 
 #endif //MOBILITY_CPP_CONTEXT_HPP

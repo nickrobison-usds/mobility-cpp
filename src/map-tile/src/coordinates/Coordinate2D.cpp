@@ -9,7 +9,7 @@ namespace mt::coordinates {
     Coordinate2D::Coordinate2D(const std::size_t &dim0, const std::size_t &dim1) : _dim0(dim0), _dim1(dim1) {
     }
 
-    std::array<std::size_t, dimensions> Coordinate2D::getDimensions() const {
+    std::array<std::size_t, Coordinate2D::dimensions> Coordinate2D::getDimensions() const {
         return {
                 _dim0,
                 _dim1

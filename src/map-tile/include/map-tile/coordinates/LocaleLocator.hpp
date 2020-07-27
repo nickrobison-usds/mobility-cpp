@@ -5,7 +5,6 @@
 #ifndef MOBILITY_CPP_LOCALELOCATOR_HPP
 #define MOBILITY_CPP_LOCALELOCATOR_HPP
 
-#include "Coordinate2D.hpp"
 #include <hpx/include/naming.hpp>
 #include <hpx/serialization/vector.hpp>
 #include <hpx/serialization/std_tuple.hpp>
@@ -22,18 +21,31 @@ namespace bg = boost::geometry;
 
 namespace mt::coordinates {
 
-    typedef bg::model::box<Coordinate2D> mt_tile;
-
+    template<typename Coordinate>
     class LocaleLocator {
 
     public:
+        typedef bg::model::box<Coordinate> mt_tile;
         typedef std::pair<mt_tile, std::uint64_t> value;
 
-        explicit LocaleLocator(const std::vector<value> &tiles);
+        explicit LocaleLocator(const std::vector<value> &tiles) : _index(tiles.begin(), tiles.end()) {
+            // Not used
+        };
 
-        LocaleLocator() = default;
+        LocaleLocator<Coordinate>() = default;
 
-        [[nodiscard]] std::uint64_t get_locale(const Coordinate2D &coords) const;
+        [[nodiscard]] std::uint64_t get_locale(const Coordinate &coords) const {
+            std::vector<value> values;
+
+            // Use the index to filter down the list
+            _index.query(bg::index::covers(coords), std::back_inserter(values));
+
+            if (values.empty()) {
+                throw std::invalid_argument("Out of bounds");
+            }
+
+            return values[0].second;
+        }
 
         // HPX required serialization
         friend class hpx::serialization::access;

@@ -10,9 +10,11 @@
 #include "LocaleLocator.hpp"
 
 namespace mt::coordinates {
+
     class LocaleTiler {
     public:
-        static std::vector<LocaleLocator::value> tile(const Coordinate2D &min, const Coordinate2D &max, const std::array<std::size_t, 2> &stride);
+        template<class Coordinate>
+        static std::vector<std::pair<bg::model::box<Coordinate>, std::uint64_t>> tile(const Coordinate &min, const Coordinate &max, const std::array<std::size_t, 2> &stride);
     };
 }
 

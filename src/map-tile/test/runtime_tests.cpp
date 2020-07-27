@@ -14,6 +14,7 @@
 #include "map-tile/ctx/Context.hpp"
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/coordinates/LocaleLocator.hpp"
+#include "map-tile/coordinates/Coordinate2D.hpp"
 #include <Eigen/Sparse>
 #include <atomic>
 #include <iostream>
@@ -69,7 +70,7 @@ struct FlightMapper {
         });
     }
 
-    void map(const mt::ctx::MapContext<FlightInfo> &ctx, const std::string &info) const {
+    void map(const mt::ctx::MapContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const std::string &info) const {
         const std::vector<std::string> splits = absl::StrSplit(info, ',');
         splits.size();
         const FlightInfo f{
@@ -109,7 +110,7 @@ struct FlightTile {
         // Not used
     }
 
-    void receive(const mt::ctx::ReduceContext<FlightInfo> &ctx, const mt::coordinates::Coordinate2D &key,
+    void receive(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const mt::coordinates::Coordinate2D &key,
                  const FlightInfo &value) {
         // Just increment a simple counter
         std::cout << "Receiving" << std::endl;
@@ -124,7 +125,7 @@ private:
     Eigen::SparseMatrix<unsigned int> _flight_matrix;
 };
 
-REGISTER_MAPPER(FlightInfo, FlightInfo, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
+REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
 
 TEST_CASE("Flight Mapper", "[integration]") {
     using namespace mt::coordinates;
@@ -140,13 +141,13 @@ TEST_CASE("Flight Mapper", "[integration]") {
         x_stride,
         3425
     });
-    const mt::coordinates::LocaleLocator l(tiles);
+    const mt::coordinates::LocaleLocator<Coordinate2D> l(tiles);
     std::vector<string> files{"data/routes.csv"};
 
     // Run a client on each locale
     std::vector<hpx::future<void>> results;
     for (const auto &loc : hpx::find_all_localities()) {
-        mt::client::MapTileClient<FlightInfo, FlightInfo, FlightMapper, FlightTile> server(loc, l, files);
+        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile> server(loc, l, files);
         results.push_back(std::move(server.tile()));
     }
     hpx::wait_all(results);

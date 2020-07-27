@@ -32,16 +32,16 @@ namespace mt::server {
 
     template<
             class MapKey,
-            class ReduceKey,
+            class Coordinate,
             class Mapper,
             class Tiler,
             class InputKey = std::string,
             template<typename = InputKey> class Provider = io::FileProvider
     >
     class MapTileServer
-            : public hpx::components::component_base<MapTileServer<MapKey, ReduceKey, Mapper, Tiler, InputKey, Provider>> {
+            : public hpx::components::component_base<MapTileServer<MapKey, Coordinate, Mapper, Tiler, InputKey, Provider>> {
     public:
-        explicit MapTileServer(const coordinates::LocaleLocator &locator, vector<string> files) : _files(
+        explicit MapTileServer(const coordinates::LocaleLocator<Coordinate> &locator, vector<string> files) : _files(
                 std::move(files)), _locator(locator), _tiler(Tiler{}), _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                                       std::placeholders::_1,
                                                                                       std::placeholders::_2)) {
@@ -74,7 +74,7 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
-        void receive(const coordinates::Coordinate2D &key, const MapKey &value) {
+        void receive(const Coordinate &key, const MapKey &value) {
             _tiler.receive(_ctx, key, value);
         }
 
@@ -82,16 +82,16 @@ namespace mt::server {
 
     private:
         const vector<string> _files;
-        const coordinates::LocaleLocator _locator;
-        const ctx::Context<MapKey> _ctx;
+        const coordinates::LocaleLocator<Coordinate> _locator;
+        const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
 
-        void handle_emit(const coordinates::Coordinate2D &key, const MapKey &value) const {
+        void handle_emit(const Coordinate &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
             const auto id = hpx::find_from_basename("/mt/base", locale_num).get();
 
-            typedef typename mt::server::MapTileServer<MapKey, ReduceKey, Mapper, Tiler>::receive_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             try {
                 std::cout << "Sending" << std::endl;
                 hpx::async<action_type>(id, key, value).get();
@@ -103,20 +103,20 @@ namespace mt::server {
     };
 }
 
-#define REGISTER_MAPPER(map_key, reduce_key, mapper, tiler, input_key, provider)                        \
+#define REGISTER_MAPPER(map_key, coordinate, mapper, tiler, input_key, provider)                        \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>::tile_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::tile_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_tile_action_, mapper));                      \
         \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>::receive_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                      \
         \
-    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, reduce_key, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
+    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \
 
 #endif //MOBILITY_CPP_MAPTILESERVER_HPP

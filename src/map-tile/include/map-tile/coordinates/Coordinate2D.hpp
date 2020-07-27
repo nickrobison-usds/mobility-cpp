@@ -10,15 +10,13 @@
 #include <boost/geometry.hpp>
 #include <array>
 
-static constexpr int dimensions = 2;
-
 namespace bg = boost::geometry;
 
 namespace mt::coordinates {
-    class Coordinate2D : public bg::model::point<std::size_t, dimensions, bg::cartesian_tag> {
+    class Coordinate2D : public bg::model::point<std::size_t, 2, bg::cartesian_tag> {
 
     public:
-
+        static constexpr int dimensions = 2;
         Coordinate2D() = default;
 
         Coordinate2D(const std::size_t &dim0, const std::size_t &dim1);
