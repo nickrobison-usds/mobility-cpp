@@ -14,7 +14,7 @@ namespace mt::coordinates {
     class LocaleTiler {
     public:
         template<class Coordinate>
-        static std::vector<std::pair<bg::model::box<Coordinate>, std::uint64_t>> tile(const Coordinate &min, const Coordinate &max, const std::array<std::size_t, 2> &stride);
+        static std::vector<std::pair<bg::model::box<Coordinate>, std::uint64_t>> tile(const Coordinate &min, const Coordinate &max, const std::array<std::size_t, Coordinate::dimensions> &stride);
     };
 }
 

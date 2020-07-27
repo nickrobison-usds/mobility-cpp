@@ -16,9 +16,9 @@ TEST_CASE("Simple Locator Test", "[locator]") {
 
     // Let's create two tiles that cover a 5x5 grid
     const auto c1 = Coordinate2D(0, 0);
-    const auto c2 = Coordinate2D(2, 5);
+    const auto c2 = Coordinate2D(3, 5);
 
-    const auto d1 = Coordinate2D(0, 3);
+    const auto d1 = Coordinate2D(3, 0);
     const auto d2 = Coordinate2D(5, 5);
 
     const auto l = LocaleLocator<Coordinate2D>({
