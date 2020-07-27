@@ -5,6 +5,7 @@
 #include <components/constants.hpp>
 #include <components/TileClient.hpp>
 #include <shared/HostnameLogger.hpp>
+#include <shared/DateUtils.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include "spdlog/spdlog.h"
@@ -12,21 +13,11 @@
 #include "utils.hpp"
 #include <chrono>
 #include <string>
-#include <iomanip>
 #include <hpx/runtime/find_localities.hpp>
 
 using namespace std;
 
 typedef chrono::duration<int, ratio_multiply<chrono::hours::period, ratio<24>>::type> days;
-
-chrono::system_clock::time_point parse_date(const string &date) {
-    tm tm = {};
-    stringstream ss{date};
-    ss >> get_time(&tm, "%Y-%m-%d");
-    chrono::system_clock::time_point tp = chrono::system_clock::from_time_t(mktime(&tm));
-
-    return tp;
-}
 
 fs::path build_path(const fs::path &root_path, const string &path_string) {
     fs::path appender(path_string);
@@ -69,7 +60,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     const string date_string = vm["start_date"].as<string>();
     // TODO: Would be nice to combine this with the previous call.
-    const auto start_date = parse_date(date_string);
+    const auto start_date = shared::DateUtils::parse_date(date_string);
 
     // Set the end date, if one is provided
     const string end_date_string = vm["end_date"].as<string>();
@@ -77,7 +68,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     if (end_date_string.empty()) {
         end_date = chrono::system_clock::now();
     } else {
-        end_date = parse_date(end_date_string);
+        end_date = shared::DateUtils::parse_date(end_date_string);
     }
     // Max size of Z axis
     const auto time_bounds = chrono::duration_cast<days>(end_date - start_date).count();
