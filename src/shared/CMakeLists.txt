@@ -1,4 +1,4 @@
-add_library(shared src/HostnameLogger.cpp include/shared/HostnameLogger.hpp src/DateUtils.cpp include/shared/DateUtils.hpp)
+add_library(shared src/HostnameLogger.cpp include/shared/HostnameLogger.hpp src/DateUtils.cpp include/shared/DateUtils.hpp src/DirectoryUtils.cpp include/shared/DirectoryUtils.hpp)
 
 target_link_libraries(shared PUBLIC spdlog date PRIVATE Boost::system)
 target_include_directories(shared PUBLIC
