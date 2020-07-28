@@ -44,7 +44,17 @@ namespace mt::coordinates {
                 throw std::invalid_argument("Out of bounds");
             }
 
-            return values[0].second;
+            const auto iter = std::find_if(values.begin(), values.end(), [&coords](const auto &box) {
+                // TODO: This should be SIMDified.
+               const auto within = coords.within(box.first);
+               return within;
+            });
+
+            if (iter == std::end(values)) {
+                throw std::invalid_argument("Out of bounds");
+            }
+
+            return iter->second;
         }
 
         // HPX required serialization

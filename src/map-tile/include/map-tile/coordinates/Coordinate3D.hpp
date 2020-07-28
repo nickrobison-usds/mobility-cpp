@@ -37,6 +37,14 @@ namespace mt::coordinates {
 
         bool operator==(const Coordinate3D &rhs) const;
 
+        bool operator<(const Coordinate3D &rhs) const;
+
+        bool operator>=(const Coordinate3D &rhs) const;
+
+        bool within(const bg::model::box<Coordinate3D> &rhs) const;
+
+        friend std::ostream& operator<<(std::ostream &os, const Coordinate3D &coord);
+
         // HPX required serialization
         friend class hpx::serialization::access;
 

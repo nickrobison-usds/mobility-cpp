@@ -3,6 +3,7 @@
 //
 
 #include "map-tile/coordinates/Coordinate3D.hpp"
+#include <spdlog/fmt/fmt.h>
 
 namespace mt::coordinates {
     Coordinate3D::Coordinate3D(const std::size_t &dim0, const std::size_t &dim1, const std::size_t &dim2): _dim0(dim0), _dim1(dim1), _dim2(dim2) {}
@@ -41,6 +42,22 @@ namespace mt::coordinates {
 
     bool Coordinate3D::operator==(const Coordinate3D &rhs) const {
         return _dim0 == rhs.get_dim0() && _dim1 == rhs.get_dim1() && _dim2 == rhs.get_dim2();
+    }
+
+    bool Coordinate3D::operator>=(const Coordinate3D &rhs) const {
+        return _dim0 >= rhs._dim0 && _dim1 >= rhs._dim1 && _dim2 >= rhs._dim2;
+    }
+
+    bool Coordinate3D::operator<(const Coordinate3D &rhs) const {
+        return _dim0 < rhs._dim0 && _dim1 < rhs._dim1 && _dim2 < rhs._dim2;
+    }
+
+    bool Coordinate3D::within(const bg::model::box<Coordinate3D> &rhs) const {
+        return *this >= rhs.min_corner() && *this < rhs.max_corner();
+    }
+
+    std::ostream &operator<<(std::ostream &os, const Coordinate3D &coord) {
+        return os << fmt::format("{dim0: {}, dim1:{}, dim2: {}}", coord.get_dim0(), coord.get_dim1(), coord.get_dim2());
     }
 
 
