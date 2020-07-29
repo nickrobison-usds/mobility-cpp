@@ -5,16 +5,17 @@
 #ifndef MOBILITY_CPP_MAPTILESERVER_HPP
 #define MOBILITY_CPP_MAPTILESERVER_HPP
 
+#include "map-tile/client/MapTileClient.hpp"
+#include "map-tile/ctx/Context.hpp"
+#include "map-tile/io/FileProvider.hpp"
+#include "traits.hpp"
+
 #include <algorithm>
 #include <utility>
 #include <vector>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
-
-#include "map-tile/client/MapTileClient.hpp"
-#include "map-tile/ctx/Context.hpp"
-#include "map-tile/io/FileProvider.hpp"
 
 #include <functional>
 
@@ -58,8 +59,11 @@ namespace mt::server {
                 // Map each one
 
                 Mapper mapper;
-                // This should be a const expr check
-                mapper.setup();
+                // Call the setup method, if one exists
+                if constexpr(has_setup<Mapper>::value) {
+                    mapper.setup();
+                }
+
                 // Setup
 
                 //Map
