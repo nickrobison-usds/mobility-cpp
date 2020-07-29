@@ -9,7 +9,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <ogrsf_frmts.h>
 #include <ogr_geometry.h>
-#include "components/serializers.hpp"
+#include "shared/serializers.hpp"
 #include <hpx/include/components.hpp>
 
 namespace components::server {

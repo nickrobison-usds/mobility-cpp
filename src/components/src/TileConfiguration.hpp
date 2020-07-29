@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_TILECONFIGURATION_HPP
 #define MOBILITY_CPP_TILECONFIGURATION_HPP
 
-#include "components/serializers.hpp"
+#include "shared/serializers.hpp"
 
 #include <cstddef>
 

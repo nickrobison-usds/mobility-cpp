@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_WEEKSPLITTER_HPP
 
 #include "io/parquet.hpp"
-#include "data.hpp"
+#include "shared/data.hpp"
 #include "../../src/server/WeekSplitterServer.hpp"
 
 #include <hpx/hpx.hpp>

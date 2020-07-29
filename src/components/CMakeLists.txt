@@ -9,8 +9,7 @@ add_library(mcpp-components
         src/WeekSplitter.cpp
 #        src/vector_scaler.hpp
         include/components/constants.hpp
-        include/components/WeekSplitter.hpp include/components/data.hpp
-        include/components/serializers.hpp include/components/serializers.cpp
+        include/components/WeekSplitter.hpp
         src/server/JoinedLocationServer.cpp src/server/JoinedLocationServer.hpp
         src/JoinedLocation.cpp include/components/JoinedLocation.hpp
         src/server/WeekSplitterServer.cpp src/server/WeekSplitterServer.hpp

@@ -8,7 +8,7 @@
 #include <components/constants.hpp>
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
-#include <components/data.hpp>
+#include <shared/data.hpp>
 #include "OffsetCalculator.hpp"
 #include "TemporalMatricies.hpp"
 #include "TileConfiguration.hpp"

@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_JOINEDLOCATIONSERVER_HPP
 
 #include <string>
-#include "components/data.hpp"
+#include "shared/data.hpp"
 #include <io/Shapefile.hpp>
 #include <absl/container/flat_hash_map.h>
 #include <hpx/include/actions.hpp>
