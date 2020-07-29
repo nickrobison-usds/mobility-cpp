@@ -8,14 +8,13 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
-#include <io/csv_reader.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
 
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/ctx/Context.hpp"
-#include "../../../src/FileProvider.hpp"
+#include "map-tile/io/FileProvider.hpp"
 
 #include <functional>
 

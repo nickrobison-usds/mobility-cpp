@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 7/20/20.
 //
 
-#include "FileProvider.hpp"
+#include "map-tile/io/FileProvider.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/iostreams/stream.hpp>
