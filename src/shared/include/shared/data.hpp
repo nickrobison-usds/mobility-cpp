@@ -24,6 +24,13 @@ struct data_row {
     vector<uint32_t> visits;
     double distance;
 
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & location_cbg & visit_cbg & date & visits & distance;
+    }
+
     template<typename OStream>
     friend OStream &
     operator<<(OStream &o, const data_row &dr) {

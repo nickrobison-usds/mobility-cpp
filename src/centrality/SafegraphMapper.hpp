@@ -5,6 +5,9 @@
 #ifndef MOBILITY_CPP_SAFEGRAPHMAPPER_HPP
 #define MOBILITY_CPP_SAFEGRAPHMAPPER_HPP
 
+#include <components/JoinedLocation.hpp>
+#include <components/RowProcessor.hpp>
+#include <components/ShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <shared/data.hpp>
@@ -14,7 +17,13 @@
 class SafegraphMapper {
 
 public:
+    void setup();
     void map(const mt::ctx::MapContext<data_row, mt::coordinates::Coordinate3D> &ctx, const std::string &info) const;
+
+private:
+    std::unique_ptr<components::RowProcessor> _processor;
+    std::unique_ptr<components::JoinedLocation> _l;
+    std::unique_ptr<components::ShapefileWrapper> _s;
 };
 
 

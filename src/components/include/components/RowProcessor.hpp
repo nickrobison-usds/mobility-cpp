@@ -5,13 +5,13 @@
 #ifndef MOBILITY_CPP_ROWPROCESSOR_HPP
 #define MOBILITY_CPP_ROWPROCESSOR_HPP
 
-#include <components/constants.hpp>
+#include <shared/constants.hpp>
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
 #include <shared/data.hpp>
-#include "OffsetCalculator.hpp"
-#include "TemporalMatricies.hpp"
-#include "TileConfiguration.hpp"
+#include "../../src/OffsetCalculator.hpp"
+#include "../../src/TemporalMatricies.hpp"
+#include "shared/TileConfiguration.hpp"
 
 #include <hpx/lcos/future.hpp>
 #include <utility>

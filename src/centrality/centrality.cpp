@@ -2,6 +2,8 @@
 // Created by Nicholas Robison on 7/27/20.
 //
 
+
+#include "config.cpp"
 #include "SafegraphMapper.hpp"
 #include "SafegraphTiler.hpp"
 #include <hpx/program_options.hpp>
@@ -15,11 +17,9 @@
 #include <shared/DateUtils.hpp>
 #include <shared/DirectoryUtils.hpp>
 #include <shared/data.hpp>
-#include <yaml-cpp/yaml.h>
+
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
-
-#include "config.cpp"
 
 // The total number of Census Block Groups (CBGs) in the US
 const static std::size_t MAX_CBG = 220740;
@@ -39,7 +39,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         spdlog::set_level(spdlog::level::debug);
     }
 
-    const auto config_path = vm["config_file"].as<string>();
+    const auto config_path = vm["config"].as<string>();
     const auto config = YAML::LoadFile(config_path).as<CentralityConfig>();
 
     // Compute the Z-index, the number of days in the analysis
@@ -48,14 +48,27 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const std::array<std::size_t, 3> stride{7, MAX_CBG, MAX_CBG};
 
     // Get the input files
-    const auto files = shared::DirectoryUtils::enumerate_files(shared::DirectoryUtils::build_path(config.data_dir, "safegraph/weekly-patterns/").string(), ".*patterns\\.csv");
+    const auto files = shared::DirectoryUtils::enumerate_files(
+            shared::DirectoryUtils::build_path(config.data_dir, "safegraph/weekly-patterns/").string(),
+            ".*patterns\\.csv");
+
+    vector<string> file_strs;
+    transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
+        return f.path().string();
+    });
 
     // Tile the input space
+    const auto locales = hpx::find_all_localities();
     using namespace mt::coordinates;
-    const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0), Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
+    const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
+                                                       Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
+    const LocaleLocator<Coordinate3D> locator(tiles);
 
-
-
+    vector<hpx::future<void>> results;
+    std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs](const auto &loc) {
+        mt::client::MapTileClient<data_row, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, file_strs);
+        results.push_back(std::move(server.tile()));
+    });
 
     return hpx::finalize();
 }
@@ -77,7 +90,7 @@ int main(int argc, char **argv) {
             ("np", value<uint16_t>()->default_value(1),
              "Number of partitions for each file (CBGs to process)")
             ("silent", "disable debug logging")
-            ("config_file", value<string>()->default_value("./config.yml"), "Config file location");
+            ("config", value<string>()->default_value("./config.yml"), "Config file location");
 
     return hpx::init(desc_commandline, argc, argv);
 }

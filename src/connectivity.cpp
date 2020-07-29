@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/1/20.
 //
 
-#include <components/constants.hpp>
+#include <shared/constants.hpp>
 #include <components/TileClient.hpp>
 #include <shared/HostnameLogger.hpp>
 #include <shared/DateUtils.hpp>

@@ -4,7 +4,7 @@
 
 #include "ShapefileServer.hpp"
 #include <shared/debug.hpp>
-#include "components/constants.hpp"
+#include "shared/constants.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>

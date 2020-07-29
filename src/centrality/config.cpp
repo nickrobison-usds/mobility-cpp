@@ -2,8 +2,9 @@
 // Created by Nicholas Robison on 7/27/20.
 //
 
-#include <string>
+#include <yaml-cpp/yaml.h>
 #include <shared/DateUtils.hpp>
+#include <string>
 
 struct CentralityConfig {
 

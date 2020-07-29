@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_TILESERVER_HPP
 #define MOBILITY_CPP_TILESERVER_HPP
 
-#include "../TileConfiguration.hpp"
+#include "shared/TileConfiguration.hpp"
 #include "shared/data.hpp"
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>

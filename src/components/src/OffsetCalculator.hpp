@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_OFFSETCALCULATOR_HPP
 
 #include "server/ShapefileServer.hpp"
-#include "TileConfiguration.hpp"
+#include "shared/TileConfiguration.hpp"
 #include <boost/bimap.hpp>
 #include <optional>
 

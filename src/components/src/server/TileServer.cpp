@@ -4,7 +4,7 @@
 
 #include "TileServer.hpp"
 #include "../OffsetCalculator.hpp"
-#include "../RowProcessor.hpp"
+#include "components/RowProcessor.hpp"
 #include "../TileWriter.hpp"
 #include "../VisitMatrixWriter.hpp"
 #include <absl/strings/str_split.h>
