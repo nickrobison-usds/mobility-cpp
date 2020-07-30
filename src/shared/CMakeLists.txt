@@ -4,7 +4,7 @@ add_library(shared
         src/DirectoryUtils.cpp include/shared/DirectoryUtils.hpp
         include/shared/serializers.hpp src/serializers.cpp
         include/shared/data.hpp
-        include/shared/TileConfiguration.hpp include/shared/constants.hpp)
+        include/shared/TileConfiguration.hpp include/shared/constants.hpp src/ConversionUtils.cpp include/shared/ConversionUtils.hpp include/shared/QuotedLineSplitter.hpp)
 
 target_link_libraries(shared PUBLIC spdlog date HPX::hpx PRIVATE Boost::system)
 target_include_directories(shared PUBLIC

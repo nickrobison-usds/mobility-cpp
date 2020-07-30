@@ -72,7 +72,6 @@ struct FlightMapper {
 
     void map(const mt::ctx::MapContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const std::string &info) const {
         const std::vector<std::string> splits = absl::StrSplit(info, ',');
-        splits.size();
         const FlightInfo f{
                 splits[0],
                 splits[1],

@@ -29,6 +29,9 @@ namespace mt::io {
 
             std::string line;
 
+            // Skip the first line
+            std::getline(is, line);
+
             while (std::getline(is, line)) {
                 output.push_back(line);
             }

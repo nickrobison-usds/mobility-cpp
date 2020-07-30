@@ -15,4 +15,11 @@ namespace shared {
 
         return tp;
     }
+
+    date::sys_days DateUtils::to_days(const std::string &str, const char* fmt) {
+        std::istringstream sstream{str};
+        date::sys_days date;
+        sstream >> date::parse(fmt, date);
+        return date;
+    }
 }

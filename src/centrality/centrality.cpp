@@ -48,14 +48,25 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const std::array<std::size_t, 3> stride{7, MAX_CBG, MAX_CBG};
 
     // Get the input files
+    const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
     const auto files = shared::DirectoryUtils::enumerate_files(
-            shared::DirectoryUtils::build_path(config.data_dir, "safegraph/weekly-patterns/").string(),
+            csv_path.string(),
             ".*patterns\\.csv");
 
     vector<string> file_strs;
     transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
         return f.path().string();
     });
+
+    // Build the reference file paths
+    const auto cbg_path = shared::DirectoryUtils::build_path(config.data_dir, config.cbg_shp);
+    const auto poi_path = shared::DirectoryUtils::build_path(config.data_dir, config.poi_parquet);
+    const auto output_path = shared::DirectoryUtils::build_path(config.data_dir, config.output_dir);
+
+    if (!fs::exists(output_path)) {
+        spdlog::debug("Creating output directory");
+        fs::create_directory(output_path);
+    }
 
     // Tile the input space
     const auto locales = hpx::find_all_localities();
@@ -65,13 +76,16 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const LocaleLocator<Coordinate3D> locator(tiles);
 
     std::map<std::string, std::string> config_values;
-    config_values["test"] = "hello";
+    config_values["poi_path"] = poi_path.string();
+    config_values["cbg_path"] = cbg_path.string();
 
     vector<hpx::future<void>> results;
     std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs, &config_values](const auto &loc) {
         mt::client::MapTileClient<data_row, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, {}, config_values, file_strs);
         results.push_back(std::move(server.tile()));
     });
+
+    hpx::wait_all(results);
 
     return hpx::finalize();
 }
@@ -82,12 +96,6 @@ int main(int argc, char **argv) {
 
     options_description desc_commandline;
     desc_commandline.add_options()
-            ("cbg_shp", value<string>()->default_value("reference/census/block_groups.shp"), "CBG shapefile")
-            ("poi_parquet", value<string>()->default_value("reference/Joined_POI.parquet"),
-             "Parquet file with POI information")
-            ("pattern_csvs", value<string>()->default_value("safegraph/weekly-patterns/"),
-             "Directory with weekly pattern files")
-            ("output_directory", value<string>()->default_value("output/"), "Where to place the output files")
             ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
             ("np", value<uint16_t>()->default_value(1),

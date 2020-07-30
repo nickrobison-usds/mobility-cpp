@@ -35,7 +35,11 @@ namespace mt::ctx {
         }
 
         [[nodiscard]] std::optional<std::string> get_config_value(const std::string &key) const {
-            {}
+            const auto found = _config_values.find(key);
+            if (found == _config_values.end()) {
+                return {};
+            }
+            return found->second;
         }
 
 

@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <string>
+#include <date/date.h>
 
 namespace shared {
     typedef std::chrono::duration<int, std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type> days;
@@ -20,6 +21,7 @@ namespace shared {
          */
     public:
         static std::chrono::system_clock::time_point parse_date(const std::string &date);
+        static date::sys_days to_days(const std::string &str, const char* fmt = "%F");
     };
 }
 
