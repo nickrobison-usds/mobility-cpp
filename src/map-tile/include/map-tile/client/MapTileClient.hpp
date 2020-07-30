@@ -29,12 +29,18 @@ namespace mt::client {
                 MTS> base_type;
 
     public:
+        typedef typename coordinates::LocaleLocator<Coordinate>::mt_tile mt_tile;
+
         explicit MapTileClient(hpx::future<hpx::id_type> &&f) : base_type(std::move(f)) {};
 
         explicit MapTileClient(hpx::id_type &&f) : base_type(std::move(f)) {};
 
-        explicit MapTileClient(const hpx::id_type &id, const coordinates::LocaleLocator<Coordinate> &locator, std::vector<std::string> files) : base_type(
-                hpx::new_<MTS>(id, locator, files)) {
+        explicit MapTileClient(const hpx::id_type &id,
+                               const coordinates::LocaleLocator<Coordinate> &locator,
+                               const mt_tile &tile,
+                               const std::map<string, string> &config,
+                               std::vector<std::string> files) : base_type(
+                hpx::new_<MTS>(id, locator, tile, config, files)) {
             hpx::register_with_basename("mt/base", this->get_id());
         }
 

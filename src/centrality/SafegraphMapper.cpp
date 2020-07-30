@@ -6,7 +6,7 @@
 
 #include <shared/TileConfiguration.hpp>
 
-void SafegraphMapper::setup() {
+void SafegraphMapper::setup(const mt::ctx::MapContext<data_row, mt::coordinates::Coordinate3D> &ctx) {
 
 }
 

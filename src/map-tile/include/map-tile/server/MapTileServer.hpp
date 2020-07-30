@@ -9,15 +9,15 @@
 #include "map-tile/ctx/Context.hpp"
 #include "map-tile/io/FileProvider.hpp"
 #include "traits.hpp"
-
-#include <algorithm>
-#include <utility>
-#include <vector>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
-
+#include <hpx/serialization/map.hpp>
+#include <algorithm>
 #include <functional>
+#include <map>
+#include <utility>
+#include <vector>
 
 using namespace std;
 
@@ -41,10 +41,17 @@ namespace mt::server {
     class MapTileServer
             : public hpx::components::component_base<MapTileServer<MapKey, Coordinate, Mapper, Tiler, InputKey, Provider>> {
     public:
-        explicit MapTileServer(const coordinates::LocaleLocator<Coordinate> &locator, vector<string> files) : _files(
-                std::move(files)), _locator(locator), _tiler(Tiler{}), _ctx(std::bind(&MapTileServer::handle_emit, this,
-                                                                                      std::placeholders::_1,
-                                                                                      std::placeholders::_2)) {
+        typedef typename coordinates::LocaleLocator<Coordinate>::mt_tile mt_tile;
+
+        explicit MapTileServer(const coordinates::LocaleLocator<Coordinate> &locator,
+                               const mt_tile &tile,
+                               const std::map<string, string> &config,
+                               vector<string> files) : _files(
+                std::move(files)), _locator(locator), _tiler(Tiler{}),
+                                                       _ctx(std::bind(&MapTileServer::handle_emit, this,
+                                                                      std::placeholders::_1,
+                                                                      std::placeholders::_2),
+                                                            tile, config) {
             // Not used
         }
 
@@ -60,11 +67,10 @@ namespace mt::server {
 
                 Mapper mapper;
                 // Call the setup method, if one exists
-                if constexpr(has_setup<Mapper>::value) {
-                    mapper.setup();
+                // TODO: This will need to be further improved. Right now it will fail if a setup() method exists with the wrong arguments.
+                if constexpr(has_setup<Mapper, MapKey, Coordinate>::value) {
+                    mapper.setup(ctx);
                 }
-
-                // Setup
 
                 //Map
                 for_each(keys.begin(), keys.end(), [&ctx, &mapper](const auto &key) {

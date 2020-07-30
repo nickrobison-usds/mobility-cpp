@@ -7,6 +7,7 @@
 
 #include "map-tile/coordinates/LocaleLocator.hpp"
 #include <spdlog/spdlog.h>
+#include <map>
 #include <functional>
 
 namespace mt::ctx {
@@ -15,8 +16,12 @@ namespace mt::ctx {
     class Context {
 
     public:
-        typedef std::function<void(const Coordinate&, const Key&)> emit_handler;
-        explicit Context(const emit_handler &handler): _handler(handler) {
+        typedef std::function<void(const Coordinate &, const Key &)> emit_handler;
+        typedef typename coordinates::LocaleLocator<Coordinate>::mt_tile mt_tile;
+
+        explicit Context(const emit_handler &handler, const mt_tile &tile,
+                         const std::map<std::string, std::string> &config) : _handler(handler), _tile(tile),
+                                                                                       _config_values(config) {
 
         }
 
@@ -25,8 +30,19 @@ namespace mt::ctx {
             _handler(coord, key);
         }
 
+        mt_tile get_tile() const {
+            return _tile;
+        }
+
+        [[nodiscard]] std::optional<std::string> get_config_value(const std::string &key) const {
+            {}
+        }
+
+
     private:
         const emit_handler _handler;
+        const mt_tile _tile;
+        const std::map<std::string, std::string> _config_values;
 
     };
 

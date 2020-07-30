@@ -55,7 +55,7 @@ struct FlightInfo {
 
 struct FlightMapper {
 
-    void setup() {
+    void setup(const mt::ctx::MapContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
         io::CSVLoader<2, true> loader("data/airports.csv");
 
         int id;

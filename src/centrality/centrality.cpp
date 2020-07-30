@@ -64,9 +64,12 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                                                        Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
     const LocaleLocator<Coordinate3D> locator(tiles);
 
+    std::map<std::string, std::string> config_values;
+    config_values["test"] = "hello";
+
     vector<hpx::future<void>> results;
-    std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs](const auto &loc) {
-        mt::client::MapTileClient<data_row, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, file_strs);
+    std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs, &config_values](const auto &loc) {
+        mt::client::MapTileClient<data_row, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, {}, config_values, file_strs);
         results.push_back(std::move(server.tile()));
     });
 

@@ -17,7 +17,7 @@
 class SafegraphMapper {
 
 public:
-    void setup();
+    void setup(const mt::ctx::MapContext<data_row, mt::coordinates::Coordinate3D> &ctx);
     void map(const mt::ctx::MapContext<data_row, mt::coordinates::Coordinate3D> &ctx, const std::string &info) const;
 
 private:
