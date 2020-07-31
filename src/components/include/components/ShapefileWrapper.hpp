@@ -20,6 +20,8 @@ namespace components {
 
         explicit ShapefileWrapper(std::string shapefile);
 
+
+
         hpx::future<std::vector<std::pair<std::string, OGRPoint>>> get_centroids(const std::vector<std::string> &geoids) const;
         hpx::future<server::ShapefileServer::offset_type> build_offsets() const;
 

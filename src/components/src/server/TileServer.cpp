@@ -3,7 +3,7 @@
 //
 
 #include "TileServer.hpp"
-#include "../OffsetCalculator.hpp"
+#include "components/OffsetCalculator.hpp"
 #include "components/RowProcessor.hpp"
 #include "../TileWriter.hpp"
 #include "../VisitMatrixWriter.hpp"

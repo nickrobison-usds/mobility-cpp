@@ -76,6 +76,13 @@ struct v2 {
     uint32_t visits;
     double distance;
     double weighted_total;
+
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & safegraph_place_id & visit_date & location_cbg & visits & distance & weighted_total;
+    }
 };
 
 struct joined_location {

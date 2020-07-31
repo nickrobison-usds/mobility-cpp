@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_OFFSETCALCULATOR_HPP
 #define MOBILITY_CPP_OFFSETCALCULATOR_HPP
 
-#include "server/ShapefileServer.hpp"
+#include "../../src/server/ShapefileServer.hpp"
 #include "shared/TileConfiguration.hpp"
 #include <boost/bimap.hpp>
 #include <optional>

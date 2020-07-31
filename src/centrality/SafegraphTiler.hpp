@@ -12,9 +12,9 @@
 
 class SafegraphTiler {
 public:
-    void receive(const mt::ctx::ReduceContext<data_row, mt::coordinates::Coordinate3D> &ctx,
+    void receive(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx,
                  const mt::coordinates::Coordinate3D &key,
-                 const data_row &value);
+                 const v2 &value);
 
     void compute();
 };

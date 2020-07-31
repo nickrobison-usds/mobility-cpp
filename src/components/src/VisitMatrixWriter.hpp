@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_VISITMATRIXWRITER_HPP
 #define MOBILITY_CPP_VISITMATRIXWRITER_HPP
 
-#include "OffsetCalculator.hpp"
+#include "components/OffsetCalculator.hpp"
 #include "TemporalMatricies.hpp"
 #include <io/parquet.hpp>
 #include <date/date.h>

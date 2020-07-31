@@ -19,6 +19,7 @@
 #include <shared/data.hpp>
 
 #include "spdlog/spdlog.h"
+#include <spdlog/fmt/fmt.h>
 #include "spdlog/pattern_formatter.h"
 
 // The total number of Census Block Groups (CBGs) in the US
@@ -27,7 +28,7 @@ const static std::size_t MAX_CBG = 220740;
 using namespace std;
 
 // Register the map-tile instance
-REGISTER_MAPPER(data_row, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, string, mt::io::FileProvider);
+REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, string, mt::io::FileProvider);
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
@@ -78,10 +79,12 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     std::map<std::string, std::string> config_values;
     config_values["poi_path"] = poi_path.string();
     config_values["cbg_path"] = cbg_path.string();
+    config_values["start_date"] = std::to_string(config.start_date.time_since_epoch().count());
+    config_values["end_date"] = std::to_string(config.start_date.time_since_epoch().count());
 
     vector<hpx::future<void>> results;
     std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs, &config_values](const auto &loc) {
-        mt::client::MapTileClient<data_row, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, {}, config_values, file_strs);
+        mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, {}, config_values, file_strs);
         results.push_back(std::move(server.tile()));
     });
 

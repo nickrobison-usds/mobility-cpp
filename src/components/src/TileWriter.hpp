@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_TILEWRITER_HPP
 #define MOBILITY_CPP_TILEWRITER_HPP
 
-#include "OffsetCalculator.hpp"
+#include "components/OffsetCalculator.hpp"
 #include <io/parquet.hpp>
 #include <blaze/math/CompressedVector.h>
 #include <date/date.h>
