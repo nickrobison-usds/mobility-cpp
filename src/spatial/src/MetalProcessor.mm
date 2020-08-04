@@ -19,11 +19,17 @@ MetalProcessor::MetalProcessor() {
 std::vector<double> MetalProcessor::computeDistances(const OGRPoint &point, std::vector<OGRPoint> &points) const {
     const auto device = MTLCreateSystemDefaultDevice();
     
-    const id <MTLLibrary> library = [device newDefaultLibrary];
+    const auto bundle = [NSBundle bundleWithIdentifier:@"com.nickrobison.spatial"];
+
+    const auto rsc = [bundle pathForResource:@"spatial" ofType:@"metallib"];
+
+    NSError *nerr;
+
+    const id <MTLLibrary> library = [device newLibraryWithFile:rsc error:&nerr];
     const id <MTLFunction> haversineFunction = [library newFunctionWithName:@"haversine"];
     
     // Build the pipeline
-    NSError *nerr;
+
     const auto pipeline = [device newComputePipelineStateWithFunction:haversineFunction error:&nerr];
     
     // Copy into a single data buffer

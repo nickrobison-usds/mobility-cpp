@@ -17,6 +17,7 @@ CHECK_FOR_AVX()
 add_subdirectory(io)
 add_subdirectory(components)
 add_subdirectory(shared)
+add_subdirectory(spatial)
 add_subdirectory(map-tile)
 add_subdirectory(centrality)
 
