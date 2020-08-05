@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/17/20.
 //
 
-#include "VisitMatrixWriter.hpp"
+#include "components/VisitMatrixWriter.hpp"
 #include "spdlog/spdlog.h"
 
 #include <utility>

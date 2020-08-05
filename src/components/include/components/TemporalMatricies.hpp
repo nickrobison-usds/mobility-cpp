@@ -17,6 +17,7 @@ namespace components {
     struct MatrixPair {
         visit_matrix vm;
         distance_matrix dm;
+
         MatrixPair(visit_matrix vm, distance_matrix dm) : vm(std::move(vm)),
                                                           dm(std::move(dm)) {}
     };
@@ -31,7 +32,7 @@ namespace components {
 
         distance_matrix compute(std::size_t i = 0);
 
-        MatrixPair& get_matrix_pair(std::size_t i);
+        MatrixPair &get_matrix_pair(std::size_t i);
 
     private:
         std::vector<MatrixPair> matricies;

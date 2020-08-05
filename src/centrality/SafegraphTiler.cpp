@@ -3,9 +3,22 @@
 //
 
 #include "SafegraphTiler.hpp"
+#include <boost/filesystem.hpp>
+#include <blaze/math/CompressedVector.h>
+#include <blaze/math/DynamicVector.h>
+#include <components/TileWriter.hpp>
+#include <components/VisitMatrixWriter.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/ConversionUtils.hpp>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+
+namespace fs = boost::filesystem;
+
+void print_timing(const std::string &op_name, const std::uint64_t elapsed) {
+    const chrono::nanoseconds n{elapsed};
+    spdlog::debug("[{}] took {} ms", op_name, chrono::duration_cast<chrono::milliseconds>(n).count());
+}
 
 void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
     const auto cbg_path = ctx.get_config_value("cbg_path");
@@ -56,15 +69,59 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
 }
 
 void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
-    spdlog::debug("Call compute.");
+    const auto output_name = ctx.get_config_value("output_name");
+    const auto output_dir = ctx.get_config_value("output_dir");
 
+    // Figure out my temporal start date
+    const date::sys_days start_date = date::sys_days{} + date::days(_tc._time_offset);
     for (std::size_t i = 0; i < _tc._time_count; i++) {
+// Some nice pretty-printing of the dates
+        const date::sys_days matrix_date = start_date + date::days{i};
+        const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
+                                                  *output_name,
+                                                  *(_oc->cbg_from_offset(_tc._cbg_min)),
+                                                  *(_oc->cbg_from_offset(_tc._cbg_max)),
+                                                  date::format("%F", matrix_date));
+        const auto p_file = fs::path(*output_dir) /= fs::path(parquet_filename);
+
+        const auto visit_filename = fmt::format("{}-visits-{}-{}-{}.parquet",
+                                                *output_name,
+                                                *(_oc->cbg_from_offset(_tc._cbg_min)),
+                                                *(_oc->cbg_from_offset(_tc._cbg_max)),
+                                                date::format("%F", matrix_date));
+
+        const auto v_file = fs::path(*output_dir) /= fs::path(visit_filename);
+
+        components::TileWriter tw(std::string(p_file.string()), *_oc);
+        components::VisitMatrixWriter vw(std::string(v_file.string()), *_oc);
+
+        const auto multiply_start = hpx::util::high_resolution_clock::now();
         const auto matrix_pair = _tm->get_matrix_pair(i);
         const distance_matrix result = _tm->compute(i);
 
-//        const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(
-//                result);
-//        const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
-//                matrix_pair.vm);
+        // Sum the total risk for each cbg
+        const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(
+                result);
+        const double max = blaze::max(cbg_risk_score);
+        const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
+                matrix_pair.vm);
+
+        // scale it back down
+        spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
+        const auto multiply_elapsed = hpx::util::high_resolution_clock::now() - multiply_start;
+        print_timing("Multiply", multiply_elapsed);
+
+        spdlog::info("Beginning tile write");
+        const auto write_start = hpx::util::high_resolution_clock::now();
+        arrow::Status status = tw.writeResults(matrix_date, cbg_risk_score, {}, visit_sum);
+        if (!status.ok()) {
+            spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+        }
+        status = vw.writeResults(matrix_date, matrix_pair.vm);
+        if (!status.ok()) {
+            spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
+        }
+        const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
+        print_timing("File Write", write_elapsed);
     }
 }
