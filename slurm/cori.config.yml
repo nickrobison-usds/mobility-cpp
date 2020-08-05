@@ -1,0 +1,8 @@
+start_date: 2020-06-22
+end_date: 2020-06-29
+data_dir: "$SCRATCH/mobility-analysis/data/"
+cbg_shp: "reference/census/block_groups.shp"
+poi_parquet: "reference/Joined_POI.parquet"
+patterns_csv: "safegraph/weekly-patterns/"
+output_dir: "output"
+output_name: "mobility_matrix"

@@ -143,7 +143,6 @@ int main(int argc, char **argv) {
 
     options_description desc_commandline;
     desc_commandline.add_options()
-            ("output_name", value<string>()->default_value("mobility_matrix"), "Name of output files")
             ("nr", value<uint16_t>()->default_value(60), "Number of simultaneous rows to process")
             ("np", value<uint16_t>()->default_value(1),
              "Number of partitions for each file (CBGs to process)")

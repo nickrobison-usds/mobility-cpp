@@ -15,6 +15,7 @@ struct CentralityConfig {
     std::string poi_parquet;
     std::string patterns_csv;
     std::string output_dir;
+    std::string output_name;
 };
 
 namespace YAML {
@@ -32,7 +33,6 @@ namespace YAML {
                 return false;
             }
 
-
             rhs.start_date = node["start_date"].as<std::chrono::system_clock::time_point>();
             rhs.end_date = node["end_date"].as<std::chrono::system_clock::time_point>();
             rhs.data_dir = node["data_dir"].as<std::string>();
@@ -40,6 +40,7 @@ namespace YAML {
             rhs.poi_parquet = node["poi_parquet"].as<std::string>();
             rhs.patterns_csv = node["patterns_csv"].as<std::string>();
             rhs.output_dir = node["output_dir"].as<std::string>();
+            rhs.output_name = node["output_name"].as<std::string>();
             return true;
         }
     };
