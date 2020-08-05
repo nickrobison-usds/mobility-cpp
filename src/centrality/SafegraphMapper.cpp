@@ -13,7 +13,7 @@
 
 // Duplicate a bunch of code, just to get things compiling
 
-static const boost::regex brackets("\\[|\\]|\"");
+static const boost::regex brackets(R"(\[|\]|")");
 static const boost::regex cbg_map_replace("{|\"|}");
 
 size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
@@ -67,7 +67,7 @@ std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const week
     });
 
     return filtered;
-};
+}
 
 std::vector<v2>
 expandRow(const weekly_pattern &row,
@@ -102,7 +102,7 @@ expandRow(const weekly_pattern &row,
         });
     }
     return output;
-};
+}
 
 weekly_pattern parse_string(const std::string_view v) {
     const auto splits = shared::QuotedStringSplitter(v);
@@ -136,8 +136,8 @@ void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coord
 
     // Force cast to sys_days
     const auto ff = chrono::floor<date::days>(start_date);
-    const date::sys_days d(start_date);
-    const date::sys_days e(end_date);
+    _begin_date = date::sys_days(start_date);
+    _end_date = date::sys_days(end_date);
 
 
     const auto time_bounds = chrono::duration_cast<shared::days>(end_date - start_date).count();
@@ -147,7 +147,7 @@ void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coord
 
     _tc._nr = 16;
     // These values are really confusing
-    _tc._time_offset = (d + date::days{ctx.get_tile().min_corner().get_dim0()}).time_since_epoch().count();;
+    _tc._time_offset = (_begin_date + date::days{ctx.get_tile().min_corner().get_dim0()}).time_since_epoch().count();
     _tc._time_count = time_bounds;
     _tc._cbg_min = ctx.get_tile().min_corner().get_dim1();
     _tc._cbg_max = ctx.get_tile().max_corner().get_dim1();
@@ -158,7 +158,12 @@ void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coord
 void SafegraphMapper::map(const mt::ctx::MapContext<v2, mt::coordinates::Coordinate3D> &ctx,
                           const std::string &info) const {
     const auto row = parse_string(info);
+
+    if (row.date_range_start < _begin_date || row.date_range_end > _end_date)
+        return;
+
     const auto rows = process_row(row);
+
     std::for_each(rows.begin(), rows.end(), [&ctx, this](const auto &r) {
         const auto global_temporal = r.visit_date - date::days{this->_tc._time_offset};
         const auto g_count = global_temporal.time_since_epoch().count();
@@ -168,7 +173,7 @@ void SafegraphMapper::map(const mt::ctx::MapContext<v2, mt::coordinates::Coordin
             ctx.emit(mt::coordinates::Coordinate3D(g_count, *loc_offset, *visit_offset), r);
         }
     });
-};
+}
 
 std::vector<v2> SafegraphMapper::process_row(const weekly_pattern &row) const {
     return _l->find_location(row.safegraph_place_id).then(
@@ -203,4 +208,4 @@ SafegraphMapper::get_centroid_map(const std::vector<std::pair<std::string, std::
     const auto centroids = _s->get_centroids(cbgs).get();
 
     return absl::flat_hash_map<std::string, OGRPoint>(centroids.begin(), centroids.end());
-};
+}

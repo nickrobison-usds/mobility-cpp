@@ -44,19 +44,6 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto config_path = vm["config"].as<string>();
     const auto config = YAML::LoadFile(config_path).as<CentralityConfig>();
 
-    // Get the input files
-    const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
-    const auto files = shared::DirectoryUtils::enumerate_files(
-            csv_path.string(),
-            ".*patterns\\.csv");
-
-    spdlog::debug("Executing against {} files", files.size());
-
-    vector <string> file_strs;
-    transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
-        return f.path().string();
-    });
-
     // Build the reference file paths
     const auto cbg_path = shared::DirectoryUtils::build_path(config.data_dir, config.cbg_shp);
     const auto poi_path = shared::DirectoryUtils::build_path(config.data_dir, config.poi_parquet);
@@ -74,7 +61,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Build the dataset space
     // Compute the Z-index, the number of days in the analysis
     const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
-    const std::array<std::size_t, 3> stride{7,
+    const std::array<std::size_t, 3> stride{static_cast<std::size_t>(time_bounds),
                                             static_cast<std::size_t>(floor(MAX_CBG / locales.size())), MAX_CBG};
     const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
                                                        Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
@@ -95,26 +82,41 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     }
 
     // Initialize all the locales
-    vector <mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
+    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
+
+
+    // Partition the input files, one for each tile
+    // Get the input files
+    const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
+    const auto files = shared::DirectoryUtils::partition_files(
+            csv_path.string(),
+            tiles.size(),
+            ".*patterns\\.csv");
+
     // Create a a server for each tile, cycling through the locales and files
     const auto locale_range = ranges::views::cycle(locales);
-    const auto z = ranges::views::zip(locale_range, tiles);
+    const auto z = ranges::views::zip(locale_range, tiles, files);
 
     ranges::for_each(
             z,
-            [&servers, &locator, &file_strs, &config_values](
+            [&servers, &locator, &config_values](
                     const auto &pair) {
-                const auto tile = pair.second.first;
-                spdlog::debug("Creating server on locale {}", pair.first);
+                const auto& files = get<2>(pair);
+                vector<string> file_strs;
+                transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
+                    return f.path().string();
+                });
+                const auto tile = get<1>(pair).first;
+                spdlog::debug("Creating server on locale {}", get<0>(pair));
 //                const auto s = fmt::format("Tile bounds: {} - {}", tile.min_corner(), tile.max_corner());
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(pair.first, locator,
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(pair), locator,
                                                                                                     tile,
                                                                                                     config_values,
                                                                                                     file_strs);
                 servers.push_back(std::move(server));
             });
 
-    vector <hpx::future<void>> results;
+    vector<hpx::future<void>> results;
     std::transform(servers.begin(), servers.end(), std::back_inserter(results), [](auto &server) {
         return std::move(server.tile());
     });
@@ -123,7 +125,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::info("Tile complete, beginning computation");
 
     // Now, compute
-    vector <hpx::future<void>> compute_results;
+    vector<hpx::future<void>> compute_results;
     std::transform(servers.begin(), servers.end(), std::back_inserter(compute_results), [](auto &mt) {
         return std::move(mt.compute());
     });

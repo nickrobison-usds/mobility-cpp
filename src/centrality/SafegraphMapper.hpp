@@ -30,6 +30,8 @@ private:
     std::unique_ptr<components::ShapefileWrapper> _s;
     std::unique_ptr<components::detail::OffsetCalculator> _oc;
     components::TileConfiguration _tc;
+    date::sys_days _begin_date;
+    date::sys_days _end_date;
 };
 
 
