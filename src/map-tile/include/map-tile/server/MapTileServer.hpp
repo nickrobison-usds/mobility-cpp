@@ -14,6 +14,7 @@
 #include <hpx/preprocessor/cat.hpp>
 #include <hpx/serialization/map.hpp>
 #include <hpx/include/parallel_for_each.hpp>
+#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -74,6 +75,7 @@ namespace mt::server {
                 mapper.setup(ctx);
             }
             for_each(_files.begin(), _files.end(), [&ctx, &mapper](const string &filename) {
+                spdlog::debug("Reading {}", filename);
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one

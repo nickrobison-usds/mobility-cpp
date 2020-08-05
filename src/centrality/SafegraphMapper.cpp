@@ -124,6 +124,7 @@ weekly_pattern parse_string(const std::string_view v) {
 }
 
 void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    spdlog::debug("Mapper setup initializing");
     const auto cbg_path = ctx.get_config_value("cbg_path");
     const auto poi_path = ctx.get_config_value("poi_path");
     const auto start_date_string = ctx.get_config_value("start_date");

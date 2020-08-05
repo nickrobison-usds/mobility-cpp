@@ -13,16 +13,16 @@
 #include <map-tile/coordinates/LocaleLocator.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <map-tile/io/FileProvider.hpp>
-#include <shared/HostnameLogger.hpp>
 #include <range/v3/view/cycle.hpp>
 #include <range/v3/view/zip.hpp>
 #include <range/v3/algorithm/for_each.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/DirectoryUtils.hpp>
 #include <shared/data.hpp>
-
-#include "spdlog/spdlog.h"
-#include "spdlog/pattern_formatter.h"
+#include <shared/HostnameLogger.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/pattern_formatter.h>
+#include <queue>
 
 // The total number of Census Block Groups (CBGs) in the US
 const static std::size_t MAX_CBG = 220740;
@@ -87,30 +87,37 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
 
 
-    // Partition the input files, one for each tile
-    // Get the input files
+    // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
     const auto files = shared::DirectoryUtils::partition_files(
             csv_path.string(),
             tiles.size(),
             ".*patterns\\.csv");
+    // Create a queue that will let us handle cases where we have more servers than input files.
+    // If the queue is empty, we'll simply pass an empty vector to the server
+    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(deque<vector<fs::directory_entry>>(files.begin(), files.end()));
 
     // Create a a server for each tile, cycling through the locales and files
     const auto locale_range = ranges::views::cycle(locales);
-    const auto z = ranges::views::zip(locale_range, tiles, files);
+    const auto z = ranges::views::zip(locale_range, tiles);
 
     ranges::for_each(
             z,
-            [&servers, &locator, &config_values](
+            [&servers, &locator, &config_values, &file_queue](
                     const auto &pair) {
-                const auto& files = get<2>(pair);
                 vector<string> file_strs;
-                transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
-                    return f.path().string();
-                });
+
+                if (!file_queue.empty()) {
+                    const auto files = file_queue.front();
+                    transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
+                        return f.path().string();
+                    });
+                    file_queue.pop();
+                }
+
+
                 const auto tile = get<1>(pair).first;
                 spdlog::debug("Creating server on locale {}", get<0>(pair));
-//                const auto s = fmt::format("Tile bounds: {} - {}", tile.min_corner(), tile.max_corner());
                 mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(pair), locator,
                                                                                                     tile,
                                                                                                     config_values,
