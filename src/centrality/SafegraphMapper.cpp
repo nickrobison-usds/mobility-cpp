@@ -131,16 +131,24 @@ void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coord
     const auto end_date_string = ctx.get_config_value("end_date");
     const shared::days end_date(shared::ConversionUtils::convert_empty<std::uint64_t>(*end_date_string));
 
+    const        auto sd = chrono::floor<date::days>(start_date);
+
+
+    // Force cast to sys_days
+    const auto ff = chrono::floor<date::days>(start_date);
+    const date::sys_days d(start_date);
+    const date::sys_days e(end_date);
+
+
     const auto time_bounds = chrono::duration_cast<shared::days>(end_date - start_date).count();
 //
     _l = std::make_unique<components::JoinedLocation>(components::JoinedLocation({}, *poi_path, *poi_path));
     _s = std::make_unique<components::ShapefileWrapper>(components::ShapefileWrapper(*cbg_path));
 
-    // Create the row processor, at some point
-    components::TileConfiguration tc{};
-    // Pull from config
-    tc._nr = 16;
-    _oc = std::make_unique<components::detail::OffsetCalculator>(components::detail::OffsetCalculator(_s->build_offsets().get(), tc));
+    _tc._nr = 16;
+    _tc._time_offset = chrono::floor<date::days>(start_date).count();
+    _tc._time_count = time_bounds;
+    _oc = std::make_unique<components::detail::OffsetCalculator>(components::detail::OffsetCalculator(_s->build_offsets().get(), _tc));
 }
 
 void SafegraphMapper::map(const mt::ctx::MapContext<v2, mt::coordinates::Coordinate3D> &ctx,
@@ -148,10 +156,11 @@ void SafegraphMapper::map(const mt::ctx::MapContext<v2, mt::coordinates::Coordin
     const auto row = parse_string(info);
     const auto rows = process_row(row);
     std::for_each(rows.begin(), rows.end(), [&ctx, this](const auto &r) {
+        const auto global_temporal = r.visit_date - date::days{this->_tc._time_offset};
         const auto loc_offset = this->_oc->calculate_cbg_offset(r.location_cbg);
         const auto visit_offset = this->_oc->calculate_cbg_offset(r.visit_cbg);
-        if (!visit_offset.has_value() && !loc_offset.has_value()) {
-            ctx.emit(mt::coordinates::Coordinate3D(1, *loc_offset, *visit_offset), r);
+        if (!visit_offset.has_value() && !loc_offset.has_value() && g2 >= 0) {
+            ctx.emit(mt::coordinates::Coordinate3D(global_temporal.time_since_epoch().count(), *loc_offset, *visit_offset), r);
         }
     });
 };

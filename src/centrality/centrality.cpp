@@ -76,11 +76,15 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                                                        Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
     const LocaleLocator<Coordinate3D> locator(tiles);
 
+    const auto sd = chrono::floor<date::days>(config.start_date);
+    const auto ed = chrono::floor<date::days>(config.end_date);
+
+
     std::map<std::string, std::string> config_values;
     config_values["poi_path"] = poi_path.string();
     config_values["cbg_path"] = cbg_path.string();
-    config_values["start_date"] = std::to_string(config.start_date.time_since_epoch().count());
-    config_values["end_date"] = std::to_string(config.start_date.time_since_epoch().count());
+    config_values["start_date"] = std::to_string(sd.time_since_epoch().count());
+    config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
 
     vector<hpx::future<void>> results;
     std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs, &config_values](const auto &loc) {

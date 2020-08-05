@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_SAFEGRAPHMAPPER_HPP
 
 #include <components/JoinedLocation.hpp>
-#include <components/RowProcessor.hpp>
+#include <components/OffsetCalculator.hpp>
 #include <components/ShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
@@ -26,11 +26,10 @@ private:
     absl::flat_hash_map<std::string, OGRPoint>
     get_centroid_map(const std::vector<std::pair<std::string, std::uint16_t>> &visits) const;
 
-
-    std::unique_ptr<components::RowProcessor> _processor;
     std::unique_ptr<components::JoinedLocation> _l;
     std::unique_ptr<components::ShapefileWrapper> _s;
     std::unique_ptr<components::detail::OffsetCalculator> _oc;
+    components::TileConfiguration _tc;
 };
 
 
