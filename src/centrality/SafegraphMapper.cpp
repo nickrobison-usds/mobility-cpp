@@ -153,6 +153,8 @@ void SafegraphMapper::setup(const mt::ctx::MapContext<v2, mt::coordinates::Coord
     _tc._cbg_max = ctx.get_tile().max_corner().get_dim1();
     _oc = std::make_unique<components::detail::OffsetCalculator>(
             components::detail::OffsetCalculator(_s->build_offsets().get(), _tc));
+
+    spdlog::debug("Mapper setup complete.");
 }
 
 void SafegraphMapper::map(const mt::ctx::MapContext<v2, mt::coordinates::Coordinate3D> &ctx,

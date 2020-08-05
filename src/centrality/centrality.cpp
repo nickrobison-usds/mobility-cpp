@@ -76,6 +76,8 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["cbg_path"] = cbg_path.string();
     config_values["start_date"] = std::to_string(sd.time_since_epoch().count());
     config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
+    config_values["output_dir"] = config.output_dir;
+    config_values["output_name"] = config.output_name;
 
     if (locales.size() != tiles.size()) {
         spdlog::warn("Cannot executing {} tiles in {} locales.", tiles.size(), locales.size());

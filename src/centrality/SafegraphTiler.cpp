@@ -51,6 +51,7 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
 
     // Initialize the Temporal Matricies
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
+    spdlog::debug("Tiler setup complete.");
 
 }
 
