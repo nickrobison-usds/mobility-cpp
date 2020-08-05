@@ -55,6 +55,16 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
     }
 }
 
-void SafegraphTiler::compute() {
+void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    spdlog::debug("Call compute.");
 
+    for (std::size_t i = 0; i < _tc._time_count; i++) {
+        const auto matrix_pair = _tm->get_matrix_pair(i);
+        const distance_matrix result = _tm->compute(i);
+
+//        const blaze::CompressedVector<double, blaze::rowVector> cbg_risk_score = blaze::sum<blaze::columnwise>(
+//                result);
+//        const blaze::CompressedVector<std::uint32_t, blaze::rowVector> visit_sum = blaze::sum<blaze::columnwise>(
+//                matrix_pair.vm);
+    }
 }

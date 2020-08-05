@@ -8,6 +8,7 @@
 #include <hpx/serialization/array.hpp>
 #include <hpx/serialization/serialize.hpp>
 #include <boost/geometry.hpp>
+#include <spdlog/fmt/fmt.h>
 #include <array>
 
 namespace bg = boost::geometry;
@@ -17,6 +18,7 @@ namespace mt::coordinates {
 
     public:
         static constexpr int dimensions = 3;
+
         Coordinate3D() = default;
 
         Coordinate3D(const std::size_t &dim0, const std::size_t &dim1, const std::size_t &dim2);
@@ -41,16 +43,21 @@ namespace mt::coordinates {
 
         bool operator>=(const Coordinate3D &rhs) const;
 
-        bool within(const bg::model::box<Coordinate3D> &rhs) const;
-
-        friend std::ostream& operator<<(std::ostream &os, const Coordinate3D &coord);
+        [[nodiscard]] bool within(const bg::model::box<Coordinate3D> &rhs) const;
 
         // HPX required serialization
         friend class hpx::serialization::access;
 
         template<typename Archive>
-        void serialize(Archive &ar, const unsigned int version) {
+        void serialize(Archive &ar, const unsigned int) {
             ar & _dim0 & _dim1 & _dim2;
+        }
+
+        template<typename OStream>
+        friend OStream &
+        operator<<(OStream &os, const Coordinate3D &coord) {
+            return os << fmt::format("{dim0: {}, dim1:{}, dim2: {}}", coord.get_dim0(), coord.get_dim1(),
+                                     coord.get_dim2());
         }
 
     private:

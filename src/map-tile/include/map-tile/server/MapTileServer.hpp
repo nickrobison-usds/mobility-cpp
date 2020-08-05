@@ -13,6 +13,7 @@
 #include <hpx/include/components.hpp>
 #include <hpx/preprocessor/cat.hpp>
 #include <hpx/serialization/map.hpp>
+#include <hpx/include/parallel_for_each.hpp>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -66,25 +67,23 @@ namespace mt::server {
             // Load the CSV files
             // Let's do it all in memory for right now
             const auto ctx = _ctx;
-            for_each(_files.begin(), _files.end(), [&ctx](const string &filename) {
+            Mapper mapper;
+            // Call the setup method, if one exists
+            // TODO: This will need to be further improved. Right now it will fail if a setup() method exists with the wrong arguments.
+            if constexpr(has_setup<Mapper, MapKey, Coordinate>::value) {
+                mapper.setup(ctx);
+            }
+            for_each(_files.begin(), _files.end(), [&ctx, &mapper](const string &filename) {
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one
 
-                Mapper mapper;
-                // Call the setup method, if one exists
-                // TODO: This will need to be further improved. Right now it will fail if a setup() method exists with the wrong arguments.
-                if constexpr(has_setup<Mapper, MapKey, Coordinate>::value) {
-                    mapper.setup(ctx);
-                }
-
                 //Map
-                for_each(keys.begin(), keys.end(), [&ctx, &mapper](const auto &key) {
-                    mapper.map(ctx, key);;
-                });
+                hpx::parallel::for_each(hpx::parallel::execution::par, keys.begin(), keys.end(),
+                                        [&ctx, &mapper](const auto &key) {
+                                            mapper.map(ctx, key);
+                                        });
             });
-
-            _tiler.compute();
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
@@ -94,6 +93,12 @@ namespace mt::server {
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
+
+        void compute() {
+            _tiler.compute(_ctx);
+        }
+
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
     private:
         const vector<string> _files;
@@ -108,11 +113,9 @@ namespace mt::server {
 
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             try {
-                std::cout << "Sending" << std::endl;
                 hpx::async<action_type>(id, key, value).get();
             } catch (const std::exception &e) {
-                std::cout << "Wrong" << std::endl;
-                e.what();
+                spdlog::debug("Unable to send value. {}", e.what());
             }
         }
     };
@@ -129,8 +132,14 @@ namespace mt::server {
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
-        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                      \
-        \
+        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                        \
+                                                                                                        \
+    using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::compute_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_compute_action_, mapper));                      \
+                                                                                                        \
     typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \
 

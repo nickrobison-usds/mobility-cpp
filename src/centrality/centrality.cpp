@@ -20,7 +20,6 @@
 #include <shared/data.hpp>
 
 #include "spdlog/spdlog.h"
-#include <spdlog/fmt/fmt.h>
 #include "spdlog/pattern_formatter.h"
 
 // The total number of Census Block Groups (CBGs) in the US
@@ -35,7 +34,6 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
     formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
     spdlog::set_formatter(std::move(formatter));
-    spdlog::info("Initializing centrality calculator on locale {}", hpx::get_locality_id());
 
     if (!vm.count("silent")) {
         spdlog::set_level(spdlog::level::debug);
@@ -44,18 +42,15 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto config_path = vm["config"].as<string>();
     const auto config = YAML::LoadFile(config_path).as<CentralityConfig>();
 
-    // Compute the Z-index, the number of days in the analysis
-    const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
-    // Build the dataset space
-    const std::array<std::size_t, 3> stride{7, MAX_CBG, MAX_CBG};
-
     // Get the input files
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
     const auto files = shared::DirectoryUtils::enumerate_files(
             csv_path.string(),
             ".*patterns\\.csv");
 
-    vector<string> file_strs;
+    spdlog::debug("Executing against {} files", files.size());
+
+    vector <string> file_strs;
     transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
         return f.path().string();
     });
@@ -72,14 +67,20 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     // Tile the input space
     const auto locales = hpx::find_all_localities();
+    spdlog::debug("Executing on {} locales", locales.size());
     using namespace mt::coordinates;
+    // Build the dataset space
+    // Compute the Z-index, the number of days in the analysis
+    const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
+    const std::array<std::size_t, 3> stride{static_cast<std::size_t>(floor(time_bounds)),
+                                            static_cast<std::size_t>(floor(MAX_CBG / locales.size())), MAX_CBG};
     const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
                                                        Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
+    spdlog::debug("Partitioned into {} tiles", tiles.size());
     const LocaleLocator<Coordinate3D> locator(tiles);
 
     const auto sd = chrono::floor<date::days>(config.start_date);
     const auto ed = chrono::floor<date::days>(config.end_date);
-
 
     std::map<std::string, std::string> config_values;
     config_values["poi_path"] = poi_path.string();
@@ -91,22 +92,45 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     using hpx::util::tuple;
     using hpx::util::get;
 
+    if (locales.size() != tiles.size()) {
+        spdlog::error("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());
+        return hpx::finalize(-1);
+    }
 
-
-    vector<hpx::future<void>> results;
-
+    // Initialize all the locales
+    vector <mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
     std::for_each(
             make_zip_iterator(locales.begin(), tiles.begin()),
             make_zip_iterator(locales.end(), tiles.end()),
-            [&results, &locator, &file_strs, &config_values](tuple<const hpx::id_type, const LocaleLocator<Coordinate3D>::value> t) {
+            [&servers, &locator, &file_strs, &config_values](
+                    tuple<const hpx::id_type, const LocaleLocator<Coordinate3D>::value> t) {
+                const auto tile = get<1>(t).first;
+                spdlog::debug("Creating server on locale {}", get<1>(t).second);
+//                const auto s = fmt::format("Tile bounds: {} - {}", tile.min_corner(), tile.max_corner());
                 mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(t), locator,
-                                                                                                    get<1>(t).first,
+                                                                                                    tile,
                                                                                                     config_values,
                                                                                                     file_strs);
-                results.push_back(std::move(server.tile()));
+                servers.push_back(std::move(server));
             });
 
+    vector <hpx::future<void>> results;
+    std::transform(servers.begin(), servers.end(), std::back_inserter(results), [](auto &server) {
+        return std::move(server.tile());
+    });
+
     hpx::wait_all(results);
+    spdlog::info("Tile complete, beginning computation");
+
+    // Now, compute
+    vector <hpx::future<void>> compute_results;
+    std::transform(servers.begin(), servers.end(), std::back_inserter(compute_results), [](auto &mt) {
+        return std::move(mt.compute());
+    });
+
+    hpx::wait_all(compute_results);
+
+    spdlog::debug("Computing completed");
 
     return hpx::finalize();
 }
