@@ -67,6 +67,7 @@ add_subdirectory(extern/blaze)
 add_subdirectory(extern/abseil)
 add_subdirectory(extern/date)
 add_subdirectory(extern/yaml-cpp)
+add_subdirectory(extern/range-v3)
 
 if (${USE_INTERNAL_HPX})
     message("Using internal HPX")

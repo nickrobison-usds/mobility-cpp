@@ -21,12 +21,11 @@ namespace mt::ctx {
 
         explicit Context(const emit_handler &handler, const mt_tile &tile,
                          const std::map<std::string, std::string> &config) : _handler(handler), _tile(tile),
-                                                                                       _config_values(config) {
+                                                                             _config_values(config) {
 
         }
 
         void emit(const Coordinate &coord, const Key &key) const {
-            spdlog::debug("Emitting Key");
             _handler(coord, key);
         }
 

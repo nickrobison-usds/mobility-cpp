@@ -8,13 +8,15 @@
 #include "SafegraphTiler.hpp"
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
-#include <hpx/modules/segmented_algorithms.hpp>
 #include <map-tile/client/MapTileClient.hpp>
 #include <map-tile/coordinates/LocaleTiler.hpp>
 #include <map-tile/coordinates/LocaleLocator.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <map-tile/io/FileProvider.hpp>
 #include <shared/HostnameLogger.hpp>
+#include <range/v3/view/cycle.hpp>
+#include <range/v3/view/zip.hpp>
+#include <range/v3/algorithm/for_each.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/DirectoryUtils.hpp>
 #include <shared/data.hpp>
@@ -72,7 +74,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Build the dataset space
     // Compute the Z-index, the number of days in the analysis
     const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
-    const std::array<std::size_t, 3> stride{static_cast<std::size_t>(floor(time_bounds)),
+    const std::array<std::size_t, 3> stride{7,
                                             static_cast<std::size_t>(floor(MAX_CBG / locales.size())), MAX_CBG};
     const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
                                                        Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
@@ -88,26 +90,24 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["start_date"] = std::to_string(sd.time_since_epoch().count());
     config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
 
-    using hpx::util::make_zip_iterator;
-    using hpx::util::tuple;
-    using hpx::util::get;
-
     if (locales.size() != tiles.size()) {
-        spdlog::error("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());
-        return hpx::finalize(-1);
+        spdlog::warn("Cannot executing {} tiles in {} locales.", tiles.size(), locales.size());
     }
 
     // Initialize all the locales
     vector <mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
-    std::for_each(
-            make_zip_iterator(locales.begin(), tiles.begin()),
-            make_zip_iterator(locales.end(), tiles.end()),
+    // Create a a server for each tile, cycling through the locales and files
+    const auto locale_range = ranges::views::cycle(locales);
+    const auto z = ranges::views::zip(locale_range, tiles);
+
+    ranges::for_each(
+            z,
             [&servers, &locator, &file_strs, &config_values](
-                    tuple<const hpx::id_type, const LocaleLocator<Coordinate3D>::value> t) {
-                const auto tile = get<1>(t).first;
-                spdlog::debug("Creating server on locale {}", get<1>(t).second);
+                    const auto &pair) {
+                const auto tile = pair.second.first;
+                spdlog::debug("Creating server on locale {}", pair.first);
 //                const auto s = fmt::format("Tile bounds: {} - {}", tile.min_corner(), tile.max_corner());
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(t), locator,
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(pair.first, locator,
                                                                                                     tile,
                                                                                                     config_values,
                                                                                                     file_strs);
