@@ -10,7 +10,7 @@
 #include <components/ShapefileWrapper.hpp>
 #include <shared/data.hpp>
 #include "OffsetCalculator.hpp"
-#include "../../src/TemporalMatricies.hpp"
+#include "TemporalMatricies.hpp"
 #include "shared/TileConfiguration.hpp"
 
 #include <hpx/lcos/future.hpp>

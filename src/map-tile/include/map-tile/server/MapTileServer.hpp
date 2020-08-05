@@ -57,6 +57,12 @@ namespace mt::server {
 
         void tile() {
             // Instantiate the context
+
+            // Setup the tiler
+            if constexpr (has_setup<Tiler, MapKey, Coordinate>::value) {
+                _tiler.setup(_ctx);
+            }
+
             // Load the CSV files
             // Let's do it all in memory for right now
             const auto ctx = _ctx;

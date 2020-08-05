@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/4/20.
 //
 
-#include "TemporalMatricies.hpp"
+#include "components/TemporalMatricies.hpp"
 #include "spdlog/spdlog.h"
 
 namespace components {

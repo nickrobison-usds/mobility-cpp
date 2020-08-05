@@ -16,7 +16,7 @@ add_library(mcpp-components
         include/components/TileClient.hpp src/TileClient.cpp
         src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
-        src/TemporalMatricies.cpp src/TemporalMatricies.hpp
+        src/TemporalMatricies.cpp include/components/TemporalMatricies.hpp
         src/TileWriter.cpp src/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/OffsetCalculator.cpp include/components/OffsetCalculator.hpp
         src/VisitMatrixWriter.cpp src/VisitMatrixWriter.hpp)
 

@@ -8,6 +8,7 @@
 #include "SafegraphTiler.hpp"
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
+#include <hpx/modules/segmented_algorithms.hpp>
 #include <map-tile/client/MapTileClient.hpp>
 #include <map-tile/coordinates/LocaleTiler.hpp>
 #include <map-tile/coordinates/LocaleLocator.hpp>
@@ -86,11 +87,24 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["start_date"] = std::to_string(sd.time_since_epoch().count());
     config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
 
+    using hpx::util::make_zip_iterator;
+    using hpx::util::tuple;
+    using hpx::util::get;
+
+
+
     vector<hpx::future<void>> results;
-    std::for_each(locales.begin(), locales.end(), [&results, &locator, &file_strs, &config_values](const auto &loc) {
-        mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(loc, locator, {}, config_values, file_strs);
-        results.push_back(std::move(server.tile()));
-    });
+
+    std::for_each(
+            make_zip_iterator(locales.begin(), tiles.begin()),
+            make_zip_iterator(locales.end(), tiles.end()),
+            [&results, &locator, &file_strs, &config_values](tuple<const hpx::id_type, const LocaleLocator<Coordinate3D>::value> t) {
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(t), locator,
+                                                                                                    get<1>(t).first,
+                                                                                                    config_values,
+                                                                                                    file_strs);
+                results.push_back(std::move(server.tile()));
+            });
 
     hpx::wait_all(results);
 
