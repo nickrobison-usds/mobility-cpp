@@ -9,6 +9,7 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>
+#include <spdlog/fmt/fmt.h>
 
 namespace mt::client {
 
@@ -42,7 +43,7 @@ namespace mt::client {
                                const std::map<string, string> &config,
                                std::vector<std::string> files) : base_type(
                 hpx::new_<MTS>(id, locator, tile.first, config, files)) {
-            hpx::register_with_basename("mt/base", this->get_id(), tile.second);
+            hpx::register_with_basename(fmt::format("mt/base/{}", tile.second), this->get_id());
         }
 
         hpx::future<void> tile() {

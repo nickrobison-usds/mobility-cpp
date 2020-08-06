@@ -21,7 +21,9 @@
 #include <shared/data.hpp>
 #include <shared/HostnameLogger.hpp>
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <queue>
 
 // The total number of Census Block Groups (CBGs) in the US
@@ -80,7 +82,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["output_name"] = config.output_name;
 
     if (locales.size() != tiles.size()) {
-        spdlog::warn("Cannot executing {} tiles in {} locales.", tiles.size(), locales.size());
+        spdlog::warn("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());
     }
 
     // Initialize all the locales

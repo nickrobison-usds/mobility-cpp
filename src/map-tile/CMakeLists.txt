@@ -3,7 +3,7 @@ find_package(Eigen3 3.3 NO_MODULE)
 
 add_library(map-tile include/map-tile/server/MapTileServer.hpp src/FileProvider.cpp include/map-tile/io/FileProvider.hpp include/map-tile/ctx/Context.hpp include/map-tile/client/MapTileClient.hpp include/map-tile/coordinates/LocaleLocator.hpp src/coordinates/Coordinate2D.cpp include/map-tile/coordinates/Coordinate2D.hpp src/coordinates/LocaleTiler.cpp include/map-tile/coordinates/LocaleTiler.hpp src/coordinates/Coordinate3D.cpp include/map-tile/coordinates/Coordinate3D.hpp include/traits.hpp)
 
-target_link_libraries(map-tile PUBLIC HPX::hpx INTERFACE spdlog PRIVATE Boost::iostreams shared)
+target_link_libraries(map-tile PUBLIC HPX::hpx spdlog shared PRIVATE Boost::iostreams)
 target_include_directories(map-tile PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

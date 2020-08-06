@@ -40,7 +40,8 @@ namespace components::server {
         return files;
     }
 
-    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file) :
+    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile,
+                                               std::string parquet_file) :
             _csv_file(std::move(csv_files)),
             _shapefile(std::move(shapefile)),
             _parquet(std::move(parquet_file)),
@@ -80,7 +81,7 @@ namespace components::server {
         return m;
     }
 
-    joined_location JoinedLocationServer::find_location(const std::string& safegraph_place_id) {
+    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) {
         return _cache.at(safegraph_place_id);
     }
 
@@ -101,15 +102,6 @@ namespace components::server {
         string naics_code;
         double latitude;
         double longitude;
-
-//        string street_address;
-//        string city;
-//        string region;
-//        uint32_t postal_code;
-//        string iso_country_code;
-//        string phone_number;
-//        string open_hours;
-//        string category_tags;
 
         // Open and read all the CSV files
         std::vector<safegraph_location> output;

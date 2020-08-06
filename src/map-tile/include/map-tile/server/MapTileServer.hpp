@@ -14,7 +14,12 @@
 #include <hpx/preprocessor/cat.hpp>
 #include <hpx/serialization/map.hpp>
 #include <hpx/include/parallel_for_each.hpp>
+#include <shared/HostnameLogger.hpp>
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -25,10 +30,17 @@ using namespace std;
 
 namespace mt::server {
 
+    std::shared_ptr<spdlog::logger> create_logger() {
+        auto formatter = std::make_unique<spdlog::pattern_formatter>();
+        formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
+        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+                fmt::format("test-dir/logs/{}.txt", hpx::get_locality_id()), true);
 
-    void tile() {
-        const auto locales = hpx::find_all_localities();
-        // For each locality, create a tile
+        spdlog::logger logger("MapTileServer", {console_sink, file_sink});
+        logger.set_formatter(std::move(formatter));
+
+        return std::make_shared<spdlog::logger>(logger);
     }
 
 
@@ -53,12 +65,14 @@ namespace mt::server {
                                                        _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
-                                                            tile, config) {
+                                                            tile, config),
+                                                            _logger(create_logger()){
             // Not used
         }
 
         void initialize() {
             // Setup the tiler
+            _logger->info("Initializing tilers");
             if constexpr (has_setup<Tiler, MapKey, Coordinate>::value) {
                 _tiler.setup(_ctx);
             }
@@ -76,8 +90,8 @@ namespace mt::server {
             if constexpr(has_setup<Mapper, MapKey, Coordinate>::value) {
                 mapper.setup(ctx);
             }
-            for_each(_files.begin(), _files.end(), [&ctx, &mapper](const string &filename) {
-                spdlog::debug("Reading {}", filename);
+            for_each(_files.begin(), _files.end(), [&ctx, &mapper, this](const string &filename) {
+                _logger->debug("Reading {}", filename);
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one
@@ -93,8 +107,9 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const Coordinate &key, const MapKey &value) {
-            spdlog::debug("Receiving");
+            _logger->debug("Receiving");
             _tiler.receive(_ctx, key, value);
+            _logger->debug("Receive complete");
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
@@ -109,20 +124,21 @@ namespace mt::server {
         const vector<string> _files;
         const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
+        const std::shared_ptr<spdlog::logger> _logger;
         Tiler _tiler;
 
         void handle_emit(const Coordinate &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
-            spdlog::debug("Emitting to {}", locale_num);
-            const auto id = hpx::find_from_basename("/mt/base", locale_num).get();
-            spdlog::debug("Found Component");
+            _logger->debug("Emitting to {}", locale_num);
+            const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
+            _logger->debug("Found Component");
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             try {
                 hpx::async<action_type>(id, key, value).get();
-                spdlog::debug("Finished Emit");
+                _logger->debug("Finished Emit to {}", locale_num);
             } catch (const std::exception &e) {
-                spdlog::debug("Unable to send value. {}", e.what());
+                _logger->debug("Unable to send value. {}", e.what());
             }
         }
     };
