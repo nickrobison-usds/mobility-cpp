@@ -113,7 +113,7 @@ weekly_pattern parse_string(const std::string_view v) {
             shared::DateUtils::to_days(splits[9]),
             shared::DateUtils::to_days(splits[10]),
             shared::ConversionUtils::convert_empty<uint32_t>(splits[11]),
-            shared::ConversionUtils::convert_empty<uint32_t>(splits[11]),
+            shared::ConversionUtils::convert_empty<uint32_t>(splits[12]),
             splits[13],
             splits[14],
             shared::ConversionUtils::convert_empty<uint64_t>(splits[15]),

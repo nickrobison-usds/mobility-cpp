@@ -93,6 +93,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const Coordinate &key, const MapKey &value) {
+            spdlog::debug("Receiving");
             _tiler.receive(_ctx, key, value);
         }
 
@@ -113,11 +114,13 @@ namespace mt::server {
         void handle_emit(const Coordinate &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
+            spdlog::debug("Emitting to {}", locale_num);
             const auto id = hpx::find_from_basename("/mt/base", locale_num).get();
-
+            spdlog::debug("Found Component");
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             try {
                 hpx::async<action_type>(id, key, value).get();
+                spdlog::debug("Finished Emit");
             } catch (const std::exception &e) {
                 spdlog::debug("Unable to send value. {}", e.what());
             }
