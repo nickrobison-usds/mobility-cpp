@@ -32,10 +32,13 @@ namespace hpx::serialization {
     }
 
     void serialize(input_archive &ar, date::sys_days &dt, unsigned int const) {
-        ar & dt;
+        std::uint64_t count;
+        ar & count;
+        dt = date::sys_days{} + date::days{count};
     }
 
     void serialize(output_archive &ar, date::sys_days &dt, unsigned int const) {
-        ar & dt;
+        auto count = dt.time_since_epoch().count();
+        ar & count;
     }
 }

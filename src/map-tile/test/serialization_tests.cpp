@@ -9,7 +9,6 @@
 
 TEST_CASE("Coordinate2D serialization", "[serialization]") {
     const mt::coordinates::Coordinate2D coord(1, 2);
-    std::ofstream ofs("coord-out");
 
     std::vector<char> out_buffer;
 

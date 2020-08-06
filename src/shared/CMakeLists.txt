@@ -10,3 +10,7 @@ target_link_libraries(shared PUBLIC spdlog date HPX::hpx PRIVATE Boost::system)
 target_include_directories(shared PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
+
+add_executable(shared-tests test/serialization_tests.cpp)
+target_link_libraries(shared-tests shared Catch2::Catch2)
+add_test(shared-tests shared-tests)

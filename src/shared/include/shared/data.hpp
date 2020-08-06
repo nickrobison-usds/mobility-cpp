@@ -81,7 +81,16 @@ struct v2 {
 
     template<typename Archive>
     void serialize(Archive &ar, const unsigned int version) {
-        ar & safegraph_place_id & visit_date & location_cbg & visits & distance & weighted_total;
+        ar & safegraph_place_id & visit_date & location_cbg & visit_cbg & visits & distance & weighted_total;
+    }
+
+    bool operator==(const v2 &rhs) const {
+        return safegraph_place_id == rhs.safegraph_place_id
+               && location_cbg == rhs.location_cbg
+               && visit_cbg == rhs.visit_cbg
+               && visits == rhs.visits
+               && distance == rhs.distance
+               && weighted_total == rhs.weighted_total;
     }
 };
 
