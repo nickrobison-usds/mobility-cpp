@@ -30,6 +30,7 @@ namespace mt::client {
 
     public:
         typedef typename coordinates::LocaleLocator<Coordinate>::mt_tile mt_tile;
+        typedef typename std::pair<mt_tile, std::uint64_t> tile_pair;
 
         explicit MapTileClient(hpx::future<hpx::id_type> &&f) : base_type(std::move(f)) {};
 
@@ -37,11 +38,11 @@ namespace mt::client {
 
         explicit MapTileClient(const hpx::id_type &id,
                                const coordinates::LocaleLocator<Coordinate> &locator,
-                               const mt_tile &tile,
+                               const tile_pair &tile,
                                const std::map<string, string> &config,
                                std::vector<std::string> files) : base_type(
-                hpx::new_<MTS>(id, locator, tile, config, files)) {
-            hpx::register_with_basename("mt/base", this->get_id());
+                hpx::new_<MTS>(id, locator, tile.first, config, files)) {
+            hpx::register_with_basename("mt/base", this->get_id(), tile.second);
         }
 
         hpx::future<void> tile() {
@@ -51,6 +52,11 @@ namespace mt::client {
 
         hpx::future<void> compute() {
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::compute_action action_type;
+            return hpx::async<action_type>(this->get_id());
+        }
+
+        hpx::future<void> initialize() {
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::initialize_action action_type;
             return hpx::async<action_type>(this->get_id());
         }
 

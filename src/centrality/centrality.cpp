@@ -76,7 +76,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["cbg_path"] = cbg_path.string();
     config_values["start_date"] = std::to_string(sd.time_since_epoch().count());
     config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
-    config_values["output_dir"] = config.output_dir;
+    config_values["output_dir"] = output_path.string();
     config_values["output_name"] = config.output_name;
 
     if (locales.size() != tiles.size()) {
@@ -116,7 +116,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                 }
 
 
-                const auto tile = get<1>(pair).first;
+                const auto tile = get<1>(pair);
                 spdlog::debug("Creating server on locale {}", get<0>(pair));
                 mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(pair), locator,
                                                                                                     tile,
@@ -125,6 +125,13 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                 servers.push_back(std::move(server));
             });
 
+    // initialize
+    vector<hpx::future<void>> init_results;
+    std::transform(servers.begin(), servers.end(), std::back_inserter(init_results), [](auto &server) {
+        return std::move(server.initialize());
+    });
+    hpx::wait_all(init_results);
+    // tile
     vector<hpx::future<void>> results;
     std::transform(servers.begin(), servers.end(), std::back_inserter(results), [](auto &server) {
         return std::move(server.tile());

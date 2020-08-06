@@ -57,14 +57,16 @@ namespace mt::server {
             // Not used
         }
 
-        void tile() {
-            // Instantiate the context
-
+        void initialize() {
             // Setup the tiler
             if constexpr (has_setup<Tiler, MapKey, Coordinate>::value) {
                 _tiler.setup(_ctx);
             }
+        }
 
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, initialize);
+
+        void tile() {
             // Load the CSV files
             // Let's do it all in memory for right now
             const auto ctx = _ctx;
@@ -140,7 +142,13 @@ namespace mt::server {
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::compute_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type),    \
-        HPX_PP_CAT(__MapTileServer_compute_action_, mapper));                      \
+        HPX_PP_CAT(__MapTileServer_compute_action_, mapper));                                           \
+                                                                                                        \
+    using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_initialize_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::initialize_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_initialize_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_initialize_action_, mapper));                                        \
                                                                                                         \
     typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \
