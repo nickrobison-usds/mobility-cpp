@@ -58,6 +58,13 @@ if (NOT ${USE_INTERNAL_HPX})
     set(BLAZE_SMP_THREADS HPX)
 endif ()
 
+set(USE_METAL OFF CACHE BOOL "Enable Apple Metal support")
+
+if (${USE_METAL})
+    message(INFO "Enabling Apple Metal support")
+    add_compile_definitions(USE_METAL)
+endif ()
+
 enable_testing()
 
 add_subdirectory(extern/spdlog)

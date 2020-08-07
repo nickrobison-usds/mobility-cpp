@@ -24,12 +24,10 @@ std::vector<double> MetalProcessor::computeDistances(const OGRPoint &point, std:
     const auto rsc = [bundle pathForResource:@"spatial" ofType:@"metallib"];
 
     NSError *nerr;
-
     const id <MTLLibrary> library = [device newLibraryWithFile:rsc error:&nerr];
     const id <MTLFunction> haversineFunction = [library newFunctionWithName:@"haversine"];
     
     // Build the pipeline
-
     const auto pipeline = [device newComputePipelineStateWithFunction:haversineFunction error:&nerr];
     
     // Copy into a single data buffer
