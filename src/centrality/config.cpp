@@ -16,6 +16,7 @@ struct CentralityConfig {
     std::string patterns_csv;
     std::string output_dir;
     std::string output_name;
+    std::string log_dir;
 };
 
 namespace YAML {
@@ -41,6 +42,7 @@ namespace YAML {
             rhs.patterns_csv = node["patterns_csv"].as<std::string>();
             rhs.output_dir = node["output_dir"].as<std::string>();
             rhs.output_name = node["output_name"].as<std::string>();
+            rhs.log_dir = node["log_dir"].as<std::string>();
             return true;
         }
     };

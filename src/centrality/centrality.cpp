@@ -50,6 +50,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto cbg_path = shared::DirectoryUtils::build_path(config.data_dir, config.cbg_shp);
     const auto poi_path = shared::DirectoryUtils::build_path(config.data_dir, config.poi_parquet);
     const auto output_path = shared::DirectoryUtils::build_path(config.data_dir, config.output_dir);
+    const auto log_path = shared::DirectoryUtils::build_path(config.data_dir, config.log_dir);
 
     if (!fs::exists(output_path)) {
         spdlog::debug("Creating output directory");
@@ -80,6 +81,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["end_date"] = std::to_string(ed.time_since_epoch().count());
     config_values["output_dir"] = output_path.string();
     config_values["output_name"] = config.output_name;
+    config_values["log_dir"] = log_path.string();
 
     if (locales.size() != tiles.size()) {
         spdlog::warn("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());

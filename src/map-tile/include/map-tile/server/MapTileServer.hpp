@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -30,12 +31,12 @@ using namespace std;
 
 namespace mt::server {
 
-    std::shared_ptr<spdlog::logger> create_logger() {
+    std::shared_ptr<spdlog::logger> create_logger(const std::string_view log_dir) {
         auto formatter = std::make_unique<spdlog::pattern_formatter>();
         formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-                fmt::format("test-dir/logs/{}.txt", hpx::get_locality_id()), true);
+                fmt::format("{}/{}.txt", log_dir, hpx::get_locality_id()), true);
 
         spdlog::logger logger("MapTileServer", {console_sink, file_sink});
         logger.set_formatter(std::move(formatter));
@@ -66,7 +67,7 @@ namespace mt::server {
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
                                                             tile, config),
-                                                            _logger(create_logger()){
+                                                            _logger(create_logger(config.at("log_dir"))){
             // Not used
         }
 
