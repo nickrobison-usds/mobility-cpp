@@ -32,20 +32,20 @@ double haversine(const double &lat1, const double &lon1, const double &lat2, con
     return R * c;
 }
 
-//TEST_CASE("Test GEOS", "[spatial]") {
-//
-//    std::vector<OGRPoint> points = {
-//        OGRPoint(-77.0674169, 38.9537949), // DC
-//        OGRPoint(-122.3550915, 47.6754785), // Seattle
-//
-//    };
-//
-//    OGRPoint p(-85.0310425, 41.2158127); // Leo
-//    spatial::geos::GEOSProcessor g;
-//    const auto results = g.computeDistances(p, points);
-//    const std::vector<double> expected = {8.2786506886383506, 37.878911230420691};
-//    REQUIRE_THAT(results, Catch::Approx(expected).epsilon(1.e-5));
-//}
+TEST_CASE("Test GEOS", "[spatial]") {
+
+    std::vector<OGRPoint> points = {
+        OGRPoint(-77.0674169, 38.9537949), // DC
+        OGRPoint(-122.3550915, 47.6754785), // Seattle
+
+    };
+
+    OGRPoint p(-85.0310425, 41.2158127); // Leo
+    spatial::geos::GEOSProcessor g;
+    const auto results = g.computeDistances(p, points);
+    const std::vector<double> expected = {8.2786506886383506, 37.878911230420691};
+    REQUIRE_THAT(results, Catch::Approx(expected).epsilon(1.e-5));
+}
 
 TEST_CASE("Test Haversine", "[spatial]") {
     std::vector<OGRPoint> points = {

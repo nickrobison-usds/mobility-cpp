@@ -5,6 +5,7 @@ if (${USE_INTERNAL_HPX})
 else ()
     find_package(HPX CONFIG REQUIRED)
 endif ()
+find_package(GEOS REQUIRED)
 
 if (NOT ${USE_INTERNAL_ARROW})
     find_package(Arrow CONFIG REQUIRED)
