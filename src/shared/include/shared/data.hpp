@@ -92,6 +92,13 @@ struct v2 {
                && distance == rhs.distance
                && weighted_total == rhs.weighted_total;
     }
+
+    template<typename OStream>
+    friend OStream &
+    operator<<(OStream &o, const v2 &v) {
+        auto msg = fmt::format("Location: {}\nSGID: {}\nVisit CBG: {}", v.location_cbg, v.safegraph_place_id, v.visit_cbg);
+        return o << msg;
+    }
 };
 
 struct joined_location {

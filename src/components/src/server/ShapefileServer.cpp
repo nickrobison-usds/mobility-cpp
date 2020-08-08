@@ -24,8 +24,14 @@ namespace components::server {
         centroids.reserve(geoids.size());
 
         std::transform(geoids.begin(), geoids.end(), std::back_inserter(centroids), [this](const auto &geoid) {
-            const auto centroid = _centroid_map.at(geoid);
-            return std::make_pair(geoid, centroid);
+            try {
+                const auto centroid = _centroid_map.at(geoid);
+                return std::make_pair(geoid, centroid);
+            } catch (std::exception &e) {
+                spdlog::error("Cannot find point for place: {}", geoid);
+                throw e;
+            }
+
         });
 
         dp.stop();

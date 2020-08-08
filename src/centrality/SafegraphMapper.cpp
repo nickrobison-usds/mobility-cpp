@@ -31,7 +31,15 @@ compute_distance(const std::shared_ptr<joined_location> loc, const std::vector<v
     o.reserve(patterns.size());
     std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
                    [&centroids, &loc_point, &loc](auto &row) {
-                       const auto cbg_centroid = centroids.at(row.visit_cbg);
+                       OGRPoint cbg_centroid;
+                       try {
+                           cbg_centroid = centroids.at(row.visit_cbg);
+                       } catch (std::exception &e) {
+                           spdlog::error("Cannot find point for CBG: {}", row.visit_cbg);
+                           spdlog::error("Row: {}", row);
+                           throw e;
+                       }
+
                        const auto distance = loc_point.Distance(&cbg_centroid);
                        v2 r2{row.safegraph_place_id, row.visit_date, loc->location_cbg,
                              row.visit_cbg, row.visits, distance, 0.0F};

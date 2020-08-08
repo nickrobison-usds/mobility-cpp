@@ -82,7 +82,12 @@ namespace components::server {
     }
 
     joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) {
-        return _cache.at(safegraph_place_id);
+
+        const auto iter = _cache.find(safegraph_place_id);
+        if (iter == _cache.end()) {
+            return joined_location{};
+        }
+        return iter->second;
     }
 
     std::vector<safegraph_location> JoinedLocationServer::invoke() {
