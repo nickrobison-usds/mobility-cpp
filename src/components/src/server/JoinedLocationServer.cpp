@@ -61,11 +61,10 @@ namespace components::server {
             const io::Parquet parquet(file);
 
             const auto table = parquet.read();
-
-            auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(0)->chunk(0));
-            auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
-            auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
-            auto location_id = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
+            auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(table->schema()->GetFieldIndex("latitude"))->chunk(0));
+            auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(table->schema()->GetFieldIndex("longitude"))->chunk(0));
+            auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(table->schema()->GetFieldIndex("location_cbg"))->chunk(0));
+            auto location_id = static_pointer_cast<arrow::StringArray>(table->column(table->schema()->GetFieldIndex("safegraph_place_id"))->chunk(0));
 
             for (std::int64_t i = 0; i < table->num_rows(); i++) {
                 const double lat = latitude->Value(i);
