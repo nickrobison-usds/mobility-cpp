@@ -7,7 +7,6 @@
 #include "../RowProcessor.hpp"
 #include "../TileWriter.hpp"
 #include "../VisitMatrixWriter.hpp"
-#include "../vector_scaler.hpp"
 #include <absl/strings/str_split.h>
 #include <blaze/math/Math.h>
 #include <blaze/math/CompressedVector.h>
@@ -197,7 +196,10 @@ namespace components::server {
 
             // scale it back down
             spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
-            const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler<double>(max));
+            // FIXME: This is broken, due to AVX issues in the vector scaler
+//            const auto scaled_results = blaze::map(cbg_risk_score, detail::VectorScaler<double>(max));
+            const blaze::CompressedVector<double, blaze::rowVector> scaled_results = blaze::sum<blaze::columnwise>(
+                    matrix_pair.vm);
             const auto multiply_elapsed = hpx::util::high_resolution_clock::now() - multiply_start;
             print_timing("Multiply", multiply_elapsed);
 

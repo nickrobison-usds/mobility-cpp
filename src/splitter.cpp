@@ -1,6 +1,4 @@
 
-#include <algorithm>
-
 #include "io/parquet.hpp"
 #include "components/data.hpp"
 #include "components/WeekSplitter.hpp"
@@ -11,6 +9,8 @@
 #include <boost/filesystem.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h" // Get FMT from spdlog, to avoid conflicts with other libraries.
+
+#include <algorithm>
 
 namespace fs = boost::filesystem;
 using namespace std;

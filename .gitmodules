@@ -19,3 +19,15 @@
 [submodule "extern/sanitizers-cmake"]
 	path = extern/sanitizers-cmake
 	url = ../../arsenm/sanitizers-cmake.git
+[submodule "extern/vcpkg"]
+	path = extern/vcpkg
+	url = ../../microsoft/vcpkg.git
+[submodule "extern/hpx"]
+	path = extern/hpx
+	url = ../../STEllAR-GROUP/hpx
+[submodule "extern/hdf5"]
+	path = extern/hdf5
+	url = ../../HDFGroup/hdf5
+[submodule "extern/arrow"]
+	path = extern/arrow
+	url = ../../apache/arrow.git
