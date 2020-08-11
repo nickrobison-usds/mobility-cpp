@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/9/20.
 //
 
-#include "RowProcessor.hpp"
+#include "components/RowProcessor.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/regex.hpp>
 #include <shared/debug.hpp>

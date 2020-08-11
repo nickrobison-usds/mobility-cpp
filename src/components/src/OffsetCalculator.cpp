@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/10/20.
 //
 
-#include "OffsetCalculator.hpp"
+#include "components/OffsetCalculator.hpp"
 #include <spdlog/spdlog.h>
 
 namespace components::detail {

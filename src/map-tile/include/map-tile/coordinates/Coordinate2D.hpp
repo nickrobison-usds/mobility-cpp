@@ -10,14 +10,13 @@
 #include <boost/geometry.hpp>
 #include <array>
 
-static constexpr int dimensions = 2;
-
 namespace bg = boost::geometry;
 
 namespace mt::coordinates {
-    class Coordinate2D : public bg::model::point<std::size_t, dimensions, bg::cartesian_tag> {
+    class Coordinate2D : public bg::model::point<std::size_t, 2, bg::cartesian_tag> {
 
     public:
+        static constexpr int dimensions = 2;
 
         Coordinate2D() = default;
 
@@ -26,14 +25,26 @@ namespace mt::coordinates {
         [[nodiscard]] std::array<std::size_t, dimensions> getDimensions() const;
 
         [[nodiscard]] std::size_t get_dim0() const;
+
         [[nodiscard]] std::size_t get_dim1() const;
+
         void set_dim0(const std::size_t &dim0);
+
         void set_dim1(const std::size_t &dim1);
 
         bool operator==(const Coordinate2D &rhs) const;
 
+        bool operator<(const Coordinate2D &rhs) const;
+
+        bool operator>=(const Coordinate2D &rhs) const;
+
+        bool within(const bg::model::box<Coordinate2D> &rhs) const;
+
+        friend std::ostream& operator<<(std::ostream &os, const Coordinate2D &coord);
+
         // HPX required serialization
         friend class hpx::serialization::access;
+
         template<typename Archive>
         void serialize(Archive &ar, const unsigned int version) {
             ar & _dim0 & _dim1;
@@ -43,7 +54,11 @@ namespace mt::coordinates {
         std::size_t _dim0;
         std::size_t _dim1;
     };
+
+
 }
+
+
 
 namespace boost::geometry::traits {
 

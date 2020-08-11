@@ -40,7 +40,8 @@ namespace components::server {
         return files;
     }
 
-    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile, std::string parquet_file) :
+    JoinedLocationServer::JoinedLocationServer(std::vector<std::string> csv_files, std::string shapefile,
+                                               std::string parquet_file) :
             _csv_file(std::move(csv_files)),
             _shapefile(std::move(shapefile)),
             _parquet(std::move(parquet_file)),
@@ -60,11 +61,10 @@ namespace components::server {
             const io::Parquet parquet(file);
 
             const auto table = parquet.read();
-
-            auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(0)->chunk(0));
-            auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(1)->chunk(0));
-            auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(2)->chunk(0));
-            auto location_id = static_pointer_cast<arrow::StringArray>(table->column(3)->chunk(0));
+            auto latitude = static_pointer_cast<arrow::DoubleArray>(table->column(table->schema()->GetFieldIndex("latitude"))->chunk(0));
+            auto longitude = static_pointer_cast<arrow::DoubleArray>(table->column(table->schema()->GetFieldIndex("longitude"))->chunk(0));
+            auto location_cbg = static_pointer_cast<arrow::StringArray>(table->column(table->schema()->GetFieldIndex("location_cbg"))->chunk(0));
+            auto location_id = static_pointer_cast<arrow::StringArray>(table->column(table->schema()->GetFieldIndex("safegraph_place_id"))->chunk(0));
 
             for (std::int64_t i = 0; i < table->num_rows(); i++) {
                 const double lat = latitude->Value(i);
@@ -80,8 +80,13 @@ namespace components::server {
         return m;
     }
 
-    joined_location JoinedLocationServer::find_location(const std::string& safegraph_place_id) {
-        return _cache.at(safegraph_place_id);
+    joined_location JoinedLocationServer::find_location(const std::string &safegraph_place_id) {
+
+        const auto iter = _cache.find(safegraph_place_id);
+        if (iter == _cache.end()) {
+            return joined_location{};
+        }
+        return iter->second;
     }
 
     std::vector<safegraph_location> JoinedLocationServer::invoke() {
@@ -101,15 +106,6 @@ namespace components::server {
         string naics_code;
         double latitude;
         double longitude;
-
-//        string street_address;
-//        string city;
-//        string region;
-//        uint32_t postal_code;
-//        string iso_country_code;
-//        string phone_number;
-//        string open_hours;
-//        string category_tags;
 
         // Open and read all the CSV files
         std::vector<safegraph_location> output;

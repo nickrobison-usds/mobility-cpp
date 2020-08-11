@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/5/20.
 //
 
-#include "TileWriter.hpp"
+#include "components/TileWriter.hpp"
 #include "spdlog/spdlog.h"
 
 #include <utility>

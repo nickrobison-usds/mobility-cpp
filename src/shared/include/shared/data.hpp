@@ -24,6 +24,13 @@ struct data_row {
     vector<uint32_t> visits;
     double distance;
 
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & location_cbg & visit_cbg & date & visits & distance;
+    }
+
     template<typename OStream>
     friend OStream &
     operator<<(OStream &o, const data_row &dr) {
@@ -69,6 +76,30 @@ struct v2 {
     uint32_t visits;
     double distance;
     double weighted_total;
+
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & safegraph_place_id & visit_date & location_cbg & visit_cbg & visits & distance & weighted_total;
+    }
+
+    bool operator==(const v2 &rhs) const {
+        return safegraph_place_id == rhs.safegraph_place_id
+               && location_cbg == rhs.location_cbg
+               && visit_cbg == rhs.visit_cbg
+               && visits == rhs.visits
+               && distance == rhs.distance
+               && weighted_total == rhs.weighted_total;
+    }
+
+    template<typename OStream>
+    friend typename std::enable_if_t<!std::is_same_v<OStream, hpx::serialization::output_archive>, OStream>&
+    operator<<(OStream &o, const v2 &v) {
+        auto msg = fmt::format("Location: {}\nSGID: {}\nVisit CBG: {}", v.location_cbg, v.safegraph_place_id,
+                               v.visit_cbg);
+        return o << msg;
+    }
 };
 
 struct joined_location {

@@ -7,24 +7,22 @@ CHECK_FOR_AVX()
 
 add_library(mcpp-components
         src/WeekSplitter.cpp
-#        src/vector_scaler.hpp
-        include/components/constants.hpp
-        include/components/WeekSplitter.hpp include/components/data.hpp
-        include/components/serializers.hpp include/components/serializers.cpp
+# src/vector_scaler.hpp
+        include/components/WeekSplitter.hpp
         src/server/JoinedLocationServer.cpp src/server/JoinedLocationServer.hpp
         src/JoinedLocation.cpp include/components/JoinedLocation.hpp
         src/server/WeekSplitterServer.cpp src/server/WeekSplitterServer.hpp
         src/server/TileServer.cpp src/server/TileServer.hpp
-        src/TileConfiguration.hpp include/components/TileClient.hpp src/TileClient.cpp
+        include/components/TileClient.hpp src/TileClient.cpp
         src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
-        src/TemporalMatricies.cpp src/TemporalMatricies.hpp
-        src/TileWriter.cpp src/TileWriter.hpp src/RowProcessor.cpp src/RowProcessor.hpp src/OffsetCalculator.cpp src/OffsetCalculator.hpp
-        src/VisitMatrixWriter.cpp src/VisitMatrixWriter.hpp)
+        src/TemporalMatricies.cpp include/components/TemporalMatricies.hpp
+        src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/OffsetCalculator.cpp include/components/OffsetCalculator.hpp
+        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp)
 
 add_library(MCPP::components ALIAS mcpp-components)
 
-target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map PRIVATE io spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
+target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map io PRIVATE spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
 target_include_directories(mcpp-components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

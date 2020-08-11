@@ -3,17 +3,15 @@
 //
 
 #include "TileServer.hpp"
-#include "../OffsetCalculator.hpp"
-#include "../RowProcessor.hpp"
-#include "../TileWriter.hpp"
-#include "../VisitMatrixWriter.hpp"
+#include "components/OffsetCalculator.hpp"
+#include "components/RowProcessor.hpp"
 #include <absl/strings/str_split.h>
 #include <blaze/math/Math.h>
+#include "components/TileWriter.hpp"
+#include "components/VisitMatrixWriter.hpp"
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicVector.h>
 #include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
-#include <hpx/parallel/execution.hpp>
 #include <hpx/parallel/algorithms/transform.hpp>
 #include <io/csv_reader.hpp>
 #include "spdlog/spdlog.h"

@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 7/20/20.
 //
 
-#include "FileProvider.hpp"
+#include "map-tile/io/FileProvider.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -28,6 +28,9 @@ namespace mt::io {
             stream<mapped_file_source> is(mmap, std::ios::binary);
 
             std::string line;
+
+            // Skip the first line
+            std::getline(is, line);
 
             while (std::getline(is, line)) {
                 output.push_back(line);

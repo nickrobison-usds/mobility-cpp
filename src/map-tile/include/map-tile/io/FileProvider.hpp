@@ -22,16 +22,6 @@ namespace mt::io {
     private:
         const std::string _filename;
     };
-
-
-
-//    template<>
-//    class FileProvider<std::string> {
-//
-//        std::vector<std::string> provide() const {
-
-//        }
-//    };
 }
 
 

@@ -1,6 +1,6 @@
 
 #include "io/parquet.hpp"
-#include "components/data.hpp"
+#include "shared/include/shared/data.hpp"
 #include "components/WeekSplitter.hpp"
 #include "utils.hpp"
 

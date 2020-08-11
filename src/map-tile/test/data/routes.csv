@@ -1,3 +1,4 @@
+airline, airline_id, src_airport, src_airport_id, dest_airport, dest_airport_id, code_share, stops, equipment
 2B,410,AER,2965,KZN,2990,,0,CR2
 2B,410,ASF,2966,KZN,2990,,0,CR2
 2B,410,ASF,2966,MRV,2962,,0,CR2

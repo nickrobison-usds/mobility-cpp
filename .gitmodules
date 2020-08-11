@@ -28,3 +28,9 @@
 [submodule "extern/hdf5"]
 	path = extern/hdf5
 	url = ../../HDFGroup/hdf5
+[submodule "extern/yaml-cpp"]
+	path = extern/yaml-cpp
+	url = ../../jbeder/yaml-cpp
+[submodule "extern/range-v3"]
+	path = extern/range-v3
+	url = ../../ericniebler/range-v3

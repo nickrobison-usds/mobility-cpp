@@ -6,6 +6,10 @@ else ()
     find_package(HPX CONFIG REQUIRED)
 endif ()
 
+if (NOT ${USE_INTERNAL_ARROW})
+    find_package(Arrow CONFIG REQUIRED)
+endif ()
+
 # Include AVX, if it's available
 include(FindAVX)
 CHECK_FOR_AVX()
@@ -14,6 +18,7 @@ add_subdirectory(io)
 add_subdirectory(components)
 add_subdirectory(shared)
 add_subdirectory(map-tile)
+add_subdirectory(centrality)
 
 #add_executable(splitter splitter.cpp)
 #target_link_libraries(splitter PRIVATE io mcpp-components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog)

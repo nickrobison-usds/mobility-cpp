@@ -2,39 +2,22 @@
 // Created by Nicholas Robison on 6/1/20.
 //
 
-#include <components/constants.hpp>
+#include <shared/constants.hpp>
 #include <components/TileClient.hpp>
 #include <shared/HostnameLogger.hpp>
+#include <shared/DateUtils.hpp>
+#include <shared/DirectoryUtils.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include "spdlog/spdlog.h"
 #include "spdlog/pattern_formatter.h"
-#include "utils.hpp"
 #include <chrono>
 #include <string>
-#include <iomanip>
 #include <hpx/runtime/find_localities.hpp>
 
 using namespace std;
 
 typedef chrono::duration<int, ratio_multiply<chrono::hours::period, ratio<24>>::type> days;
-
-chrono::system_clock::time_point parse_date(const string &date) {
-    tm tm = {};
-    stringstream ss{date};
-    ss >> get_time(&tm, "%Y-%m-%d");
-    chrono::system_clock::time_point tp = chrono::system_clock::from_time_t(mktime(&tm));
-
-    return tp;
-}
-
-fs::path build_path(const fs::path &root_path, const string &path_string) {
-    fs::path appender(path_string);
-    if (appender.is_relative()) {
-        return fs::path(root_path) /= appender;
-    };
-    return appender;
-};
 
 
 int hpx_main(hpx::program_options::variables_map &vm) {
@@ -51,13 +34,13 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const string input_dir = vm["data_dir"].as<string>();
     const fs::path data_dir(fs::absolute(fs::path(input_dir)));
     const auto cbg_str = vm["cbg_shp"].as<string>();
-    const auto cbg_path = build_path(data_dir, cbg_str);
+    const auto cbg_path = shared::DirectoryUtils::build_path(data_dir, cbg_str);
     const auto poi_str = vm["poi_parquet"].as<string>();
-    const auto poi_path = build_path(data_dir, poi_str);
+    const auto poi_path = shared::DirectoryUtils::build_path(data_dir, poi_str);
     const auto csv_str = vm["pattern_csvs"].as<string>();
-    const auto csv_path = build_path(data_dir, csv_str);
+    const auto csv_path = shared::DirectoryUtils::build_path(data_dir, csv_str);
     const auto output_str = vm["output_directory"].as<string>();
-    const auto output_path = build_path(data_dir, output_str);
+    const auto output_path = shared::DirectoryUtils::build_path(data_dir, output_str);
     const auto output_name = vm["output_name"].as<string>();
     const auto nr = vm["nr"].as<uint16_t>();
     const auto tile_parititions = vm["np"].as<uint16_t>();
@@ -69,7 +52,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     const string date_string = vm["start_date"].as<string>();
     // TODO: Would be nice to combine this with the previous call.
-    const auto start_date = parse_date(date_string);
+    const auto start_date = shared::DateUtils::parse_date(date_string);
 
     // Set the end date, if one is provided
     const string end_date_string = vm["end_date"].as<string>();
@@ -77,7 +60,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     if (end_date_string.empty()) {
         end_date = chrono::system_clock::now();
     } else {
-        end_date = parse_date(end_date_string);
+        end_date = shared::DateUtils::parse_date(end_date_string);
     }
     // Max size of Z axis
     const auto time_bounds = chrono::duration_cast<days>(end_date - start_date).count();
@@ -85,7 +68,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto locales = hpx::find_all_localities();
     spdlog::debug("Executing on {} locales", locales.size());
 
-    const auto files = enumerate_files(csv_path.string(), ".*patterns\\.csv");
+    const auto files = shared::DirectoryUtils::enumerate_files(csv_path.string(), ".*patterns\\.csv");
     // From the list of files, get their paths (as strings) and compute their offset from the
     vector<pair<string, date::sys_days>> input_files;
     std::transform(files.begin(), files.end(), back_inserter(input_files), [&start_date](const auto &file) {
@@ -122,7 +105,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                   });
 
     // Partition the inputs based on the number of locales;
-    const auto split_tiles = SplitVector(tiles, locales.size());
+    const auto split_tiles = shared::DirectoryUtils::split_vector(tiles, locales.size());
 
     const auto locale_tiles = split_tiles.at(hpx::get_locality_id());
 
