@@ -77,7 +77,6 @@ TEST_CASE("Test Metal", "[spatial]") {
     };
 
     OGRPoint p(-85.0310425, 41.2158127); // Leo
-//    std::vector<double> results;
 
     spatial::metal::MetalProcessor processor;
     const auto results = processor.computeDistances(p, points);
