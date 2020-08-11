@@ -54,7 +54,7 @@ namespace mt::coordinates {
         }
 
         template<typename OStream>
-        friend OStream &
+        friend typename std::enable_if_t<!std::is_same_v<OStream, hpx::serialization::output_archive>, OStream>&
         operator<<(OStream &os, const Coordinate3D &coord) {
             return os << fmt::format("{dim0: {}, dim1:{}, dim2: {}}", coord.get_dim0(), coord.get_dim1(),
                                      coord.get_dim2());

@@ -94,9 +94,10 @@ struct v2 {
     }
 
     template<typename OStream>
-    friend OStream &
+    friend typename std::enable_if_t<!std::is_same_v<OStream, hpx::serialization::output_archive>, OStream>&
     operator<<(OStream &o, const v2 &v) {
-        auto msg = fmt::format("Location: {}\nSGID: {}\nVisit CBG: {}", v.location_cbg, v.safegraph_place_id, v.visit_cbg);
+        auto msg = fmt::format("Location: {}\nSGID: {}\nVisit CBG: {}", v.location_cbg, v.safegraph_place_id,
+                               v.visit_cbg);
         return o << msg;
     }
 };
