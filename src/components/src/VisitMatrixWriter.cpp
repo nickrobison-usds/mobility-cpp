@@ -23,10 +23,10 @@ namespace components {
                 continue;
             }
             for (visit_matrix::ConstIterator it = matrix.cbegin(i); it != matrix.cend(i); ++it) {
-                const auto dist = std::distance(matrix.cbegin(i), it);
-                const auto visitor_cbg = _offset_calculator.cbg_from_offset(dist);
+                const auto id = it->index();
+                const auto visitor_cbg = _offset_calculator.cbg_from_offset(id);
                 if (!visitor_cbg.has_value()) {
-                    spdlog::error("Cannot process dest cbg: `{}`", dist);
+                    spdlog::error("Cannot process dest cbg: `{}`", id);
                     continue;
                 }
                 status = _poi_cbg_builder.Append(*poi_cbg);
