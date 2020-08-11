@@ -9,7 +9,6 @@
 #include <blaze/math/Math.h>
 #include "components/TileWriter.hpp"
 #include "components/VisitMatrixWriter.hpp"
-#include "../vector_scaler.hpp"
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicVector.h>
 #include <boost/filesystem.hpp>
