@@ -8,6 +8,7 @@
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/ctx/Context.hpp"
 #include "map-tile/io/FileProvider.hpp"
+#include "ComponentIDCache.hpp"
 #include "traits.hpp"
 #include <hpx/include/actions.hpp>
 #include <hpx/include/components.hpp>
@@ -53,7 +54,8 @@ namespace mt::server {
                                                        _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
-                                                            tile, config) {
+                                                            tile, config),
+                                                       _id_cache(10) {
             auto formatter = std::make_unique<spdlog::pattern_formatter>();
             formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -122,20 +124,21 @@ namespace mt::server {
         const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
+        detail::ComponentIDCache _id_cache;
 
-        void handle_emit(const Coordinate &key, const MapKey &value) const {
-            // We do this manually to avoid pull in the MapClient header
+        void handle_emit(const Coordinate &key, const MapKey &value) {
             const auto locale_num = _locator.get_locale(key);
             spdlog::debug("Emitting to {}", locale_num);
-            const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-            spdlog::debug("Found Component");
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
-            try {
-                hpx::async<action_type>(id, key, value).get();
-                spdlog::debug("Finished Emit to {}", locale_num);
-            } catch (const std::exception &e) {
-                spdlog::debug("Unable to send value. {}", e.what());
-            }
+            return _id_cache.lookup_id(locale_num).then([&key, &value](auto f) {
+                auto id = f.get();
+                typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
+                try {
+                    hpx::async<action_type>(id, key, value).get();
+                } catch (const std::exception &e) {
+                    spdlog::error("Unable to send value. {}", e.what());
+                }
+            }).get();
+
         }
     };
 }
