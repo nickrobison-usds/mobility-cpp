@@ -6,6 +6,10 @@ else ()
     find_package(HPX CONFIG REQUIRED)
 endif ()
 
+if (NOT ${USE_INTERNAL_ARROW})
+    find_package(Arrow CONFIG REQUIRED)
+endif ()
+
 # Include AVX, if it's available
 include(FindAVX)
 CHECK_FOR_AVX()

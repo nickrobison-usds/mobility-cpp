@@ -1,9 +1,5 @@
 find_package(GDAL REQUIRED)
 
-if (NOT ${USE_INTERNAL_ARROW})
-    find_package(Arrow CONFIG REQUIRED)
-endif ()
-
 # Find HDF5
 set(HDF5_PREFER_PARALLEL False)
 
