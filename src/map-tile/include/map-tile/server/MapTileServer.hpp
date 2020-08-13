@@ -137,6 +137,7 @@ namespace mt::server {
             const auto locale_num = _locator.get_locale(key);
             const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             try {
                 hpx::async<action_type>(id, key, value).get();
             } catch (const std::exception &e) {
