@@ -8,10 +8,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         include:
           - os: ubuntu-latest
             triplet: x64-linux
+          - os: macos-latest
+            triplet: x64-osx
+
     steps:
       - uses: actions/checkout@v1
         with:
@@ -25,8 +28,13 @@ jobs:
         with:
           VCPKGRESPONSEFILE: ${{ github.workspace }}/cmake/vcpkg_${{ matrix.triplet }}.txt
 
+      - name: (macOS) Install dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install hwloc bison flex
+
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@dev/disable_cache
+        uses: lukka/run-vcpkg@v3
         id: runvcpkg
         with:
           vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
@@ -42,4 +50,3 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: '${{ github.workspace }}/build/'
           cmakeAppendedArgs: '-GNinja -DCI=ON'
-

@@ -1,6 +1,3 @@
-
-find_package(GEOS REQUIRED)
-
 # Include AVX, if it's available
 include(FindAVX)
 CHECK_FOR_AVX()
