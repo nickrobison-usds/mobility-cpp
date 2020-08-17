@@ -15,10 +15,12 @@
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/coordinates/LocaleLocator.hpp"
 #include "map-tile/coordinates/Coordinate2D.hpp"
+#include <map-tile/coordinates/LocaleTiler.hpp>
 #include <Eigen/Sparse>
 #include <atomic>
 #include <iostream>
-#include <map-tile/coordinates/LocaleTiler.hpp>
+#include <mutex>
+
 
 int main(int argc, char *argv[]) {
     return Catch::Session().run(argc, argv);
@@ -87,11 +89,11 @@ struct FlightMapper {
         // Lookup the airport ID
         const auto src_iter = _airports.left.find(f.src_airport);
         if (src_iter == _airports.left.end()) {
-            throw new std::invalid_argument("Cannot find airport ID");
+            throw std::invalid_argument("Cannot find airport ID");
         }
         const auto dest_iter = _airports.left.find(f.dest_airport);
         if (dest_iter == _airports.left.end()) {
-            throw new std::invalid_argument("Cannot find airport ID");
+            throw std::invalid_argument("Cannot find airport ID");
         }
 
         const mt::coordinates::Coordinate2D coord(src_iter->second, dest_iter->second);
@@ -112,16 +114,17 @@ struct FlightTile {
     void receive(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const mt::coordinates::Coordinate2D &key,
                  const FlightInfo &value) {
         // Just increment a simple counter
-        std::cout << "Receiving" << std::endl;
+        const std::lock_guard<std::mutex> lock(_m);
         _flight_matrix.coeffRef(key.get_dim0(), key.get_dim1()) += 1;
     }
 
-    void compute() {
+    void compute(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
         flights += _flight_matrix.sum();
     }
 
 private:
     Eigen::SparseMatrix<unsigned int> _flight_matrix;
+    std::mutex _m;
 };
 
 REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
@@ -143,13 +146,26 @@ TEST_CASE("Flight Mapper", "[integration]") {
     const mt::coordinates::LocaleLocator<Coordinate2D> l(tiles);
     std::vector<string> files{"data/routes.csv"};
 
+    // Create the servers
+    std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile>> servers;
+    for (const auto &loc : hpx::find_all_localities()) {
+        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile> server(loc, l, {}, {}, files);
+        servers.push_back(std::move(server));
+    }
+
     // Run a client on each locale
     std::vector<hpx::future<void>> results;
-    for (const auto &loc : hpx::find_all_localities()) {
-        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile> server(loc, l, files);
-        results.push_back(std::move(server.tile()));
-    }
+    std::for_each(servers.begin(), servers.end(),[&results](auto s) {
+        results.push_back(std::move(s.tile()));
+    });
     hpx::wait_all(results);
+
+    // Compute
+    std::vector<hpx::future<void>> compute_results;
+    std::for_each(servers.begin(), servers.end(),[&compute_results](auto s) {
+        compute_results.push_back(std::move(s.compute()));
+    });
+    hpx::wait_all(compute_results);
 
     REQUIRE(flights == (67663 * locales));
 }

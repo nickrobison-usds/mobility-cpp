@@ -57,11 +57,11 @@ namespace mt::server {
             auto formatter = std::make_unique<spdlog::pattern_formatter>();
             formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-                    fmt::format("{}/{}.txt", config.at("log_dir"), hpx::get_locality_id()), true);
+//            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+//                    fmt::format("{}/{}.txt", config.at("log_dir"), hpx::get_locality_id()), true);
 
             console_sink->set_level(spdlog::level::info);
-            spdlog::logger logger("MapTileServer", {console_sink, file_sink});
+            spdlog::logger logger("MapTileServer", {console_sink});
             logger.set_formatter(std::move(formatter));
             spdlog::set_default_logger(std::make_shared<spdlog::logger>(logger));
             spdlog::set_level(spdlog::level::debug);
