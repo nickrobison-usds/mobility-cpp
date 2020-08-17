@@ -117,6 +117,12 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
+        double reduce() {
+            return _tiler.reduce(_ctx);
+        }
+
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, reduce);
+
     private:
         const vector<string> _files;
         const coordinates::LocaleLocator<Coordinate> _locator;
@@ -164,6 +170,12 @@ namespace mt::server {
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_initialize_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_initialize_action_, mapper));                                        \
+                                                                                                        \
+        using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_reduce_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::reduce_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_reduce_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_reduce_action_, mapper));                                        \
                                                                                                         \
     typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \

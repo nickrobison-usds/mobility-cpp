@@ -17,7 +17,8 @@
 #include "map-tile/coordinates/Coordinate2D.hpp"
 #include <map-tile/coordinates/LocaleTiler.hpp>
 #include <Eigen/Sparse>
-#include <atomic>
+#include <algorithm>
+#include <functional>
 #include <iostream>
 #include <mutex>
 
@@ -25,9 +26,6 @@
 int main(int argc, char *argv[]) {
     return Catch::Session().run(argc, argv);
 }
-
-// Some atomics
-std::atomic_int flights(0);
 
 typedef boost::bimap<std::string, std::size_t> flight_bimap;
 typedef flight_bimap::value_type position;
@@ -119,12 +117,17 @@ struct FlightTile {
     }
 
     void compute(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
-        flights += _flight_matrix.sum();
+        _local_total = _flight_matrix.sum();
+    }
+
+    double reduce(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
+        return _local_total;
     }
 
 private:
     Eigen::SparseMatrix<unsigned int> _flight_matrix;
     std::mutex _m;
+    double _local_total = 0;
 };
 
 REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
@@ -167,6 +170,17 @@ TEST_CASE("Flight Mapper", "[integration]") {
     });
     hpx::wait_all(compute_results);
 
-    REQUIRE(flights == (67663 * locales));
+    // Reduce
+    std::vector<hpx::future<double>> reduce_results;
+    std::for_each(servers.begin(), servers.end(),[&reduce_results](auto s) {
+        reduce_results.push_back(std::move(s.reduce()));
+    });
+    hpx::wait_all(reduce_results);
+
+    const auto reduced_val = std::transform_reduce(reduce_results.begin(), reduce_results.end(), 0.0, std::plus<>(), [](auto &f) {
+        return f.get();
+    });
+
+    REQUIRE(reduced_val == (67663 * locales));
 }
 

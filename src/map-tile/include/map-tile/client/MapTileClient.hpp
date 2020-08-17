@@ -61,6 +61,11 @@ namespace mt::client {
             return hpx::async<action_type>(this->get_id());
         }
 
+        hpx::future<double> reduce() {
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::reduce_action action_type;
+            return hpx::async<action_type>(this->get_id());
+        }
+
         void receive(hpx::launch::apply_policy, const Coordinate key, const MapKey value) {
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
             return hpx::apply<action_type>(this->get_id(), key, value);
