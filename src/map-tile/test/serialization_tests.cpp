@@ -16,22 +16,20 @@ TEST_CASE("Coordinate2D serialization", "[serialization]") {
     oa << coord;
 
     hpx::serialization::input_archive ia(out_buffer, out_buffer.size());
-    mt::coordinates::Coordinate2D c2;
+    mt::coordinates::Coordinate2D c2{};
     ia >> c2;
     REQUIRE(coord == c2);
 }
 
 TEST_CASE("Coordinate3D serialization", "[serialization]") {
     const mt::coordinates::Coordinate3D coord(1, 2, 4);
-    std::ofstream ofs("coord-out");
 
     std::vector<char> out_buffer;
-
     hpx::serialization::output_archive oa(out_buffer);
     oa << coord;
 
     hpx::serialization::input_archive ia(out_buffer, out_buffer.size());
-    mt::coordinates::Coordinate3D c2;
+    mt::coordinates::Coordinate3D c2{};
     ia >> c2;
     REQUIRE(coord == c2);
 }
