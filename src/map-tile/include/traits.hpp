@@ -22,5 +22,17 @@ struct has_setup<T, Key, Coordinate, std::void_t<decltype(&T::setup)>>
         : std::is_same<void, decltype(std::declval<T>().setup(std::declval<mt::ctx::Context<Key, Coordinate>>()))> {
 };
 
+/**
+ * Same as above, but for the reduce method
+ */
+template<typename, typename, typename, typename = void>
+struct has_reduce : std::false_type {
+};
+
+template<typename T, typename Key, typename Coordinate>
+struct has_reduce<T, Key, Coordinate, std::void_t<decltype(&T::reduce)>>
+        : std::is_same<void, decltype(std::declval<T>().reduce(std::declval<mt::ctx::Context<Key, Coordinate>>()))> {
+};
+
 
 #endif //MOBILITY_CPP_TRAITS_HPP

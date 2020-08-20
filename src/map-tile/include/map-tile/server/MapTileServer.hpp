@@ -117,8 +117,15 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
-        double reduce() {
-            return _tiler.reduce(_ctx);
+        double
+        reduce() {
+            // TODO: This really needs to be conditionally enabled, but that will require changes to how we handle action registration.
+            if constexpr (has_reduce<Tiler, MapKey, Coordinate>::value) {
+                return _tiler.reduce(_ctx);
+            } else {
+                throw std::logic_error("Cannot call reduce on Tiler without reduce method");
+            }
+
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, reduce);

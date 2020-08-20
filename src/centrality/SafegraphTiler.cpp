@@ -70,6 +70,10 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
 }
 
 void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    write_parquet(ctx);
+}
+
+void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
     const auto output_name = ctx.get_config_value("output_name");
     const auto output_dir = ctx.get_config_value("output_dir");
 
@@ -125,4 +129,5 @@ void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::C
         const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
         print_timing("File Write", write_elapsed);
     }
+
 }
