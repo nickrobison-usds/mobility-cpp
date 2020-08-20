@@ -34,7 +34,7 @@ namespace mcpp::graph {
             return static_cast<Backend const &> (*this).calculate_distance_impl(start);
         }
 
-        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality() const {
+        [[nodiscard]] absl::flat_hash_map<NodeProperties, unsigned long> calculate_degree_centrality() const {
             return static_cast<Backend const &> (*this).calculate_degree_centrality_impl();
         }
 

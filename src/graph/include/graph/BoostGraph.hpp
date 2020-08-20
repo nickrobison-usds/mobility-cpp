@@ -7,12 +7,12 @@
 
 #include "graph.hpp"
 #include "impl/DistanceRecorder.hpp"
+#include "impl/hasher.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/degree_centrality.hpp>
 #include <boost/graph/exterior_property.hpp>
 #include <boost/graph/visitors.hpp>
 #include <spdlog/spdlog.h>
-#include <map>
 
 namespace mcpp::graph {
 
@@ -63,7 +63,7 @@ namespace mcpp::graph {
             return bacon_number;
         }
 
-        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality_impl() const {
+        [[nodiscard]] absl::flat_hash_map<NodeProperties, unsigned long> calculate_degree_centrality_impl() const {
 
             typedef boost::exterior_vertex_property<Graph, unsigned> CentralityProperty;
             typedef typename CentralityProperty::container_type CentralityContainer;
@@ -92,9 +92,9 @@ namespace mcpp::graph {
         typedef typename boost::edge_bundle_type<Graph>::type edge_map_t;
         typedef typename boost::graph_traits<Graph>::vertex_descriptor Vertex;
         typedef typename boost::graph_traits<Graph>::edge_descriptor Edge;
-        typedef std::map<node_map_t, Vertex> VertexMap;
-        typedef std::map<Vertex, node_map_t> VertexPropertiesMap;
-        typedef std::map<Edge, edge_map_t> EdgePropertiesMap;
+        typedef absl::flat_hash_map<node_map_t, Vertex> VertexMap;
+        typedef absl::flat_hash_map<Vertex, node_map_t> VertexPropertiesMap;
+        typedef absl::flat_hash_map<Edge, edge_map_t> EdgePropertiesMap;
 
         Graph _g;
         VertexMap _verticies;
