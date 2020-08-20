@@ -11,8 +11,12 @@
 #include <fstream>
 #include <vector>
 
-mcpp::graph::BoostGraph build_graph() {
-    mcpp::graph::BoostGraph g;
+namespace graph = mcpp::graph;
+
+typedef graph::BoostGraph Graph;
+
+Graph build_graph() {
+    Graph g;
     std::ifstream datafile("data/kevin-bacon.dat");
     for (std::string line; std::getline(datafile, line);) {
         const std::vector<std::string> split = absl::StrSplit(line, ';');
@@ -28,14 +32,14 @@ mcpp::graph::BoostGraph build_graph() {
 
 TEST_CASE("Distance", "[graph]") {
 
-    const auto g = build_graph();
+    auto g = build_graph();
 
     const auto bn = g.calculate_distance("Kevin Bacon");
     REQUIRE(std::accumulate(bn.begin(), bn.end(), 0) == 112);
 }
 
 TEST_CASE("Degree Centrality", "[graph]") {
-    const auto g = build_graph();
+    auto g = build_graph();
 
     const auto centrality = g.calculate_degree_centrality();
     REQUIRE(centrality.size() == 51);

@@ -39,7 +39,7 @@ namespace mcpp::graph {
         _connecting_movie = boost::get(boost::edge_name, _g);
     }
 
-    void BoostGraph::add_vertex(const std::string_view actor) {
+    void BoostGraph::add_vertex_impl(std::string_view actor) {
         // Try to insert into the map, unless we've already seen it.
 
         const auto pair = _actors.emplace(actor, Vertex());
@@ -56,7 +56,7 @@ namespace mcpp::graph {
     }
 
     void
-    BoostGraph::add_edge(const std::string_view movie, const std::string_view actor1, const std::string_view actor2) {
+    BoostGraph::add_edge_impl(std::string_view movie, std::string_view actor1, std::string_view actor2) {
         const auto v1 = _actors.at(actor1.data());
         const auto v2 = _actors.at(actor2.data());
         const auto pair = boost::add_edge(v1, v2, _g);
@@ -66,16 +66,16 @@ namespace mcpp::graph {
         }
     }
 
-    int BoostGraph::edge_count() const {
+    int BoostGraph::edge_count_impl() const {
         return boost::num_edges(_g);
     }
 
-    int BoostGraph::vertex_count() const {
+    int BoostGraph::vertex_count_impl() const {
         return boost::num_vertices(_g);
     }
 
-    std::vector<int> BoostGraph::calculate_distance(const std::string_view actor) const {
-        std::vector<int> bacon_number(vertex_count());
+    std::vector<int> BoostGraph::calculate_distance_impl(std::string_view actor) const {
+        std::vector<int> bacon_number(vertex_count_impl());
         const auto src = _actors.at(actor.data());
         bacon_number[src] = 0;
 
@@ -84,16 +84,19 @@ namespace mcpp::graph {
         return bacon_number;
     }
 
-    absl::flat_hash_map<std::string, unsigned long> BoostGraph::calculate_degree_centrality() const {
+    absl::flat_hash_map<std::string, unsigned long> BoostGraph::calculate_degree_centrality_impl() const {
 
         typedef boost::exterior_vertex_property<Graph, unsigned> CentralityProperty;
         typedef CentralityProperty::container_type CentralityContainer;
         typedef CentralityProperty::map_type CentralityMap;
 
-        CentralityContainer cents(vertex_count());
+        const auto vs = vertex_count();
+        const auto vs2 = boost::num_vertices(_g);
+
+        CentralityContainer cents(vs);
         CentralityMap cm(cents, _g);
 
-        std::vector<int> degree_centrality(vertex_count());
+//        std::vector<int> degree_centrality(vs);
         boost::all_degree_centralities(_g, cm);
 
         // Convert to output format

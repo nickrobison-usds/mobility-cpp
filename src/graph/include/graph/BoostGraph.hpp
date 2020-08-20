@@ -5,23 +5,22 @@
 #ifndef MOBILITY_CPP_BOOSTGRAPH_HPP
 #define MOBILITY_CPP_BOOSTGRAPH_HPP
 
-#include <absl/container/flat_hash_map.h>
+#include "graph.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/visitors.hpp>
-#include <string_view>
 
 namespace mcpp::graph {
 
-    class BoostGraph {
+    class BoostGraph : public MCPPGraph<BoostGraph> {
 
     public:
         explicit BoostGraph();
-        void add_vertex(std::string_view actor);
-        void add_edge(std::string_view movie, std::string_view actor1, std::string_view actor2);
-        [[nodiscard]] int edge_count() const;
-        [[nodiscard]] int vertex_count() const;
-        [[nodiscard]] std::vector<int> calculate_distance(std::string_view actor) const;
-        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality() const;
+        void add_vertex_impl(std::string_view actor);
+        void add_edge_impl(std::string_view movie, std::string_view actor1, std::string_view actor2);
+        [[nodiscard]] int edge_count_impl() const;
+        [[nodiscard]] int vertex_count_impl() const;
+        [[nodiscard]] std::vector<int> calculate_distance_impl(std::string_view actor) const;
+        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality_impl() const;
 
     private:
         typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::property<boost::vertex_name_t, std::string>, boost::property<boost::edge_name_t, std::string>> Graph;
