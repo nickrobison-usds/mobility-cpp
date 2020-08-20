@@ -5,7 +5,6 @@
 #ifndef MOBILITY_CPP_GRAPH_HPP
 #define MOBILITY_CPP_GRAPH_HPP
 
-#include <absl/container/flat_hash_map.h>
 #include <string_view>
 #include <vector>
 
@@ -34,7 +33,7 @@ namespace mcpp::graph {
             return static_cast<Backend const &> (*this).calculate_distance_impl(start);
         }
 
-        [[nodiscard]] absl::flat_hash_map<NodeProperties, unsigned long> calculate_degree_centrality() const {
+        [[nodiscard]] std::vector<std::pair<NodeProperties, unsigned long>> calculate_degree_centrality() const {
             return static_cast<Backend const &> (*this).calculate_degree_centrality_impl();
         }
 

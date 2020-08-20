@@ -8,6 +8,7 @@
 #include "graph.hpp"
 #include "impl/DistanceRecorder.hpp"
 #include "impl/hasher.hpp"
+#include <absl/container/flat_hash_map.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/degree_centrality.hpp>
 #include <boost/graph/exterior_property.hpp>
@@ -21,10 +22,8 @@ namespace mcpp::graph {
 
     public:
         explicit BoostGraph() = default;
-
         void add_vertex_impl(const NodeProperties &node) {
             const auto pair = _verticies.emplace(node, Vertex());
-            // If inserted, then we need to insert into graph itself
             if (pair.second) {
                 spdlog::debug("Adding vertex {}", node);
                 const auto vertex = boost::add_vertex(_g);
@@ -63,7 +62,7 @@ namespace mcpp::graph {
             return bacon_number;
         }
 
-        [[nodiscard]] absl::flat_hash_map<NodeProperties, unsigned long> calculate_degree_centrality_impl() const {
+        [[nodiscard]] std::vector<std::pair<NodeProperties, unsigned long>> calculate_degree_centrality_impl() const {
 
             typedef boost::exterior_vertex_property<Graph, unsigned> CentralityProperty;
             typedef typename CentralityProperty::container_type CentralityContainer;
@@ -75,12 +74,13 @@ namespace mcpp::graph {
             boost::all_degree_centralities(_g, cm);
 
             // Convert to output format
-            absl::flat_hash_map<std::string, unsigned long> result;
+            std::vector<std::pair<NodeProperties, unsigned long>> result;
+            result.reserve(vs);
             const auto vec_it = boost::vertices(_g);
             std::for_each(vec_it.first, vec_it.second, [&cm, &result, this](const auto c) {
                 const auto name = this->_vertex_map.at(c);
                 const auto degree = cm[c];
-                result.emplace(name, degree);
+                result.push_back(std::make_pair(name, degree));
             });
 
             return result;

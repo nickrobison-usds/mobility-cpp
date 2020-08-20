@@ -12,6 +12,7 @@
 #include <shared/ConversionUtils.hpp>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 namespace fs = boost::filesystem;
 
@@ -67,6 +68,9 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
     } else {
         spdlog::error("Visitor CBG {} is not in map, skipping insert", value.visit_cbg);
     }
+
+    // Insert into the graph
+    _graph.add_edge(value.visits, value.location_cbg, value.visit_cbg);
 }
 
 void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
@@ -130,4 +134,15 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
         print_timing("File Write", write_elapsed);
     }
 
+}
+
+double SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+    const auto results = _graph.calculate_degree_centrality();
+
+    // I need to sort, what's up?
+//    std::sort(results.begin(), results.end(), [](auto &left, auto &right) {
+//        return left.second < right.second;
+//    });
+
+    return 0.0;
 }

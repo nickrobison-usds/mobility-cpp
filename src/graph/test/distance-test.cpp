@@ -51,5 +51,10 @@ TEST_CASE("Degree Centrality", "[graph]") {
 
     const auto centrality = g.calculate_degree_centrality();
     REQUIRE(centrality.size() == 51);
-    REQUIRE(centrality.at("Denise Richards") == 2);
+
+    const auto result = std::find_if(centrality.begin(), centrality.end(), [](const auto &pair) {
+       return pair.first == "Denise Richards";
+    });
+
+    REQUIRE(result->second == 2);
 }

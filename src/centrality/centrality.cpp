@@ -89,7 +89,6 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Initialize all the locales
     vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
 
-
     // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
     const auto files = shared::DirectoryUtils::partition_files(
@@ -150,8 +149,18 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     });
 
     hpx::wait_all(compute_results);
-
     spdlog::debug("Computing completed");
+
+    // And, reduce
+    vector<hpx::future<void>> reduce_results;
+    std::transform(servers.begin(), servers.end(), std::back_inserter(reduce_results), [](auto &mt) {
+        return std::move(mt.reduce());
+    });
+
+    hpx::wait_all(reduce_results);
+    spdlog::debug("Reducing completed");
+
+    spdlog::debug("All done");
 
     return hpx::finalize();
 }
