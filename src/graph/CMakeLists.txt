@@ -1,8 +1,8 @@
-add_library(graph include/graph/graph.hpp src/BoostGraph.cpp include/graph/BoostGraph.hpp)
+add_library(graph INTERFACE)
 add_library(MCPP::graph ALIAS graph)
-target_link_libraries(graph PUBLIC absl::flat_hash_map PRIVATE spdlog)
+target_link_libraries(graph INTERFACE absl::flat_hash_map spdlog)
 
-target_include_directories(graph PUBLIC
+target_include_directories(graph INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
 

@@ -6,32 +6,100 @@
 #define MOBILITY_CPP_BOOSTGRAPH_HPP
 
 #include "graph.hpp"
+#include "impl/DistanceRecorder.hpp"
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/degree_centrality.hpp>
+#include <boost/graph/exterior_property.hpp>
 #include <boost/graph/visitors.hpp>
+#include <spdlog/spdlog.h>
+#include <map>
 
 namespace mcpp::graph {
 
-    class BoostGraph : public MCPPGraph<BoostGraph> {
+    template<class NodeProperties, class EdgeProperties>
+    class BoostGraph : public MCPPGraph<BoostGraph<NodeProperties, EdgeProperties>, NodeProperties, EdgeProperties> {
 
     public:
-        explicit BoostGraph();
-        void add_vertex_impl(std::string_view actor);
-        void add_edge_impl(std::string_view movie, std::string_view actor1, std::string_view actor2);
-        [[nodiscard]] int edge_count_impl() const;
-        [[nodiscard]] int vertex_count_impl() const;
-        [[nodiscard]] std::vector<int> calculate_distance_impl(std::string_view actor) const;
-        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality_impl() const;
+        explicit BoostGraph() = default;
+
+        void add_vertex_impl(const NodeProperties &node) {
+            const auto pair = _verticies.emplace(node, Vertex());
+            // If inserted, then we need to insert into graph itself
+            if (pair.second) {
+                spdlog::debug("Adding vertex {}", node);
+                const auto vertex = boost::add_vertex(_g);
+                _vertex_map[vertex] = node;
+                pair.first->second = vertex;
+            } else {
+                spdlog::debug("Skipping existing vertex: {}", node);
+            }
+
+        }
+
+        void add_edge_impl(const EdgeProperties &edge, const NodeProperties &source, const NodeProperties &target) {
+            const auto v1 = _verticies[source];
+            const auto v2 = _verticies[target];
+            const auto pair = boost::add_edge(v1, v2, _g);
+            if (pair.second) {
+                spdlog::debug("Adding edge {} between vertex {} and vertex {}", edge, source, target);
+                _edge_map[pair.first] = edge;
+            }
+        }
+
+        [[nodiscard]] int edge_count_impl() const {
+            return boost::num_edges(_g);
+        }
+
+        [[nodiscard]] int node_count_impl() const {
+            return boost::num_vertices(_g);
+        }
+
+        [[nodiscard]] std::vector<int> calculate_distance_impl(const NodeProperties &start) const {
+            std::vector<int> bacon_number(node_count_impl());
+            const auto src = _verticies.at(start);
+            bacon_number[src] = 0;
+
+            boost::breadth_first_search(_g, src, boost::visitor(record_distance(&bacon_number[0])));
+            return bacon_number;
+        }
+
+        [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality_impl() const {
+
+            typedef boost::exterior_vertex_property<Graph, unsigned> CentralityProperty;
+            typedef typename CentralityProperty::container_type CentralityContainer;
+            typedef typename CentralityProperty::map_type CentralityMap;
+
+            const auto vs = node_count_impl();
+            CentralityContainer cents(vs);
+            CentralityMap cm(cents, _g);
+            boost::all_degree_centralities(_g, cm);
+
+            // Convert to output format
+            absl::flat_hash_map<std::string, unsigned long> result;
+            const auto vec_it = boost::vertices(_g);
+            std::for_each(vec_it.first, vec_it.second, [&cm, &result, this](const auto c) {
+                const auto name = this->_vertex_map.at(c);
+                const auto degree = cm[c];
+                result.emplace(name, degree);
+            });
+
+            return result;
+        }
 
     private:
-        typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::property<boost::vertex_name_t, std::string>, boost::property<boost::edge_name_t, std::string>> Graph;
-        typedef boost::property_map<Graph, boost::vertex_name_t>::type actor_name_map_t;
-        typedef boost::property_map<Graph, boost::edge_name_t>::type movie_name_map_t;
-        typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-        typedef absl::flat_hash_map<std::string, Vertex> NameVertexMap;
+        typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, NodeProperties, EdgeProperties> Graph;
+        typedef typename boost::vertex_bundle_type<Graph>::type node_map_t;
+        typedef typename boost::edge_bundle_type<Graph>::type edge_map_t;
+        typedef typename boost::graph_traits<Graph>::vertex_descriptor Vertex;
+        typedef typename boost::graph_traits<Graph>::edge_descriptor Edge;
+        typedef std::map<node_map_t, Vertex> VertexMap;
+        typedef std::map<Vertex, node_map_t> VertexPropertiesMap;
+        typedef std::map<Edge, edge_map_t> EdgePropertiesMap;
+
         Graph _g;
-        NameVertexMap _actors;
-        actor_name_map_t _actor_name;
-        movie_name_map_t _connecting_movie;
+        VertexMap _verticies;
+        VertexPropertiesMap _vertex_map;
+        EdgePropertiesMap _edge_map;
     };
 }
 

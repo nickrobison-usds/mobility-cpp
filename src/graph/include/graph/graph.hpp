@@ -11,27 +11,27 @@
 
 namespace mcpp::graph {
 
-    template<class Backend>
+    template<class Backend, class NodeProperties, class EdgeProperties>
     class MCPPGraph {
     public:
-        void add_edge(std::string_view movie, std::string_view actor1, std::string_view actor2) {
-            static_cast<Backend &> (*this).add_edge_impl(movie, actor1, actor2);
+        void add_edge(const EdgeProperties &edge, const NodeProperties &source, const NodeProperties &target) {
+            static_cast<Backend &> (*this).add_edge_impl(edge, source, target);
         }
 
-        void add_vertex(std::string_view actor) {
-            static_cast<Backend &> (*this).add_vertex_impl(actor);
+        void add_vertex(const NodeProperties &node) {
+            static_cast<Backend &> (*this).add_vertex_impl(node);
         }
 
         [[nodiscard]] int edge_count() const {
             return static_cast<Backend const &> (*this).edge_count_impl();
         }
 
-        [[nodiscard]] int vertex_count() const {
-            return static_cast<Backend const &> (*this).vertex_count_impl();
+        [[nodiscard]] int node_count() const {
+            return static_cast<Backend const &> (*this).node_count_impl();
         }
 
-        [[nodiscard]] std::vector<int> calculate_distance(std::string_view actor) const {
-            return static_cast<Backend const &> (*this).calculate_distance_impl(actor);
+        [[nodiscard]] std::vector<int> calculate_distance(const NodeProperties &start) const {
+            return static_cast<Backend const &> (*this).calculate_distance_impl(start);
         }
 
         [[nodiscard]] absl::flat_hash_map<std::string, unsigned long> calculate_degree_centrality() const {

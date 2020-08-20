@@ -13,7 +13,15 @@
 
 namespace graph = mcpp::graph;
 
-typedef graph::BoostGraph Graph;
+struct Actors {
+    std::string name;
+};
+
+struct Movies {
+    std::string movie_name;
+};
+
+typedef graph::BoostGraph<std::string, std::string> Graph;
 
 Graph build_graph() {
     Graph g;
@@ -25,7 +33,7 @@ Graph build_graph() {
         g.add_edge(split[1], split[0], split[2]);
     }
     REQUIRE(g.edge_count() == 50);
-    REQUIRE(g.vertex_count() == 51);
+    REQUIRE(g.node_count() == 51);
 
     return g;
 }
