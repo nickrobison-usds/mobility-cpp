@@ -11,11 +11,8 @@
 #include <fstream>
 #include <vector>
 
-TEST_CASE("Actors", "[graph]") {
-
+mcpp::graph::BoostGraph build_graph() {
     mcpp::graph::BoostGraph g;
-
-    // Open the file and read each line
     std::ifstream datafile("data/kevin-bacon.dat");
     for (std::string line; std::getline(datafile, line);) {
         const std::vector<std::string> split = absl::StrSplit(line, ';');
@@ -23,11 +20,24 @@ TEST_CASE("Actors", "[graph]") {
         g.add_vertex(split[2]);
         g.add_edge(split[1], split[0], split[2]);
     }
-
     REQUIRE(g.edge_count() == 50);
     REQUIRE(g.vertex_count() == 51);
 
+    return g;
+}
+
+TEST_CASE("Distance", "[graph]") {
+
+    const auto g = build_graph();
+
     const auto bn = g.calculate_distance("Kevin Bacon");
     REQUIRE(std::accumulate(bn.begin(), bn.end(), 0) == 112);
+}
 
+TEST_CASE("Degree Centrality", "[graph]") {
+    const auto g = build_graph();
+
+    const auto centrality = g.calculate_degree_centrality();
+    REQUIRE(centrality.size() == 51);
+    REQUIRE(centrality.at("Denise Richards") == 2);
 }

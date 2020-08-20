@@ -4,7 +4,10 @@
 
 #include "graph/BoostGraph.hpp"
 #include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/degree_centrality.hpp>
+#include <boost/graph/exterior_property.hpp>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 namespace mcpp::graph {
 
@@ -79,5 +82,31 @@ namespace mcpp::graph {
         boost::breadth_first_search(_g, src, boost::visitor(distance_recorder(&bacon_number[0])));
 
         return bacon_number;
+    }
+
+    absl::flat_hash_map<std::string, unsigned long> BoostGraph::calculate_degree_centrality() const {
+
+        typedef boost::exterior_vertex_property<Graph, unsigned> CentralityProperty;
+        typedef CentralityProperty::container_type CentralityContainer;
+        typedef CentralityProperty::map_type CentralityMap;
+
+        CentralityContainer cents(vertex_count());
+        CentralityMap cm(cents, _g);
+
+        std::vector<int> degree_centrality(vertex_count());
+        boost::all_degree_centralities(_g, cm);
+
+        // Convert to output format
+
+        absl::flat_hash_map<std::string, unsigned long> result;
+        const auto vec_it = boost::vertices(_g);
+        std::for_each(vec_it.first, vec_it.second, [&cm, &result, this](const auto c) {
+            const auto name = this->_actor_name[c];
+            const auto degree = cm[c];
+            result.emplace(name, degree);
+        });
+
+
+        return result;
     }
 }
