@@ -17,16 +17,17 @@ namespace mt::client {
             class MapKey,
             class Coordinate,
             class Mapper,
-            class Tiler
+            class Tiler,
+            class ReduceValue
     >
     class MapTileClient
             : public hpx::components::client_base<
-                    MapTileClient<MapKey, Coordinate, Mapper, Tiler>,
-                    mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>> {
+                    MapTileClient<MapKey, Coordinate, Mapper, Tiler, ReduceValue>,
+                    mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>> {
 
-        typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler> MTS;
+        typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue> MTS;
         typedef hpx::components::client_base<
-                MapTileClient<MapKey, Coordinate, Mapper, Tiler>,
+                MapTileClient<MapKey, Coordinate, Mapper, Tiler, ReduceValue>,
                 MTS> base_type;
 
     public:
@@ -47,27 +48,27 @@ namespace mt::client {
         }
 
         hpx::future<void> tile() {
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::tile_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::tile_action action_type;
             return hpx::async<action_type>(this->get_id());
         }
 
         hpx::future<void> compute() {
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::compute_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::compute_action action_type;
             return hpx::async<action_type>(this->get_id());
         }
 
         hpx::future<void> initialize() {
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::initialize_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::initialize_action action_type;
             return hpx::async<action_type>(this->get_id());
         }
 
-        hpx::future<double> reduce() {
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::reduce_action action_type;
+        hpx::future<ReduceValue> reduce() {
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::reduce_action action_type;
             return hpx::async<action_type>(this->get_id());
         }
 
         void receive(hpx::launch::apply_policy, const Coordinate key, const MapKey value) {
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
             return hpx::apply<action_type>(this->get_id(), key, value);
         }
     };

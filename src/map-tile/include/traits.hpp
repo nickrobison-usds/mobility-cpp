@@ -25,13 +25,13 @@ struct has_setup<T, Key, Coordinate, std::void_t<decltype(&T::setup)>>
 /**
  * Same as above, but for the reduce method
  */
-template<typename, typename, typename, typename = void>
+template<typename, typename, typename, typename, typename = void>
 struct has_reduce : std::false_type {
 };
 
-template<typename T, typename Key, typename Coordinate>
-struct has_reduce<T, Key, Coordinate, std::void_t<decltype(&T::reduce)>>
-        : std::is_same<void, decltype(std::declval<T>().reduce(std::declval<mt::ctx::Context<Key, Coordinate>>()))> {
+template<typename T, typename Key, typename Coordinate, typename ReduceValue>
+struct has_reduce<T, Key, Coordinate, ReduceValue, std::void_t<decltype(&T::reduce)>>
+        : std::is_same<ReduceValue, decltype(std::declval<T>().reduce(std::declval<mt::ctx::Context<Key, Coordinate>>()))> {
 };
 
 

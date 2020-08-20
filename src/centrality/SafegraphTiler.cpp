@@ -136,13 +136,11 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
 
 }
 
-double SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
-    const auto results = _graph.calculate_degree_centrality();
+std::vector<std::pair<std::string, unsigned long>> SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+    return _graph.calculate_degree_centrality();
 
     // I need to sort, what's up?
 //    std::sort(results.begin(), results.end(), [](auto &left, auto &right) {
 //        return left.second < right.second;
 //    });
-
-    return 0.0;
 }

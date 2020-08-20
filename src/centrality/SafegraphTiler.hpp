@@ -23,7 +23,7 @@ public:
                  const v2 &value);
 
     void compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx);
-    double reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
+    std::vector<std::pair<std::string, unsigned long>> reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
 private:
     std::unique_ptr<components::detail::OffsetCalculator> _oc;

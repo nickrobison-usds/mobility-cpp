@@ -31,7 +31,8 @@ const static std::size_t MAX_CBG = 220740;
 using namespace std;
 
 // Register the map-tile instance
-REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, string, mt::io::FileProvider);
+typedef vector<pair<string, unsigned long>> reduce_type;
+REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type, string, mt::io::FileProvider);
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
@@ -87,7 +88,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     }
 
     // Initialize all the locales
-    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
+    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type>> servers;
 
     // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
@@ -120,7 +121,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
                 const auto tile = get<1>(pair);
                 spdlog::debug("Creating server on locale {}", get<0>(pair));
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(pair), locator,
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type> server(get<0>(pair), locator,
                                                                                                     tile,
                                                                                                     config_values,
                                                                                                     file_strs);

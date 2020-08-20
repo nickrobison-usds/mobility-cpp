@@ -23,25 +23,18 @@ namespace mcpp::graph {
     public:
         explicit BoostGraph() = default;
         void add_vertex_impl(const NodeProperties &node) {
-            const auto pair = _verticies.emplace(node, Vertex());
-            if (pair.second) {
-                spdlog::debug("Adding vertex {}", node);
-                const auto vertex = boost::add_vertex(_g);
-                _vertex_map[vertex] = node;
-                pair.first->second = vertex;
-            } else {
-                spdlog::debug("Skipping existing vertex: {}", node);
-            }
-
+            add_vertex_internal(node);
         }
 
         void add_edge_impl(const EdgeProperties &edge, const NodeProperties &source, const NodeProperties &target) {
-            const auto v1 = _verticies[source];
-            const auto v2 = _verticies[target];
+            const auto v1 = add_vertex_internal(source);
+            const auto v2 = add_vertex_internal(target);
             const auto pair = boost::add_edge(v1, v2, _g);
             if (pair.second) {
                 spdlog::debug("Adding edge {} between vertex {} and vertex {}", edge, source, target);
                 _edge_map[pair.first] = edge;
+            } else {
+                spdlog::debug("Skipping edge {} between vertex {} and vertex {}", edge, source, target);
             }
         }
 
@@ -87,6 +80,7 @@ namespace mcpp::graph {
         }
 
     private:
+
         typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, NodeProperties, EdgeProperties> Graph;
         typedef typename boost::vertex_bundle_type<Graph>::type node_map_t;
         typedef typename boost::edge_bundle_type<Graph>::type edge_map_t;
@@ -95,6 +89,20 @@ namespace mcpp::graph {
         typedef absl::flat_hash_map<node_map_t, Vertex> VertexMap;
         typedef absl::flat_hash_map<Vertex, node_map_t> VertexPropertiesMap;
         typedef absl::flat_hash_map<Edge, edge_map_t> EdgePropertiesMap;
+
+        Vertex add_vertex_internal(const NodeProperties &node) {
+            const auto pair = _verticies.emplace(node, Vertex());
+            if (pair.second) {
+                spdlog::debug("Adding vertex {}", node);
+                const auto vertex = boost::add_vertex(_g);
+                _vertex_map[vertex] = node;
+                pair.first->second = vertex;
+            } else {
+                spdlog::debug("Skipping existing vertex: {}", node);
+            }
+
+            return pair.first->second;
+        }
 
         Graph _g;
         VertexMap _verticies;

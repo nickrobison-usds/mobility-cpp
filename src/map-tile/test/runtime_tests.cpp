@@ -130,7 +130,7 @@ private:
     double _local_total = 0;
 };
 
-REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
+REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, double, std::string, mt::io::FileProvider);
 
 TEST_CASE("Flight Mapper", "[integration]") {
     using namespace mt::coordinates;
@@ -150,9 +150,9 @@ TEST_CASE("Flight Mapper", "[integration]") {
     std::vector<string> files{"data/routes.csv"};
 
     // Create the servers
-    std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile>> servers;
+    std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double>> servers;
     for (const auto &loc : hpx::find_all_localities()) {
-        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile> server(loc, l, {}, {}, files);
+        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double> server(loc, l, {}, {}, files);
         servers.push_back(std::move(server));
     }
 
@@ -183,4 +183,3 @@ TEST_CASE("Flight Mapper", "[integration]") {
 
     REQUIRE(reduced_val == (67663 * locales));
 }
-
