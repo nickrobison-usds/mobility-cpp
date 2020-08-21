@@ -52,6 +52,7 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
 
     // Initialize the Temporal Matricies
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
+    _graphs = std::make_unique<components::TemporalGraphs>(_tc._time_count);
     spdlog::debug("Tiler setup complete.");
 
 }
@@ -63,14 +64,16 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
     const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
     const auto x_idx = _oc->calculate_local_offset(value.location_cbg);
     const auto y_idx = _oc->calculate_cbg_offset(value.visit_cbg);
+    const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        _tm->insert(local_temporal.time_since_epoch().count(), x_idx, *y_idx, value.visits, value.distance);
+        _tm->insert(l_time_count, x_idx, *y_idx, value.visits, value.distance);
+        // Insert into the graph
+        _graphs->insert(l_time_count, value);
     } else {
         spdlog::error("Visitor CBG {} is not in map, skipping insert", value.visit_cbg);
     }
 
-    // Insert into the graph
-    _graph.add_edge(value.visits, value.location_cbg, value.visit_cbg);
+
 }
 
 void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
@@ -137,10 +140,5 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
 }
 
 std::vector<std::pair<std::string, unsigned long>> SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
-    return _graph.calculate_degree_centrality();
-
-    // I need to sort, what's up?
-//    std::sort(results.begin(), results.end(), [](auto &left, auto &right) {
-//        return left.second < right.second;
-//    });
+    return _graphs->calculate_degree_centrality(0);
 }

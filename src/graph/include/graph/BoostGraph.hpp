@@ -90,7 +90,7 @@ namespace mcpp::graph {
         typedef absl::flat_hash_map<Vertex, node_map_t> VertexPropertiesMap;
         typedef absl::flat_hash_map<Edge, edge_map_t> EdgePropertiesMap;
 
-        Vertex add_vertex_internal(const NodeProperties &node) {
+        [[maybe_unused]] Vertex add_vertex_internal(const NodeProperties &node) {
             const auto pair = _verticies.emplace(node, Vertex());
             if (pair.second) {
                 spdlog::debug("Adding vertex {}", node);
