@@ -17,6 +17,22 @@
 
 using namespace std;
 
+enum CentralityMeasure {
+    DEGREE
+};
+
+struct cbg_centrality {
+    CentralityMeasure measure;
+    string cbg;
+    date::sys_days date;
+    unsigned long value;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int) {
+        ar & measure & cbg & date & value;
+    }
+};
+
 struct data_row {
     string location_cbg;
     string visit_cbg;

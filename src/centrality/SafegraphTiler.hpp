@@ -24,7 +24,7 @@ public:
 
     void compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx);
 
-    std::vector<std::pair<std::string, unsigned long>>
+    std::vector<cbg_centrality>
     reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
 private:
@@ -35,6 +35,7 @@ private:
     std::unique_ptr<components::TemporalMatricies> _tm;
     std::unique_ptr<components::TemporalGraphs> _graphs;
     components::TileConfiguration _tc;
+    date::sys_days _start_date;
 };
 
 

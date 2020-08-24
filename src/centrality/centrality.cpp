@@ -6,6 +6,7 @@
 #include "config.cpp"
 #include "SafegraphMapper.hpp"
 #include "SafegraphTiler.hpp"
+#include <io/parquet.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include <map-tile/client/MapTileClient.hpp>
@@ -23,8 +24,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/pattern_formatter.h>
-#include <queue>
 #include <algorithm>
+#include <queue>
 
 namespace par = hpx::parallel;
 
@@ -34,7 +35,7 @@ const static std::size_t MAX_CBG = 220740;
 using namespace std;
 
 // Register the map-tile instance
-typedef vector<pair<string, unsigned long>> reduce_type;
+typedef vector<cbg_centrality> reduce_type;
 REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type, string,
                 mt::io::FileProvider);
 
@@ -183,18 +184,39 @@ int hpx_main(hpx::program_options::variables_map &vm) {
                                                      }, [](hpx::future<reduce_type> &res) {
                 return res.get();
             });
-
-    std::sort(
-              result_pairs.begin(), result_pairs.end(),
-              [](const auto &lhs, const auto &rhs) {
-                  return lhs.second < rhs.second;
-              });
     spdlog::debug("Reducing completed");
 
-    for (const auto &p : result_pairs) {
-        spdlog::error("CBG: {}, count: {}", p.first, p.second);
+    // Write out the CBGs by rank
+    const auto rank_file = shared::DirectoryUtils::build_path(output_path, "cbg-ranks.parquet");
+    const io::Parquet p(rank_file.string());
+    arrow::StringBuilder _cbg_builder;
+    arrow::Date32Builder _date_builder;
+    arrow::DoubleBuilder _rank_builder;
+
+    arrow::Status status;
+    for (const auto &rp : result_pairs) {
+        status = _cbg_builder.Append(rp.cbg);
+        status = _date_builder.Append(rp.date.time_since_epoch().count());
+        status = _rank_builder.Append(rp.value);
     }
+
+    std::shared_ptr<arrow::Array> cbg_array;
+    status = _cbg_builder.Finish(&cbg_array);
+    std::shared_ptr<arrow::Array> date_array;
+    status = _date_builder.Finish(&date_array);
+    std::shared_ptr<arrow::Array> rank_array;
+    status = _rank_builder.Finish(&rank_array);
+
+    auto schema = arrow::schema(
+            {arrow::field("cbg", arrow::utf8()),
+             arrow::field("date", arrow::date32()),
+             arrow::field("rank", arrow::float64())
+            });
+
+    auto table = arrow::Table::Make(schema, {cbg_array, date_array, rank_array});
+    status = p.write(*table);
     spdlog::debug("All done");
+
     return hpx::finalize();
 }
 
