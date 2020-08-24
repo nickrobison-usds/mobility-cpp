@@ -139,6 +139,7 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
 
 }
 
-std::vector<std::pair<std::string, unsigned long>> SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+std::vector<std::pair<std::string, unsigned long>>
+SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
     return _graphs->calculate_degree_centrality(0);
 }

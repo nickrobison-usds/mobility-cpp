@@ -24,6 +24,9 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/pattern_formatter.h>
 #include <queue>
+#include <algorithm>
+
+namespace par = hpx::parallel;
 
 // The total number of Census Block Groups (CBGs) in the US
 const static std::size_t MAX_CBG = 220740;
@@ -32,7 +35,8 @@ using namespace std;
 
 // Register the map-tile instance
 typedef vector<pair<string, unsigned long>> reduce_type;
-REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type, string, mt::io::FileProvider);
+REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type, string,
+                mt::io::FileProvider);
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
@@ -98,7 +102,8 @@ int hpx_main(hpx::program_options::variables_map &vm) {
             ".*patterns\\.csv");
     // Create a queue that will let us handle cases where we have more servers than input files.
     // If the queue is empty, we'll simply pass an empty vector to the server
-    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(deque<vector<fs::directory_entry>>(files.begin(), files.end()));
+    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(
+            deque<vector<fs::directory_entry>>(files.begin(), files.end()));
 
     // Create a a server for each tile, cycling through the locales and files
     const auto locale_range = ranges::views::cycle(locales);
@@ -121,10 +126,11 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
                 const auto tile = get<1>(pair);
                 spdlog::debug("Creating server on locale {}", get<0>(pair));
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type> server(get<0>(pair), locator,
-                                                                                                    tile,
-                                                                                                    config_values,
-                                                                                                    file_strs);
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type> server(
+                        get<0>(pair), locator,
+                        tile,
+                        config_values,
+                        file_strs);
                 servers.push_back(std::move(server));
             });
 
@@ -153,16 +159,42 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     spdlog::debug("Computing completed");
 
     // And, reduce
-    vector<hpx::future<void>> reduce_results;
+    vector<hpx::future<reduce_type>> reduce_results;
     std::transform(servers.begin(), servers.end(), std::back_inserter(reduce_results), [](auto &mt) {
         return std::move(mt.reduce());
     });
 
     hpx::wait_all(reduce_results);
+
+    // Sort and filter
+    reduce_type result_pairs = std::transform_reduce(
+                                                     reduce_results.begin(),
+                                                     reduce_results.end(),
+                                                     reduce_type(),
+                                                     [](reduce_type acc,
+                                                        reduce_type v) {
+                                                         acc.reserve(acc.size() +
+                                                                     v.size());
+                                                         std::move(v.begin(),
+                                                                   v.end(),
+                                                                   std::back_inserter(
+                                                                           acc));
+                                                         return acc;
+                                                     }, [](hpx::future<reduce_type> &res) {
+                return res.get();
+            });
+
+    std::sort(
+              result_pairs.begin(), result_pairs.end(),
+              [](const auto &lhs, const auto &rhs) {
+                  return lhs.second < rhs.second;
+              });
     spdlog::debug("Reducing completed");
 
+    for (const auto &p : result_pairs) {
+        spdlog::error("CBG: {}, count: {}", p.first, p.second);
+    }
     spdlog::debug("All done");
-
     return hpx::finalize();
 }
 
