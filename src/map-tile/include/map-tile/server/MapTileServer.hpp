@@ -87,7 +87,7 @@ namespace mt::server {
                 mapper.setup(ctx);
             }
             for_each(_files.begin(), _files.end(), [&ctx, &mapper, this](const string &filename) {
-                spdlog::debug("Reading {}", filename);
+                spdlog::info("Reading {}", filename);
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one
@@ -103,9 +103,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const Coordinate &key, const MapKey &value) {
-            spdlog::debug("Receiving");
             _tiler.receive(_ctx, key, value);
-            spdlog::debug("Receive complete");
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
@@ -137,13 +135,10 @@ namespace mt::server {
         void handle_emit(const Coordinate &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
-            spdlog::debug("Emitting to {}", locale_num);
             const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-            spdlog::debug("Found Component");
             typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
             try {
                 hpx::async<action_type>(id, key, value).get();
-                spdlog::debug("Finished Emit to {}", locale_num);
             } catch (const std::exception &e) {
                 spdlog::error("Unable to send value. {}", e.what());
             }
