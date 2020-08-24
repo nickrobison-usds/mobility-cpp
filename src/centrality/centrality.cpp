@@ -27,8 +27,6 @@
 #include <algorithm>
 #include <queue>
 
-namespace par = hpx::parallel;
-
 // The total number of Census Block Groups (CBGs) in the US
 const static std::size_t MAX_CBG = 220740;
 
@@ -167,23 +165,13 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     hpx::wait_all(reduce_results);
 
-    // Sort and filter
-    reduce_type result_pairs = std::transform_reduce(
-                                                     reduce_results.begin(),
-                                                     reduce_results.end(),
-                                                     reduce_type(),
-                                                     [](reduce_type acc,
-                                                        reduce_type v) {
-                                                         acc.reserve(acc.size() +
-                                                                     v.size());
-                                                         std::move(v.begin(),
-                                                                   v.end(),
-                                                                   std::back_inserter(
-                                                                           acc));
-                                                         return acc;
-                                                     }, [](hpx::future<reduce_type> &res) {
-                return res.get();
-            });
+    std::vector<cbg_centrality> unwrapped;
+    for (auto &f : reduce_results) {
+        const auto v = f.get();
+        unwrapped.reserve(unwrapped.size() + v.size());
+        std::move(v.begin(), v.end(),
+                  std::back_inserter(unwrapped));
+    }
     spdlog::debug("Reducing completed");
 
     // Write out the CBGs by rank
@@ -194,7 +182,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     arrow::DoubleBuilder _rank_builder;
 
     arrow::Status status;
-    for (const auto &rp : result_pairs) {
+    for (const auto &rp : unwrapped) {
         status = _cbg_builder.Append(rp.cbg);
         status = _date_builder.Append(rp.date.time_since_epoch().count());
         status = _rank_builder.Append(rp.value);
