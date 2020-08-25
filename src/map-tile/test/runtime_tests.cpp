@@ -6,7 +6,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_main.hpp>
+#include <hpx/hpx_init.hpp>
 #include <absl/strings/str_split.h>
 #include <boost/bimap.hpp>
 #include "catch2/catch.hpp"
@@ -23,8 +23,13 @@
 #include <mutex>
 
 
-int main(int argc, char *argv[]) {
-    return Catch::Session().run(argc, argv);
+int main(int argc, char* argv[]) {
+    hpx::init(argc, argv);
+}
+
+int hpx_main(int argc, char* argv[]) {
+    const auto res = Catch::Session().run(argc, argv);
+    return hpx::finalize(res);
 }
 
 typedef boost::bimap<std::string, std::size_t> flight_bimap;
