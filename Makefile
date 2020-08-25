@@ -8,4 +8,4 @@ extern/vcpkg/vcpkg: extern/vcpkg/bootstrap-vcpkg.sh
 
 .PHONY: system
 system: extern/vcpkg/vcpkg
-	extern/vcpkg/vcpkg install @cmake/vcpkg_x64-linux.txt
+	extern/vcpkg/vcpkg install @cmake/vcpkg_x64-osx.txt

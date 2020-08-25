@@ -51,6 +51,10 @@ if (${CI})
     set(USE_INTERNAL_ARROW ON)
     # Disable vectorization due to AVX2 issues
     set(BLAZE_USE_VECTORIZATION OFF CACHE BOOL "")
+    # Enable Metal builds on MacOS
+    if (APPLE)
+        set(USE_METAL ON)
+    endif ()
 endif ()
 
 if (NOT ${USE_INTERNAL_HPX})
@@ -87,11 +91,16 @@ endif ()
 
 if (${USE_INTERNAL_HDF5})
     message("Using internal HDF5")
-    set(BUILD_TESTING OFF CACHE BOOL "")
-    set(HDF5_BUILD_TOOLS OFF CACHE BOOL "")
-    set(HDF5_BUILD_UTILS OFF CACHE BOOL "")
-    set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL "")
-    add_subdirectory(extern/hdf5)
+    set(HDF5_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/hdf5")
+    set(HDF5_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/hdf5")
+    set(HDF5_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${HDF5_INSTALL_DIR} -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF -DHDF5_BUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF)
+    ExternalProject_Add(hdf5_ep
+            PREFIX ${HDF5_PREFIX}
+            URL "https://github.com/HDFGroup/hdf5/archive/hdf5-1_12_0.tar.gz"
+            URL_HASH SHA256=c64ffec2539ae6b6041f97952a40b0893c3c0df4d5b1c0177fb8aba567808158
+            INSTALL_DIR ${HDF5_INSTALL_DIR}
+            CMAKE_ARGS ${HDF5_CMAKE_ARGS}
+            CMAKE_GENERATOR "Unix Makefiles")
 endif ()
 
 if (${USE_INTERNAL_ARROW})

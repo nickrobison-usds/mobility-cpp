@@ -30,3 +30,7 @@ if (${USE_INTERNAL_ARROW})
     target_link_directories(io-benchmarks PUBLIC ${CMAKE_BINARY_DIR}/arrow/lib)
     target_include_directories(io-benchmarks PUBLIC ${CMAKE_BINARY_DIR}/arrow/include)
 endif ()
+
+if (${USE_INTERNAL_HDF5})
+    add_dependencies(io hdf5_ep)
+endif()

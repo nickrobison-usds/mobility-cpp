@@ -36,5 +36,4 @@ boost-system
 boost-throw-exception
 boost-variant
 boost-winapi
-gdal
 eigen3

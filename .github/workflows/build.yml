@@ -31,7 +31,7 @@ jobs:
       - name: (macOS) Install dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install hwloc bison flex
+          brew install hwloc bison flex gdal
 
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
         uses: lukka/run-vcpkg@v3
@@ -50,3 +50,8 @@ jobs:
           useVcpkgToolchainFile: true
           buildDirectory: '${{ github.workspace }}/build/'
           cmakeAppendedArgs: '-GNinja -DCI=ON'
+
+      - name: Unit Tests
+        run: |
+          cd ${{ github.workspace }}/build/
+          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}

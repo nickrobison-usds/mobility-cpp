@@ -25,9 +25,6 @@
 [submodule "extern/hpx"]
 	path = extern/hpx
 	url = ../../STEllAR-GROUP/hpx
-[submodule "extern/hdf5"]
-	path = extern/hdf5
-	url = ../../HDFGroup/hdf5
 [submodule "extern/yaml-cpp"]
 	path = extern/yaml-cpp
 	url = ../../jbeder/yaml-cpp

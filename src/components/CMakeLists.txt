@@ -19,7 +19,7 @@ add_library(mcpp-components
 
 add_library(MCPP::components ALIAS mcpp-components)
 
-target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map io PRIVATE spdlog GEOS::GEOS absl::synchronization Boost::regex shared)
+target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map io PRIVATE spdlog absl::synchronization Boost::regex shared)
 target_include_directories(mcpp-components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
