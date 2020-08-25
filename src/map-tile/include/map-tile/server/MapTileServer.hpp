@@ -7,6 +7,7 @@
 
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/ctx/Context.hpp"
+#include "map-tile/io/EmitHandler.hpp"
 #include "map-tile/io/FileProvider.hpp"
 #include "traits.hpp"
 #include <hpx/include/actions.hpp>
@@ -131,18 +132,11 @@ namespace mt::server {
         const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
+        io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>, Coordinate, MapKey> _emitter;
 
         void handle_emit(const Coordinate &key, const MapKey &value) const {
-            // We do this manually to avoid pull in the MapClient header
-            const auto locale_num = _locator.get_locale(key);
-            const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
-            try {
-                hpx::async<action_type>(id, key, value).get();
-            } catch (const std::exception &e) {
-                spdlog::error("Unable to send value. {}", e.what());
-            }
+            std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);
+            _emitter.emit(std::make_shared<std::pair<const Coordinate, const MapKey>>(pair));
         }
     };
 }
