@@ -6,7 +6,7 @@
 
 #include "spdlog/spdlog.h"
 #include <arrow/api.h>
-#include <hpx/parallel/execution.hpp>
+#include <hpx/execution.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <utility>
 

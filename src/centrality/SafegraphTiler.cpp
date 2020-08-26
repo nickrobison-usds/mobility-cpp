@@ -4,21 +4,48 @@
 
 #include "SafegraphTiler.hpp"
 #include <boost/filesystem.hpp>
+#include <boost/range/irange.hpp>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicVector.h>
+#include <hpx/execution.hpp>
+#include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <components/TileWriter.hpp>
 #include <components/VisitMatrixWriter.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/ConversionUtils.hpp>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 namespace fs = boost::filesystem;
+namespace par = hpx::parallel;
 
 void print_timing(const std::string &op_name, const std::uint64_t elapsed) {
     const chrono::nanoseconds n{elapsed};
     spdlog::debug("[{}] took {} ms", op_name, chrono::duration_cast<chrono::milliseconds>(n).count());
 }
+
+struct CentralityComputation {
+
+    std::vector<cbg_centrality> operator()(const int date) const {
+        auto compute_start = hpx::util::high_resolution_clock::now();
+        auto res = _graphs->calculate_degree_centrality(date);
+        const auto compute_elapsed = hpx::util::high_resolution_clock::now() - compute_start;
+        print_timing(fmt::format("Compute for date {}", date), compute_elapsed);
+
+        // Transform it into centrality measures
+        std::vector<cbg_centrality> transformed;
+        transformed.reserve(res.size());
+        std::transform(res.begin(), res.end(), std::back_inserter(transformed), [this, &date](const auto &r) {
+            const date::sys_days centrality_date = _start_date + date::days{date};
+            return cbg_centrality{DEGREE, r.first, centrality_date, r.second};
+        });
+
+        return transformed;
+    }
+    components::TemporalGraphs *_graphs;
+    const date::sys_days _start_date;
+};
 
 void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
     const auto cbg_path = ctx.get_config_value("cbg_path");
@@ -31,9 +58,9 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
     const auto sd = chrono::floor<date::days>(start_date);
 
     // Force cast to sys_days
-    const auto ff = chrono::floor<date::days>(start_date);
     const date::sys_days d(start_date);
     const date::sys_days e(end_date);
+    _start_date = d;
 
     _s = std::make_unique<components::ShapefileWrapper>(components::ShapefileWrapper(*cbg_path));
 
@@ -51,6 +78,7 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
 
     // Initialize the Temporal Matricies
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
+    _graphs = std::make_unique<components::TemporalGraphs>(_tc._time_count);
     spdlog::debug("Tiler setup complete.");
 
 }
@@ -62,14 +90,21 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
     const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
     const auto x_idx = _oc->calculate_local_offset(value.location_cbg);
     const auto y_idx = _oc->calculate_cbg_offset(value.visit_cbg);
+    const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        _tm->insert(local_temporal.time_since_epoch().count(), x_idx, *y_idx, value.visits, value.distance);
+        _tm->insert(l_time_count, x_idx, *y_idx, value.visits, value.distance);
+        // Insert into the graph
+        _graphs->insert(l_time_count, value);
     } else {
         spdlog::error("Visitor CBG {} is not in map, skipping insert", value.visit_cbg);
     }
 }
 
 void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    write_parquet(ctx);
+}
+
+void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
     const auto output_name = ctx.get_config_value("output_name");
     const auto output_dir = ctx.get_config_value("output_dir");
 
@@ -125,4 +160,20 @@ void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::C
         const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
         print_timing("File Write", write_elapsed);
     }
+
+}
+
+std::vector<cbg_centrality>
+SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+    typedef std::vector<cbg_centrality> reduce_type;
+
+    // Iterate over all the dates and compute the values for the dates
+    const auto date_range = boost::irange(0, static_cast<int>(_tc._time_count));
+    return par::transform_reduce(par::execution::par_unseq, date_range.begin(), date_range.end(),
+                          reduce_type(),
+                          [](reduce_type acc, reduce_type v) {
+                              acc.reserve(acc.size() + v.size());
+                              move(v.begin(), v.end(), back_inserter(acc));
+                              return acc;
+                          }, CentralityComputation{_graphs.get(), _start_date});
 }

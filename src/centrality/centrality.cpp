@@ -6,6 +6,7 @@
 #include "config.cpp"
 #include "SafegraphMapper.hpp"
 #include "SafegraphTiler.hpp"
+#include <io/parquet.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include <map-tile/client/MapTileClient.hpp>
@@ -23,6 +24,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/pattern_formatter.h>
+#include <algorithm>
 #include <queue>
 
 // The total number of Census Block Groups (CBGs) in the US
@@ -31,7 +33,9 @@ const static std::size_t MAX_CBG = 220740;
 using namespace std;
 
 // Register the map-tile instance
-REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, string, mt::io::FileProvider);
+typedef vector<cbg_centrality> reduce_type;
+REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type, string,
+                mt::io::FileProvider);
 
 int hpx_main(hpx::program_options::variables_map &vm) {
     auto formatter = std::make_unique<spdlog::pattern_formatter>();
@@ -87,8 +91,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     }
 
     // Initialize all the locales
-    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler>> servers;
-
+    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type>> servers;
 
     // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
@@ -98,7 +101,8 @@ int hpx_main(hpx::program_options::variables_map &vm) {
             ".*patterns\\.csv");
     // Create a queue that will let us handle cases where we have more servers than input files.
     // If the queue is empty, we'll simply pass an empty vector to the server
-    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(deque<vector<fs::directory_entry>>(files.begin(), files.end()));
+    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(
+            deque<vector<fs::directory_entry>>(files.begin(), files.end()));
 
     // Create a a server for each tile, cycling through the locales and files
     const auto locale_range = ranges::views::cycle(locales);
@@ -121,10 +125,11 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
                 const auto tile = get<1>(pair);
                 spdlog::debug("Creating server on locale {}", get<0>(pair));
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler> server(get<0>(pair), locator,
-                                                                                                    tile,
-                                                                                                    config_values,
-                                                                                                    file_strs);
+                mt::client::MapTileClient<v2, Coordinate3D, SafegraphMapper, SafegraphTiler, reduce_type> server(
+                        get<0>(pair), locator,
+                        tile,
+                        config_values,
+                        file_strs);
                 servers.push_back(std::move(server));
             });
 
@@ -150,8 +155,55 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     });
 
     hpx::wait_all(compute_results);
-
     spdlog::debug("Computing completed");
+
+    // And, reduce
+    vector<hpx::future<reduce_type>> reduce_results;
+    std::transform(servers.begin(), servers.end(), std::back_inserter(reduce_results), [](auto &mt) {
+        return std::move(mt.reduce());
+    });
+
+    hpx::wait_all(reduce_results);
+
+    std::vector<cbg_centrality> unwrapped;
+    for (auto &f : reduce_results) {
+        const auto v = f.get();
+        unwrapped.reserve(unwrapped.size() + v.size());
+        std::move(v.begin(), v.end(),
+                  std::back_inserter(unwrapped));
+    }
+    spdlog::debug("Reducing completed");
+
+    // Write out the CBGs by rank
+    const auto rank_file = shared::DirectoryUtils::build_path(output_path, "cbg-ranks.parquet");
+    const io::Parquet p(rank_file.string());
+    arrow::StringBuilder _cbg_builder;
+    arrow::Date32Builder _date_builder;
+    arrow::DoubleBuilder _rank_builder;
+
+    arrow::Status status;
+    for (const auto &rp : unwrapped) {
+        status = _cbg_builder.Append(rp.cbg);
+        status = _date_builder.Append(rp.date.time_since_epoch().count());
+        status = _rank_builder.Append(rp.value);
+    }
+
+    std::shared_ptr<arrow::Array> cbg_array;
+    status = _cbg_builder.Finish(&cbg_array);
+    std::shared_ptr<arrow::Array> date_array;
+    status = _date_builder.Finish(&date_array);
+    std::shared_ptr<arrow::Array> rank_array;
+    status = _rank_builder.Finish(&rank_array);
+
+    auto schema = arrow::schema(
+            {arrow::field("cbg", arrow::utf8()),
+             arrow::field("date", arrow::date32()),
+             arrow::field("rank", arrow::float64())
+            });
+
+    auto table = arrow::Table::Make(schema, {cbg_array, date_array, rank_array});
+    status = p.write(*table);
+    spdlog::debug("All done");
 
     return hpx::finalize();
 }

@@ -37,11 +37,12 @@ namespace mt::server {
             class Coordinate,
             class Mapper,
             class Tiler,
+            class ReduceValue,
             class InputKey = std::string,
             template<typename = InputKey> class Provider = io::FileProvider
     >
     class MapTileServer
-            : public hpx::components::component_base<MapTileServer<MapKey, Coordinate, Mapper, Tiler, InputKey, Provider>> {
+            : public hpx::components::component_base<MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue, InputKey, Provider>> {
     public:
         typedef typename coordinates::LocaleLocator<Coordinate>::mt_tile mt_tile;
 
@@ -57,11 +58,9 @@ namespace mt::server {
             auto formatter = std::make_unique<spdlog::pattern_formatter>();
             formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-                    fmt::format("{}/{}.txt", config.at("log_dir"), hpx::get_locality_id()), true);
 
             console_sink->set_level(spdlog::level::info);
-            spdlog::logger logger("MapTileServer", {console_sink, file_sink});
+            spdlog::logger logger("MapTileServer", {console_sink});
             logger.set_formatter(std::move(formatter));
             spdlog::set_default_logger(std::make_shared<spdlog::logger>(logger));
             spdlog::set_level(spdlog::level::debug);
@@ -88,7 +87,7 @@ namespace mt::server {
                 mapper.setup(ctx);
             }
             for_each(_files.begin(), _files.end(), [&ctx, &mapper, this](const string &filename) {
-                spdlog::debug("Reading {}", filename);
+                spdlog::info("Reading {}", filename);
                 Provider<InputKey> provider(filename);
                 vector<InputKey> keys = provider.provide();
                 // Map each one
@@ -104,9 +103,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const Coordinate &key, const MapKey &value) {
-            spdlog::debug("Receiving");
             _tiler.receive(_ctx, key, value);
-            spdlog::debug("Receive complete");
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
@@ -117,6 +114,18 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
+        ReduceValue reduce() {
+            // TODO: This really needs to be conditionally enabled, but that will require changes to how we handle action registration.
+            if constexpr (has_reduce<Tiler, MapKey, Coordinate, ReduceValue>::value) {
+                return _tiler.reduce(_ctx);
+            } else {
+                throw std::logic_error("Cannot call reduce on Tiler without reduce method");
+            }
+
+        }
+
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, reduce);
+
     private:
         const vector<string> _files;
         const coordinates::LocaleLocator<Coordinate> _locator;
@@ -126,46 +135,49 @@ namespace mt::server {
         void handle_emit(const Coordinate &key, const MapKey &value) const {
             // We do this manually to avoid pull in the MapClient header
             const auto locale_num = _locator.get_locale(key);
-            spdlog::debug("Emitting to {}", locale_num);
             const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-            spdlog::debug("Found Component");
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>::receive_action action_type;
+            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
             try {
                 hpx::async<action_type>(id, key, value).get();
-                spdlog::debug("Finished Emit to {}", locale_num);
             } catch (const std::exception &e) {
-                spdlog::debug("Unable to send value. {}", e.what());
+                spdlog::error("Unable to send value. {}", e.what());
             }
         }
     };
 }
 
-#define REGISTER_MAPPER(map_key, coordinate, mapper, tiler, input_key, provider)                        \
+#define REGISTER_MAPPER(map_key, coordinate, mapper, tiler, reduce_value, input_key, provider)                        \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::tile_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::tile_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_tile_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_tile_action_, mapper));                      \
         \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::receive_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                        \
                                                                                                         \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::compute_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::compute_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_compute_action_, mapper));                                           \
                                                                                                         \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_initialize_action_, mapper), _type) = \
-         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>::initialize_action;  \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::initialize_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_initialize_action_, mapper), _type),    \
         HPX_PP_CAT(__MapTileServer_initialize_action_, mapper));                                        \
                                                                                                         \
-    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
+        using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_reduce_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::reduce_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_reduce_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_reduce_action_, mapper));                                        \
+                                                                                                        \
+    typedef ::hpx::components::component<::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>> HPX_PP_CAT(__MapTileServer, mapper); \
     HPX_REGISTER_COMPONENT(HPX_PP_CAT(__MapTileServer, mapper)) \
 
 #endif //MOBILITY_CPP_MAPTILESERVER_HPP

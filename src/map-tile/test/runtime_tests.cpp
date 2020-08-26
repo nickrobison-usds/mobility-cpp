@@ -6,7 +6,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_main.hpp>
+#include <hpx/hpx_init.hpp>
 #include <absl/strings/str_split.h>
 #include <boost/bimap.hpp>
 #include "catch2/catch.hpp"
@@ -15,17 +15,22 @@
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/coordinates/LocaleLocator.hpp"
 #include "map-tile/coordinates/Coordinate2D.hpp"
-#include <Eigen/Sparse>
-#include <atomic>
-#include <iostream>
 #include <map-tile/coordinates/LocaleTiler.hpp>
+#include <Eigen/Sparse>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <mutex>
 
-int main(int argc, char *argv[]) {
-    return Catch::Session().run(argc, argv);
+
+int main(int argc, char* argv[]) {
+    hpx::init(argc, argv);
 }
 
-// Some atomics
-std::atomic_int flights(0);
+int hpx_main(int argc, char* argv[]) {
+    const auto res = Catch::Session().run(argc, argv);
+    return hpx::finalize(res);
+}
 
 typedef boost::bimap<std::string, std::size_t> flight_bimap;
 typedef flight_bimap::value_type position;
@@ -87,11 +92,11 @@ struct FlightMapper {
         // Lookup the airport ID
         const auto src_iter = _airports.left.find(f.src_airport);
         if (src_iter == _airports.left.end()) {
-            throw new std::invalid_argument("Cannot find airport ID");
+            throw std::invalid_argument("Cannot find airport ID");
         }
         const auto dest_iter = _airports.left.find(f.dest_airport);
         if (dest_iter == _airports.left.end()) {
-            throw new std::invalid_argument("Cannot find airport ID");
+            throw std::invalid_argument("Cannot find airport ID");
         }
 
         const mt::coordinates::Coordinate2D coord(src_iter->second, dest_iter->second);
@@ -112,19 +117,25 @@ struct FlightTile {
     void receive(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const mt::coordinates::Coordinate2D &key,
                  const FlightInfo &value) {
         // Just increment a simple counter
-        std::cout << "Receiving" << std::endl;
+        const std::lock_guard<std::mutex> lock(_m);
         _flight_matrix.coeffRef(key.get_dim0(), key.get_dim1()) += 1;
     }
 
-    void compute() {
-        flights += _flight_matrix.sum();
+    void compute(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
+        _local_total = _flight_matrix.sum();
+    }
+
+    double reduce(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
+        return _local_total;
     }
 
 private:
     Eigen::SparseMatrix<unsigned int> _flight_matrix;
+    std::mutex _m;
+    double _local_total = 0;
 };
 
-REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, std::string, mt::io::FileProvider);
+REGISTER_MAPPER(FlightInfo, mt::coordinates::Coordinate2D, FlightMapper, FlightTile, double, std::string, mt::io::FileProvider);
 
 TEST_CASE("Flight Mapper", "[integration]") {
     using namespace mt::coordinates;
@@ -143,14 +154,37 @@ TEST_CASE("Flight Mapper", "[integration]") {
     const mt::coordinates::LocaleLocator<Coordinate2D> l(tiles);
     std::vector<string> files{"data/routes.csv"};
 
+    // Create the servers
+    std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double>> servers;
+    for (const auto &loc : hpx::find_all_localities()) {
+        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double> server(loc, l, {}, {}, files);
+        servers.push_back(std::move(server));
+    }
+
     // Run a client on each locale
     std::vector<hpx::future<void>> results;
-    for (const auto &loc : hpx::find_all_localities()) {
-        mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile> server(loc, l, files);
-        results.push_back(std::move(server.tile()));
-    }
+    std::for_each(servers.begin(), servers.end(),[&results](auto s) {
+        results.push_back(std::move(s.tile()));
+    });
     hpx::wait_all(results);
 
-    REQUIRE(flights == (67663 * locales));
-}
+    // Compute
+    std::vector<hpx::future<void>> compute_results;
+    std::for_each(servers.begin(), servers.end(),[&compute_results](auto s) {
+        compute_results.push_back(std::move(s.compute()));
+    });
+    hpx::wait_all(compute_results);
 
+    // Reduce
+    std::vector<hpx::future<double>> reduce_results;
+    std::for_each(servers.begin(), servers.end(),[&reduce_results](auto s) {
+        reduce_results.push_back(std::move(s.reduce()));
+    });
+    hpx::wait_all(reduce_results);
+
+    const auto reduced_val = std::transform_reduce(reduce_results.begin(), reduce_results.end(), 0.0, std::plus<>(), [](auto &f) {
+        return f.get();
+    });
+
+    REQUIRE(reduced_val == (67663 * locales));
+}
