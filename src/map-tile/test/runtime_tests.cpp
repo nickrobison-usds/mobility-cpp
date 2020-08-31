@@ -114,19 +114,15 @@ struct FlightTile {
     void receive(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx, const mt::coordinates::Coordinate2D &key,
                  const FlightInfo &value) {
         // Just increment a simple counter
-        spdlog::info("Receiving");
         const std::lock_guard<std::mutex> lock(_m);
         _flight_matrix.coeffRef(key.get_dim0(), key.get_dim1()) += 1;
-        spdlog::info("Receive done");
     }
 
     void compute(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
-        spdlog::info("Doing the compute");
         _local_total = _flight_matrix.sum();
     }
 
     double reduce(const mt::ctx::ReduceContext<FlightInfo, mt::coordinates::Coordinate2D> &ctx) {
-        spdlog::info("Doing the reduce");
         return _local_total;
     }
 

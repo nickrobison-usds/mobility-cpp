@@ -51,7 +51,7 @@ namespace mt::server {
                                const mt_tile &tile,
                                const std::map<string, string> &config,
                                vector<string> files) : _files(
-                std::move(files)), _locator(locator), _tiler(Tiler{}),
+                std::move(files)), _tiler(Tiler{}),
                                                        _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
@@ -97,17 +97,9 @@ namespace mt::server {
                 //Map
                 hpx::parallel::for_each(hpx::parallel::execution::par, keys.begin(), keys.end(),
                                         [&ctx, &mapper](const auto &key) {
-                                            spdlog::info("Mapping here");
                                             mapper.map(ctx, key);
                                         });
             });
-            // Wait for everything to finish emitting
-//            spdlog::info("Waiting for emits to finish");
-//            hpx::future<void> waiter = hpx::async([this]() {
-//                _emitter.wait();
-//            });
-//            _emitter.wait();
-//            spdlog::info("Waited ok");
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
@@ -138,13 +130,12 @@ namespace mt::server {
 
     private:
         const vector<string> _files;
-        const coordinates::LocaleLocator<Coordinate> _locator;
+//        const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
         io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>, Coordinate, MapKey> _emitter;
 
         void handle_emit(const Coordinate &key, const MapKey &value) const {
-            spdlog::info("Do the emit");
             std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);
             _emitter.emit(std::make_shared<std::pair<const Coordinate, const MapKey>>(pair));
         }

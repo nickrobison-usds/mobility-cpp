@@ -43,7 +43,6 @@ namespace mt::coordinates {
 
             // Use the index to filter down the list
             _index.query(bg::index::covers(coords), std::back_inserter(values));
-
             if (values.empty()) {
                 throw std::invalid_argument("Out of bounds");
             }
