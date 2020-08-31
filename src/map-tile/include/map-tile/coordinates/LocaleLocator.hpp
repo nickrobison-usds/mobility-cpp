@@ -30,6 +30,10 @@ namespace mt::coordinates {
 
         explicit LocaleLocator(const std::vector<value> &tiles) : _index(tiles.begin(), tiles.end()) {
             // Not used
+            const auto sz = tiles.size();
+            if (sz == 0) {
+                throw std::invalid_argument("Nothing here");
+            }
         };
 
         LocaleLocator<Coordinate>() = default;

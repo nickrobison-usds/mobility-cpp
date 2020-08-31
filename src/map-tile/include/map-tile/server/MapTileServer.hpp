@@ -55,7 +55,8 @@ namespace mt::server {
                                                        _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
-                                                            tile, config) {
+                                                            tile, config),
+                                                       _emitter(locator) {
             auto formatter = std::make_unique<spdlog::pattern_formatter>();
             formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -96,9 +97,17 @@ namespace mt::server {
                 //Map
                 hpx::parallel::for_each(hpx::parallel::execution::par, keys.begin(), keys.end(),
                                         [&ctx, &mapper](const auto &key) {
+                                            spdlog::info("Mapping here");
                                             mapper.map(ctx, key);
                                         });
             });
+            // Wait for everything to finish emitting
+//            spdlog::info("Waiting for emits to finish");
+//            hpx::future<void> waiter = hpx::async([this]() {
+//                _emitter.wait();
+//            });
+//            _emitter.wait();
+//            spdlog::info("Waited ok");
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
@@ -116,7 +125,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
         ReduceValue reduce() {
-            // TODO: This really needs to be conditionally enabled, but that will require changes to how we handle action registration.
+            // TODO: This method really needs to be conditionally enabled, but that will require changes to how we handle action registration.
             if constexpr (has_reduce<Tiler, MapKey, Coordinate, ReduceValue>::value) {
                 return _tiler.reduce(_ctx);
             } else {
@@ -132,9 +141,10 @@ namespace mt::server {
         const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
-        io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler>, Coordinate, MapKey> _emitter;
+        io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>, Coordinate, MapKey> _emitter;
 
         void handle_emit(const Coordinate &key, const MapKey &value) const {
+            spdlog::info("Do the emit");
             std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);
             _emitter.emit(std::make_shared<std::pair<const Coordinate, const MapKey>>(pair));
         }
