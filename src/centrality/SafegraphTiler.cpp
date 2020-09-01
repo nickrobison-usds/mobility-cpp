@@ -7,8 +7,8 @@
 #include <boost/range/irange.hpp>
 #include <blaze/math/CompressedVector.h>
 #include <blaze/math/DynamicVector.h>
-#include <hpx/execution.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
+#include <hpx/parallel/algorithms/for_each.hpp>
 #include <components/TileWriter.hpp>
 #include <components/VisitMatrixWriter.hpp>
 #include <shared/DateUtils.hpp>
@@ -110,8 +110,10 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
 
     // Figure out my temporal start date
     const date::sys_days start_date = date::sys_days{} + date::days(_tc._time_offset);
-    for (std::size_t i = 0; i < _tc._time_count; i++) {
-// Some nice pretty-printing of the dates
+    const auto date_range = boost::irange(0, static_cast<int>(_tc._time_count));
+
+    par::for_each(par::execution::par_unseq, date_range.begin(), date_range.end(), [&](const std::size_t i) {
+        // Some nice pretty-printing of the dates
         const date::sys_days matrix_date = start_date + date::days{i};
         const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
                                                   *output_name,
@@ -159,7 +161,7 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
         }
         const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
         print_timing("File Write", write_elapsed);
-    }
+    });
 
 }
 

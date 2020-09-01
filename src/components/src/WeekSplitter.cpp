@@ -4,7 +4,7 @@
 #include "components/WeekSplitter.hpp"
 
 #include "spdlog/spdlog.h"
-#include <hpx/parallel/execution.hpp>
+#include <hpx/execution.hpp>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <utility>
 
