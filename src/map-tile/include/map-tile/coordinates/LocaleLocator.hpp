@@ -38,6 +38,10 @@ namespace mt::coordinates {
 
         LocaleLocator<Coordinate>() = default;
 
+        [[nodiscard]] std::size_t get_num_locales() const {
+            return _index.size();
+        }
+
         [[nodiscard]] std::uint64_t get_locale(const Coordinate &coords) const {
             std::vector<value> values;
 

@@ -100,6 +100,9 @@ namespace mt::server {
                                             mapper.map(ctx, key);
                                         });
             });
+
+            // Flush any remaining values
+            _emitter.flush();
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
@@ -130,12 +133,11 @@ namespace mt::server {
 
     private:
         const vector<string> _files;
-//        const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
         io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>, Coordinate, MapKey> _emitter;
 
-        void handle_emit(const Coordinate &key, const MapKey &value) const {
+        void handle_emit(const Coordinate &key, const MapKey &value) {
             std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);
             _emitter.emit(std::make_shared<std::pair<const Coordinate, const MapKey>>(pair));
         }
