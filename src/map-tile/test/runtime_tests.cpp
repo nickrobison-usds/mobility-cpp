@@ -151,6 +151,13 @@ TEST_CASE("Flight Mapper", "[integration]") {
     const mt::coordinates::LocaleLocator<Coordinate2D> l(tiles);
     std::vector<string> files{"data/routes.csv"};
 
+    std::for_each(tiles.begin(), tiles.end(), [](const auto tile) {
+        spdlog::info("Locale: {} has tile from: {}/{}, to: {}/{}",
+                      tile.second, tile.first.min_corner().get_dim0(), tile.first.min_corner().get_dim1(),
+                      tile.first.max_corner().get_dim0(),
+                      tile.first.max_corner().get_dim1());
+    });
+
     // Create the servers
     std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double>> servers;
     for (const auto &loc : hpx::find_all_localities()) {

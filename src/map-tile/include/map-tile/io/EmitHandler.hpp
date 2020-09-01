@@ -41,7 +41,7 @@ namespace mt::io {
                                                                                              "io_pool")),
                                                                                      _executor(
                                                                                              hpx::parallel::execution::io_pool_executor()),
-                                                                                     _buffer(locator.get_num_locales()) {
+                                                                                     _buffer(hpx::get_num_localities().get()) {
 
         };
 
