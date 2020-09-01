@@ -36,13 +36,16 @@ namespace io {
     }
 
     arrow::Status Parquet::write(const arrow::Table &table, bool append) const {
+        parquet::WriterProperties::Builder builder;
+        // Enable Snappy compression, to make things smaller
+        builder.compression(parquet::Compression::SNAPPY);
+        const auto writer_props = builder.build();
+
         shared_ptr<arrow::io::FileOutputStream> outfile;
         PARQUET_ASSIGN_OR_THROW(
                 outfile,
                 arrow::io::FileOutputStream::Open(this->_filename, append));
-        // The last argument to the function call is the size of the RowGroup in
-        // the parquet file. Normally you would choose this to be rather large but
-        // for the example, we use a small value to have multiple RowGroups.
-        return parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 3);
+        // We'll set the chunksize to be 10,000 rows, which is a naive default, we can tune later.
+        return parquet::arrow::WriteTable(table, arrow::default_memory_pool(), outfile, 10'000, writer_props);
     }
 }
