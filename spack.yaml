@@ -5,7 +5,7 @@
 spack:
   packages:
     all:
-      compiler: []
+      compiler: [cce@9]
       target: []
       buildable: true
       providers:
@@ -25,6 +25,9 @@ spack:
     gperftools:
       modules:
         gperftools %cce: gperftools
+    libfabric:
+      modules:
+        libfabric %cce: libfabric
 
   specs:
     - cmake
@@ -38,5 +41,7 @@ spack:
     - gperftools
     - hdf5
     - ncurses~termlib+symlinks # We need to disable termlib on CORI
+    - mpi
+    - libfabric
   view: true
   concretization: together
