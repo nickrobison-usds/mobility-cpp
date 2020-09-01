@@ -6,7 +6,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_init.hpp>
+#include <hpx/hpx_main.hpp>
 #include <absl/strings/str_split.h>
 #include <boost/bimap.hpp>
 #include "catch2/catch.hpp"
@@ -22,15 +22,12 @@
 #include <iostream>
 #include <mutex>
 
-
-int main(int argc, char* argv[]) {
-    hpx::init(argc, argv);
+int main(int argc, char *argv[]) {
+    return Catch::Session().run(argc, argv);
 }
 
-int hpx_main(int argc, char* argv[]) {
-    const auto res = Catch::Session().run(argc, argv);
-    return hpx::finalize(res);
-}
+// Some atomics
+std::atomic_int flights(0);
 
 typedef boost::bimap<std::string, std::size_t> flight_bimap;
 typedef flight_bimap::value_type position;
@@ -153,6 +150,13 @@ TEST_CASE("Flight Mapper", "[integration]") {
     });
     const mt::coordinates::LocaleLocator<Coordinate2D> l(tiles);
     std::vector<string> files{"data/routes.csv"};
+
+    std::for_each(tiles.begin(), tiles.end(), [](const auto tile) {
+        spdlog::info("Locale: {} has tile from: {}/{}, to: {}/{}",
+                      tile.second, tile.first.min_corner().get_dim0(), tile.first.min_corner().get_dim1(),
+                      tile.first.max_corner().get_dim0(),
+                      tile.first.max_corner().get_dim1());
+    });
 
     // Create the servers
     std::vector<mt::client::MapTileClient<FlightInfo, Coordinate2D, FlightMapper, FlightTile, double>> servers;
