@@ -22,11 +22,8 @@ namespace mt::io {
     void handle_emit(std::vector<std::pair<const C, const K>> ptr,
                      const std::size_t locale_num) {
         auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-        typedef typename S::receive_action action_type;
-        std::for_each(ptr.begin(), ptr.end(), [&id](auto v) {
-            hpx::apply<action_type>(id, v.first, v.second);
-        });
-
+        typedef typename S::receive_array_action action_type;
+        hpx::apply<action_type>(id, ptr);
     }
 
     template<typename Server, typename Coordinate, typename Key>

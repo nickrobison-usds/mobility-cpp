@@ -113,6 +113,14 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
 
+        void receive_array(const std::vector<std::pair<const Coordinate, const MapKey>> &values) {
+            std::for_each(values.begin(), values.end(), [this](const auto v) {
+                _tiler.receive(_ctx, v.first, v.second);
+            });
+        }
+
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive_array);
+
         void compute() {
             _tiler.compute(_ctx);
         }
@@ -155,8 +163,14 @@ namespace mt::server {
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
-        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                        \
-                                                                                                        \
+        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                                         \
+                                                                                                                      \
+        using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::receive_array_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper));                                                   \
+                                                                                                                      \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type) = \
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::compute_action;  \
     HPX_REGISTER_ACTION(                                       \
