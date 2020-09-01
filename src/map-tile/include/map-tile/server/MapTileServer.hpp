@@ -7,6 +7,7 @@
 
 #include "map-tile/client/MapTileClient.hpp"
 #include "map-tile/ctx/Context.hpp"
+#include "map-tile/io/EmitHandler.hpp"
 #include "map-tile/io/FileProvider.hpp"
 #include "traits.hpp"
 #include <hpx/include/actions.hpp>
@@ -50,11 +51,12 @@ namespace mt::server {
                                const mt_tile &tile,
                                const std::map<string, string> &config,
                                vector<string> files) : _files(
-                std::move(files)), _locator(locator), _tiler(Tiler{}),
+                std::move(files)), _tiler(Tiler{}),
                                                        _ctx(std::bind(&MapTileServer::handle_emit, this,
                                                                       std::placeholders::_1,
                                                                       std::placeholders::_2),
-                                                            tile, config) {
+                                                            tile, config),
+                                                       _emitter(locator) {
             auto formatter = std::make_unique<spdlog::pattern_formatter>();
             formatter->add_flag<shared::HostnameLogger>('h').set_pattern("[%l] [%h] [%H:%M:%S %z] [thread %t] %v");
             auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -98,6 +100,10 @@ namespace mt::server {
                                             mapper.map(ctx, key);
                                         });
             });
+
+            // Flush any remaining values
+            spdlog::info("Flushing remaining values");
+            _emitter.flush();
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
@@ -108,6 +114,14 @@ namespace mt::server {
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
 
+        void receive_array(const std::vector<std::pair<const Coordinate, const MapKey>> &values) {
+            std::for_each(values.begin(), values.end(), [this](const auto v) {
+                _tiler.receive(_ctx, v.first, v.second);
+            });
+        }
+
+        HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive_array);
+
         void compute() {
             _tiler.compute(_ctx);
         }
@@ -115,7 +129,7 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, compute);
 
         ReduceValue reduce() {
-            // TODO: This really needs to be conditionally enabled, but that will require changes to how we handle action registration.
+            // TODO: This method really needs to be conditionally enabled, but that will require changes to how we handle action registration.
             if constexpr (has_reduce<Tiler, MapKey, Coordinate, ReduceValue>::value) {
                 return _tiler.reduce(_ctx);
             } else {
@@ -128,20 +142,13 @@ namespace mt::server {
 
     private:
         const vector<string> _files;
-        const coordinates::LocaleLocator<Coordinate> _locator;
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
+        io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>, Coordinate, MapKey> _emitter;
 
-        void handle_emit(const Coordinate &key, const MapKey &value) const {
-            // We do this manually to avoid pull in the MapClient header
-            const auto locale_num = _locator.get_locale(key);
-            const auto id = hpx::find_from_basename(fmt::format("mt/base/{}", locale_num), 0).get();
-            typedef typename mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>::receive_action action_type;
-            try {
-                hpx::async<action_type>(id, key, value).get();
-            } catch (const std::exception &e) {
-                spdlog::error("Unable to send value. {}", e.what());
-            }
+        void handle_emit(const Coordinate &key, const MapKey &value) {
+            std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);
+            _emitter.emit(std::make_shared<std::pair<const Coordinate, const MapKey>>(pair));
         }
     };
 }
@@ -157,8 +164,14 @@ namespace mt::server {
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::receive_action;  \
     HPX_REGISTER_ACTION(                                       \
         HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_action_, mapper), _type),    \
-        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                        \
-                                                                                                        \
+        HPX_PP_CAT(__MapTileServer_receive_action_, mapper));                                                         \
+                                                                                                                      \
+        using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper), _type) = \
+         ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::receive_array_action;  \
+    HPX_REGISTER_ACTION(                                       \
+        HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper), _type),    \
+        HPX_PP_CAT(__MapTileServer_receive_array_action_, mapper));                                                   \
+                                                                                                                      \
     using HPX_PP_CAT(HPX_PP_CAT(__MapTileServer_compute_action_, mapper), _type) = \
          ::mt::server::MapTileServer<map_key, coordinate, mapper, tiler, reduce_value, input_key, provider>::compute_action;  \
     HPX_REGISTER_ACTION(                                       \

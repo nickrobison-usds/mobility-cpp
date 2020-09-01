@@ -33,6 +33,18 @@ jobs:
         run: |
           brew install hwloc bison flex gdal
 
+      - name: (Linux) Install dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-9 g++-9
+
+      - name: (Linux) Set GCC9 as default compiler
+        uses: lukka/set-shell-env@master
+        if: runner.os == 'Linux'
+        with:
+          CMAKE_EXTRA_ARGS: '-DCMAKE_C_COMPILER=/usr/bin/gcc-9 -DCMAKE_CXX_COMPILER=/usr/bin/g++-9'
+
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
         uses: lukka/run-vcpkg@v3
         id: runvcpkg
@@ -49,7 +61,7 @@ jobs:
           cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
           useVcpkgToolchainFile: true
           buildDirectory: '${{ github.workspace }}/build/'
-          cmakeAppendedArgs: '-GNinja -DCI=ON'
+          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
 
       - name: Unit Tests
         run: |

@@ -19,6 +19,7 @@ namespace mt::coordinates {
         static constexpr int dimensions = 2;
 
         Coordinate2D() = default;
+        Coordinate2D& operator=(const Coordinate2D&) = default;
 
         Coordinate2D(const std::size_t &dim0, const std::size_t &dim1);
 

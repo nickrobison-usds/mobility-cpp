@@ -30,16 +30,23 @@ namespace mt::coordinates {
 
         explicit LocaleLocator(const std::vector<value> &tiles) : _index(tiles.begin(), tiles.end()) {
             // Not used
+            const auto sz = tiles.size();
+            if (sz == 0) {
+                throw std::invalid_argument("Nothing here");
+            }
         };
 
         LocaleLocator<Coordinate>() = default;
+
+        [[nodiscard]] std::size_t get_num_locales() const {
+            return _index.size();
+        }
 
         [[nodiscard]] std::uint64_t get_locale(const Coordinate &coords) const {
             std::vector<value> values;
 
             // Use the index to filter down the list
             _index.query(bg::index::covers(coords), std::back_inserter(values));
-
             if (values.empty()) {
                 throw std::invalid_argument("Out of bounds");
             }
