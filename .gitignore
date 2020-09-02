@@ -4,3 +4,7 @@ build/
 cmake-build-*/
 .idea/
 test-dir/
+
+venv/
+python/dask-worker-space
+python/.ipynb_checkpoints

@@ -1,0 +1,8 @@
+dask[complete]
+jupyterlab
+tables
+pyarrow
+geopandas
+shapely
+rtree
+scipy
