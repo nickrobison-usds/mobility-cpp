@@ -31,3 +31,15 @@
 [submodule "extern/range-v3"]
 	path = extern/range-v3
 	url = ../../ericniebler/range-v3
+[submodule "extern/pybind11"]
+	path = extern/pybind11
+	url = ../../pybind/pybind11.git
+[submodule "extern/xtensor-python"]
+	path = extern/xtensor-python
+	url = ../../xtensor-stack/xtensor-python.git
+[submodule "extern/xtensor"]
+	path = extern/xtensor
+	url = ../../xtensor-stack/xtensor.git
+[submodule "extern/xtl"]
+	path = extern/xtl
+	url = ../../xtensor-stack/xtl.git
