@@ -6,3 +6,4 @@ geopandas
 shapely
 rtree
 scipy
+matplotlib
