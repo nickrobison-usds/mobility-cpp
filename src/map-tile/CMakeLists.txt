@@ -7,7 +7,6 @@ target_link_libraries(map-tile PUBLIC HPX::hpx spdlog shared Boost::filesystem r
 target_include_directories(map-tile PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
-
 target_compile_definitions(map-tile PUBLIC EMIT_SIZE=${EMIT_SIZE})
 
 add_library(MCPP::map-tile ALIAS map-tile)

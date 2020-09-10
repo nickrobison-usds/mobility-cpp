@@ -45,6 +45,7 @@ add_subdirectory(map-tile)
 add_subdirectory(centrality)
 add_subdirectory(graph)
 add_subdirectory(epi-rank)
+add_subdirectory(python)
 
 #add_executable(splitter splitter.cpp)
 #target_link_libraries(splitter PRIVATE io mcpp-components Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog)
