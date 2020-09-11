@@ -16,7 +16,9 @@ namespace mcpp::python {
     class PythonInterpreter {
     public:
         explicit PythonInterpreter(): _interpreter({}) {
-            // Not used;
+            py::module sys = py::module::import("sys");
+            py::print(sys.attr("path"));
+
         }
         template <typename T>
         T evaluate(const std::string &v) {
