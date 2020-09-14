@@ -118,6 +118,35 @@ struct v2 {
     }
 };
 
+struct county_visit {
+    string safegraph_place_id;
+    date::sys_days visit_date;
+    string location_fips;
+    string visit_fips;
+    uint32_t visits;
+
+    friend class hpx::serialization::access;
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & safegraph_place_id & visit_date & location_fips & visit_fips & visits;
+    }
+
+    bool operator==(const v2 &rhs) const {
+        return safegraph_place_id == rhs.safegraph_place_id
+               && location_fips == rhs.location_cbg
+               && visit_fips == rhs.visit_cbg
+               && visits == rhs.visits;
+    }
+
+    template<typename OStream>
+    friend typename std::enable_if_t<!std::is_same_v<OStream, hpx::serialization::output_archive>, OStream>&
+    operator<<(OStream &o, const county_visit &v) {
+        auto msg = fmt::format("Location: {}\nSGID: {}\nVisit CBG: {}", v.location_fips, v.safegraph_place_id,
+                               v.visit_fips);
+        return o << msg;
+    }
+};
+
 struct joined_location {
     string safegraph_place_id;
     double latitude;
