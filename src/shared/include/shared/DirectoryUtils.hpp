@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace fs = boost::filesystem;
@@ -28,10 +29,10 @@ namespace shared {
          * @return - `NL` vectors of vectors of directory entries.
          */
         static std::vector<std::vector<fs::directory_entry>>
-        partition_files(const std::string &input_dir, int nl, const std::string &filter_regex);
+        partition_files(std::string_view input_dir, int nl, std::string_view filter_regex);
 
         static std::vector<fs::directory_entry>
-        enumerate_files(const std::string &input_dir, const std::string &filter_regex);
+        enumerate_files(std::string_view input_dir, std::string_view filter_regex);
 
          /**
          * Split a vector into a given number of slices

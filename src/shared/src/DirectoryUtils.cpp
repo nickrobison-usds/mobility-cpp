@@ -8,10 +8,10 @@ namespace shared {
 
 
     std::vector<fs::directory_entry>
-    DirectoryUtils::enumerate_files(const std::string &input_dir, const std::string &filter_regex) {
+    DirectoryUtils::enumerate_files(const std::string_view input_dir, const std::string_view filter_regex) {
         // Iterate through all the files and do async things
-        const boost::regex my_filter(filter_regex);
-        const auto dir_iter = fs::directory_iterator(input_dir);
+        const boost::regex my_filter((std::string(filter_regex)));
+        const auto dir_iter = fs::directory_iterator(std::string(input_dir));
         std::vector<fs::directory_entry> files;
 
         // We have to do this loop because the directory iterator doesn't seem to work correctly.
@@ -42,7 +42,7 @@ namespace shared {
     };
 
     std::vector<std::vector<fs::directory_entry>>
-    DirectoryUtils::partition_files(const std::string &input_dir, int nl, const std::string &filter_regex) {
+    DirectoryUtils::partition_files(const std::string_view input_dir, int nl, const std::string_view filter_regex) {
         const auto files = enumerate_files(input_dir, filter_regex);
 
         return split_vector(files, nl);

@@ -9,6 +9,7 @@
 #include <io/parquet.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
+#include <map-tile/MapTileBuilder.hpp>
 #include <map-tile/client/MapTileClient.hpp>
 #include <map-tile/coordinates/LocaleTiler.hpp>
 #include <map-tile/coordinates/LocaleLocator.hpp>
@@ -62,17 +63,17 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     // Tile the input space
     const auto locales = hpx::find_all_localities();
-    spdlog::debug("Executing on {} locales", locales.size());
+//    spdlog::debug("Executing on {} locales", locales.size());
     using namespace mt::coordinates;
     // Build the dataset space
     // Compute the Z-index, the number of days in the analysis
     const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
-    const std::array<std::size_t, 3> stride{static_cast<std::size_t>(time_bounds),
-                                            static_cast<std::size_t>(floor(MAX_CBG / locales.size())), MAX_CBG};
-    const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
-                                                       Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
-    spdlog::debug("Partitioned into {} tiles", tiles.size());
-    const LocaleLocator<Coordinate3D> locator(tiles);
+    std::array<std::size_t, 3> stride{static_cast<std::size_t>(time_bounds),
+                                      static_cast<std::size_t>(floor(MAX_CBG / locales.size())), MAX_CBG};
+//    const auto tiles = LocaleTiler::tile<Coordinate3D>(Coordinate3D(0, 0, 0),
+//                                                       Coordinate3D(time_bounds, MAX_CBG, MAX_CBG), stride);
+//    spdlog::debug("Partitioned into {} tiles", tiles.size());
+//    const LocaleLocator<Coordinate3D> locator(tiles);
 
     const auto sd = chrono::floor<date::days>(config.start_date);
     const auto ed = chrono::floor<date::days>(config.end_date);
@@ -86,82 +87,97 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["output_name"] = config.output_name;
     config_values["log_dir"] = log_path.string();
 
-    if (locales.size() != tiles.size()) {
-        spdlog::warn("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());
-    }
+//    if (locales.size() != tiles.size()) {
+//        spdlog::warn("Cannot execute {} tiles in {} locales.", tiles.size(), locales.size());
+//    }
 
     // Initialize all the locales
-    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type>> servers;
+//    vector<mt::client::MapTileClient<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type>> servers;
 
     // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
-    const auto files = shared::DirectoryUtils::partition_files(
-            csv_path.string(),
-            tiles.size(),
-            ".*patterns\\.csv");
-    // Create a queue that will let us handle cases where we have more servers than input files.
-    // If the queue is empty, we'll simply pass an empty vector to the server
-    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(
-            deque<vector<fs::directory_entry>>(files.begin(), files.end()));
+//    const auto files = shared::DirectoryUtils::partition_files(
+//            csv_path.string(),
+//            tiles.size(),
+//            ".*patterns\\.csv");
+//    // Create a queue that will let us handle cases where we have more servers than input files.
+//    // If the queue is empty, we'll simply pass an empty vector to the server
+//    queue<vector<fs::directory_entry>, deque<vector<fs::directory_entry>>> file_queue(
+//            deque<vector<fs::directory_entry>>(files.begin(), files.end()));
+//
+//    // Create a a server for each tile, cycling through the locales and files
+//    const auto locale_range = ranges::views::cycle(locales);
+//    const auto z = ranges::views::zip(locale_range, tiles);
+//
+//    ranges::for_each(
+//            z,
+//            [&servers, &locator, &config_values, &file_queue](
+//                    const auto &pair) {
+//                vector<string> file_strs;
+//
+//                if (!file_queue.empty()) {
+//                    const auto files = file_queue.front();
+//                    transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
+//                        return f.path().string();
+//                    });
+//                    file_queue.pop();
+//                }
+//
+//
+//                const auto tile = get<1>(pair);
+//                spdlog::debug("Creating server on locale {}", get<0>(pair));
+//                mt::client::MapTileClient<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type> server(
+//                        get<0>(pair), locator,
+//                        tile,
+//                        config_values,
+//                        file_strs);
+//                servers.push_back(std::move(server));
+//            });
 
-    // Create a a server for each tile, cycling through the locales and files
-    const auto locale_range = ranges::views::cycle(locales);
-    const auto z = ranges::views::zip(locale_range, tiles);
 
-    ranges::for_each(
-            z,
-            [&servers, &locator, &config_values, &file_queue](
-                    const auto &pair) {
-                vector<string> file_strs;
+    // Create the client using the builder
+    mt::MapTileBuilder<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type> builder(Coordinate3D(0, 0, 0),
+                                                                                                  Coordinate3D(
+                                                                                                          time_bounds,
+                                                                                                          MAX_CBG,
+                                                                                                          MAX_CBG),
+                                                                                                  csv_path);
 
-                if (!file_queue.empty()) {
-                    const auto files = file_queue.front();
-                    transform(files.begin(), files.end(), back_inserter(file_strs), [](const auto &f) {
-                        return f.path().string();
-                    });
-                    file_queue.pop();
-                }
-
-
-                const auto tile = get<1>(pair);
-                spdlog::debug("Creating server on locale {}", get<0>(pair));
-                mt::client::MapTileClient<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type> server(
-                        get<0>(pair), locator,
-                        tile,
-                        config_values,
-                        file_strs);
-                servers.push_back(std::move(server));
-            });
+    auto engine = builder
+            .set_stride(stride)
+            .set_regex(".*patterns\\.csv")
+            .set_config_values(config_values)
+            .build();
 
     // initialize
-    vector<hpx::future<void>> init_results;
-    std::transform(servers.begin(), servers.end(), std::back_inserter(init_results), [](auto &server) {
-        return std::move(server.initialize());
-    });
+    vector<hpx::future<void>> init_results = engine.initialize();
+//    std::transform(servers.begin(), servers.end(), std::back_inserter(init_results), [](auto &server) {
+//        return std::move(server.initialize());
+//    });
     hpx::wait_all(init_results);
     // tile
-    vector<hpx::future<void>> results;
-    std::transform(servers.begin(), servers.end(), std::back_inserter(results), [](auto &server) {
-        return std::move(server.tile());
-    });
+    vector<hpx::future<void>> results = engine.tile();
+//    std::transform(servers.begin(), servers.end(), std::back_inserter(results), [](auto &server) {
+//        return std::move(server.tile());
+//    });
 
     hpx::wait_all(results);
     spdlog::info("Tile complete, beginning computation");
 
     // Now, compute
-    vector<hpx::future<void>> compute_results;
-    std::transform(servers.begin(), servers.end(), std::back_inserter(compute_results), [](auto &mt) {
-        return std::move(mt.compute());
-    });
+    vector<hpx::future<void>> compute_results = engine.compute();
+//    std::transform(servers.begin(), servers.end(), std::back_inserter(compute_results), [](auto &mt) {
+//        return std::move(mt.compute());
+//    });
 
     hpx::wait_all(compute_results);
     spdlog::debug("Computing completed");
 
     // And, reduce
-    vector<hpx::future<reduce_type>> reduce_results;
-    std::transform(servers.begin(), servers.end(), std::back_inserter(reduce_results), [](auto &mt) {
-        return std::move(mt.reduce());
-    });
+    vector<hpx::future<reduce_type>> reduce_results = engine.reduce();
+//    std::transform(servers.begin(), servers.end(), std::back_inserter(reduce_results), [](auto &mt) {
+//        return std::move(mt.reduce());
+//    });
 
     hpx::wait_all(reduce_results);
 
