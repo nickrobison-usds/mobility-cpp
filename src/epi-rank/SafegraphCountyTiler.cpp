@@ -3,8 +3,10 @@
 //
 
 #include "SafegraphCountyTiler.hpp"
+#include <Eigen/Core>
 #include <shared/ConversionUtils.hpp>
 #include <shared/DateUtils.hpp>
+#include <Spectra/GenEigsSolver.h>
 
 void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
                                    const mt::coordinates::Coordinate3D &key, const county_visit &value) {
@@ -22,8 +24,32 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
 }
 
 void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
+    // Compute some eigen values
+    spdlog::debug("Computing centrality");
+    for(std::size_t i = 0; i < _tc._time_count; i++) {
+        auto A = _matricies->get_matrix_pair(i);
+        auto M = A + A.transpose();
 
+        Spectra::DenseGenMatProd<double> op(M);
+        Spectra::GenEigsSolver<double, Spectra::LARGEST_MAGN, Spectra::DenseGenMatProd<double>> eigs(&op, 3, 6);
+
+        eigs.init();
+        int nconv = eigs.compute();
+
+        Eigen::VectorXcd evalues;
+        if (eigs.info() == Spectra::SUCCESSFUL){
+            spdlog::debug("Found eigen values");
+            evalues = eigs.eigenvalues();
+        } else {
+            spdlog::error("Cannot compute eigen vectors: {}", eigs.info());
+        }
+
+        spdlog::info("Eigenvalues: {}", evalues);
+
+    }
 }
+
+
 
 void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
     const auto county_path = ctx.get_config_value("county_path");

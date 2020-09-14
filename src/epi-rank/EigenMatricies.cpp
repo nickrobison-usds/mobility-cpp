@@ -11,7 +11,10 @@ initialize_matricies(const std::size_t matrix_count, const std::size_t col_dimen
     std::vector<matrix_type> matricies;
     matricies.reserve(matrix_count);
     for(std::size_t i = 0; i < matrix_count; i++) {
-        matricies.emplace_back(row_dimension, col_dimension);
+        // I'm sure we can optimize this further
+        matrix_type m(row_dimension, col_dimension);
+        m.setZero(row_dimension, col_dimension);
+        matricies.push_back(m);
     }
 
     return matricies;
@@ -22,11 +25,15 @@ EigenMatricies::EigenMatricies(size_t matricies, size_t col_dimension, size_t ro
     // Not used
 }
 
-void EigenMatricies::insert(std::size_t time, std::size_t col, std::size_t row, std::uint16_t visits) {
+void EigenMatricies::insert(std::size_t time, std::size_t col, std::size_t row, double visits) {
     // TODO: This is incredibly inefficient. We should take the lock before we do the inserts
     absl::MutexLock l(&_locks.at(time));
     matrix_type &m = _matricies.at(time);
     m.coeffRef(row, col) += visits;
+}
+
+matrix_type &EigenMatricies::get_matrix_pair(std::size_t i) {
+    return _matricies.at(i);
 }
 
 

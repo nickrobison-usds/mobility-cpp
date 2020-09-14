@@ -91,6 +91,11 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     hpx::wait_all(results);
     spdlog::info("Tile complete, beginning computation");
 
+    // Now, compute
+    vector<hpx::future<void>> compute_results = engine.compute();
+    hpx::wait_all(compute_results);
+    spdlog::debug("Computing completed");
+
     return hpx::finalize();
 };
 

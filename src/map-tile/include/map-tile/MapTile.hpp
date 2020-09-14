@@ -115,7 +115,7 @@ namespace mt {
         std::vector<hpx::future<void>> compute() {
             vector<hpx::future<void>> results;
             std::transform(_clients.begin(), _clients.end(), std::back_inserter(results), [](auto &server) {
-                return std::move(server.tile());
+                return std::move(server.compute());
             });
 
             return results;

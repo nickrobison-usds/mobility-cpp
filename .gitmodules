@@ -31,3 +31,6 @@
 [submodule "extern/range-v3"]
 	path = extern/range-v3
 	url = ../../ericniebler/range-v3
+[submodule "extern/spectra"]
+	path = extern/spectra
+	url = ../../yixuan/spectra.git
