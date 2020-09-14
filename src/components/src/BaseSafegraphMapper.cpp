@@ -11,10 +11,56 @@ static const boost::regex brackets(R"(\[|\]|")");
 static const boost::regex cbg_map_replace("{|\"|}");
 
 namespace components {
+    weekly_pattern parse_string(const std::string_view v) {
+        const auto splits = shared::QuotedStringSplitter(v);
+
+        weekly_pattern w{
+                splits[0],
+                splits[1],
+                shared::DateUtils::to_days(splits[9]),
+                shared::DateUtils::to_days(splits[10]),
+                shared::ConversionUtils::convert_empty<uint32_t>(splits[11]),
+                shared::ConversionUtils::convert_empty<uint32_t>(splits[12]),
+                splits[13],
+                splits[14],
+                shared::ConversionUtils::convert_empty<uint64_t>(splits[15]),
+                splits[16]
+        };
+
+        return w;
+    }
 
     size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
         const auto diff = row_date - start_date;
         return std::abs(diff.count());
+    }
+
+    std::vector<v2>
+    compute_distance(const std::shared_ptr<joined_location> loc, const std::vector<v2> &patterns,
+                     const absl::flat_hash_map<std::string, OGRPoint> &centroids) {
+        spdlog::debug("Calculating distances for {}", loc->safegraph_place_id);
+        const OGRPoint loc_point(loc->longitude, loc->latitude);
+        patterns.size();
+        std::vector<v2> o;
+        o.reserve(patterns.size());
+        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
+                       [&centroids, &loc_point, &loc](auto &row) {
+                           OGRPoint cbg_centroid;
+                           try {
+                               cbg_centroid = centroids.at(row.visit_cbg);
+                           } catch (std::exception &e) {
+                               spdlog::error("Cannot find point for CBG: {}", row.visit_cbg);
+                               spdlog::error("Row: {}", row);
+                               throw e;
+                           }
+
+                           const auto distance = loc_point.Distance(&cbg_centroid);
+                           v2 r2{row.safegraph_place_id, row.visit_date, loc->location_cbg,
+                                 row.visit_cbg, row.visits, distance, 0.0F};
+                           return r2;
+                       });
+        spdlog::debug("Finished calculating distances for {}", loc->safegraph_place_id);
+        return o;
     }
 
     std::vector<v2>
@@ -79,63 +125,4 @@ namespace components {
 
         return filtered;
     }
-
-    template<class Backend, class Output>
-    absl::flat_hash_map<std::string, OGRPoint>
-    BaseSafegraphMapper<Backend, Output>::get_centroid_map(const std::vector<std::pair<std::string, std::uint16_t>> &visits) const {
-        std::vector<std::string> cbgs;
-        std::transform(visits.begin(), visits.end(), std::back_inserter(cbgs), [](const auto &pair) {
-            return pair.first;
-        });
-
-        const auto centroids = _s->get_centroids(cbgs).get();
-
-        return absl::flat_hash_map<std::string, OGRPoint>(centroids.begin(), centroids.end());
-    }
-
-    template<class Backend, class Output>
-    weekly_pattern BaseSafegraphMapper<Backend, Output>::parse_string(const std::string_view v) {
-        const auto splits = shared::QuotedStringSplitter(v);
-
-        weekly_pattern w{
-                splits[0],
-                splits[1],
-                shared::DateUtils::to_days(splits[9]),
-                shared::DateUtils::to_days(splits[10]),
-                shared::ConversionUtils::convert_empty<uint32_t>(splits[11]),
-                shared::ConversionUtils::convert_empty<uint32_t>(splits[12]),
-                splits[13],
-                splits[14],
-                shared::ConversionUtils::convert_empty<uint64_t>(splits[15]),
-                splits[16]
-        };
-
-        return w;
-    }
-
-    template<class Backend, class Output>
-    std::vector<v2> BaseSafegraphMapper<Backend, Output>::process_row(const weekly_pattern &row) const {
-        return _l->find_location(row.safegraph_place_id).then(
-                [this, row](hpx::future<joined_location> location_future) {
-                    const auto jl = std::make_shared<joined_location>(location_future.get());
-                    if (jl->location_cbg.empty()) {
-                        spdlog::warn("Cannot find CBG for safegraph place: {}", row.safegraph_place_id);
-                        const std::vector<v2> f;
-                        return hpx::make_ready_future<std::vector<v2>>(f);
-                    } else {
-                        return hpx::make_ready_future<std::vector<v2>>(handle_row(row, jl));
-                    }
-
-                }).get();
-    }
-
-    template<class Backend, class Output>
-    std::vector<v2>
-    BaseSafegraphMapper<Backend, Output>::handle_row(const weekly_pattern &row, const std::shared_ptr<joined_location> &jl) const {
-        const auto visits = extract_cbg_visits(row);
-        auto centroid_future = get_centroid_map(visits);
-        std::vector<v2> row_expanded = expandRow(row, visits);
-        return compute_distance(jl, row_expanded, centroid_future);
-    }
 }
-
