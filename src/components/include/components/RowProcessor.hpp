@@ -22,7 +22,7 @@ namespace components {
     public:
         RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, detail::OffsetCalculator &oc,
                      const date::sys_days &start_date) : _conf(conf), _l(l), _s(s), _matricies(
-                {conf._time_count, conf._cbg_max - conf._cbg_min, MAX_CBG}), _start_date(start_date),
+                {conf._time_count, conf._cbg_max - conf._cbg_min, shared::MAX_CBG}), _start_date(start_date),
                                                          _offset_calculator(oc) {
             // Not used
         };

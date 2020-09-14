@@ -15,11 +15,11 @@ add_library(mcpp-components
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
         src/TemporalMatricies.cpp include/components/TemporalMatricies.hpp
         src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/OffsetCalculator.cpp include/components/OffsetCalculator.hpp
-        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp)
+        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp include/components/BaseSafegraphMapper.hpp src/BaseSafegraphMapper.cpp)
 
 add_library(MCPP::components ALIAS mcpp-components)
 
-target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map io MCPP::graph PRIVATE spdlog absl::synchronization Boost::regex shared)
+target_link_libraries(mcpp-components PUBLIC HPX::hpx blaze date absl::flat_hash_map io MCPP::graph MCPP::map-tile PRIVATE spdlog absl::synchronization Boost::regex shared)
 target_include_directories(mcpp-components PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)

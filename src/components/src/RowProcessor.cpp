@@ -24,7 +24,7 @@ namespace components {
     std::vector<v2>
     compute_distance(const std::shared_ptr<joined_location> loc, const std::vector<v2> &patterns,
                      const absl::flat_hash_map<std::string, OGRPoint> &centroids) {
-        const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::COMPUTE_DISTANCES);
+        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::COMPUTE_DISTANCES);
         spdlog::debug("Calculating distances for {}", loc->safegraph_place_id);
         const OGRPoint loc_point(loc->longitude, loc->latitude);
         patterns.size();
@@ -74,7 +74,7 @@ namespace components {
     std::vector<v2>
     expandRow(const std::shared_ptr<weekly_pattern> row,
               const std::shared_ptr<std::vector<std::pair<std::string, std::uint16_t>>> &cbg_visits) {
-        const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::EXPAND_ROW);
+        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::EXPAND_ROW);
         // Extract the number of visits each day
         const auto replaced = boost::regex_replace(row->visits_by_day, brackets, std::string(""));
         // Return a vector of string, because stoi doesn't support string_view.
@@ -157,7 +157,7 @@ namespace components {
     };
 
     void RowProcessor::insert_rows(std::vector<v2> &expanded_rows) {
-        const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::INSERT_ROWS);
+        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::INSERT_ROWS);
 
         if (expanded_rows.empty()) {
             spdlog::debug("No rows to add, skipping insert");

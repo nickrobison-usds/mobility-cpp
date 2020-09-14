@@ -1,0 +1,10 @@
+add_executable(epi-rank epi-rank.cpp)
+target_link_libraries(epi-rank PRIVATE map-tile shared yaml-cpp::yaml-cpp MCPP::components)
+target_compile_options(epi-rank PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(epi-rank PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+add_sanitizers(epi-rank)
+
+if (${DEFAULT_MALLOC} STREQUAL "tcmalloc")
+    message("Linking with TCMalloc")
+    target_link_libraries(epi-rank PRIVATE ${TCMALLOC_LIBRARY})
+endif ()

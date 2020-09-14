@@ -18,7 +18,7 @@ namespace components::server {
     }
 
     std::vector<std::pair<std::string, OGRPoint>> ShapefileServer::get_centroids(const vector<std::string> &geoids) {
-        const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::GET_CENTROIDS);
+        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::GET_CENTROIDS);
 
         std::vector<std::pair<std::string, OGRPoint>> centroids;
         centroids.reserve(geoids.size());

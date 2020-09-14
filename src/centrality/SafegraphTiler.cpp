@@ -80,7 +80,6 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
     _graphs = std::make_unique<components::TemporalGraphs>(_tc._time_count);
     spdlog::debug("Tiler setup complete.");
-
 }
 
 void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx,

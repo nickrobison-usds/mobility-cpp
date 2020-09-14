@@ -13,10 +13,12 @@ target_include_directories(map-tile PUBLIC
 
 target_compile_definitions(map-tile PUBLIC EMIT_SIZE=${EMIT_SIZE})
 
+add_library(MCPP::map-tile ALIAS map-tile)
+
 add_executable(testmap-tile-runtime test/runtime_tests.cpp)
-target_link_libraries(testmap-tile-runtime HPX::wrap_main Catch2::Catch2 map-tile io Boost::filesystem absl::strings Eigen3::Eigen)
+target_link_libraries(testmap-tile-runtime HPX::wrap_main Catch2::Catch2 MCPP::map-tile io Boost::filesystem absl::strings Eigen3::Eigen)
 add_test(map-tile testmap-tile-runtime WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/map-tile/test)
 
 add_executable(map-tile-unit-tests test/locator_tests.cpp test/serialization_tests.cpp test/tiler_tests.cpp)
-target_link_libraries(map-tile-unit-tests Catch2::Catch2 map-tile io Boost::filesystem absl::strings)
+target_link_libraries(map-tile-unit-tests Catch2::Catch2 MCPP::map-tile io Boost::filesystem absl::strings)
 add_test(map-tile map-tile-unit-tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/map-tile/test)
