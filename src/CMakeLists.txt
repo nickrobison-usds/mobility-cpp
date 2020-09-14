@@ -14,6 +14,7 @@ endif ()
 # Include AVX, if it's available
 include(FindAVX)
 CHECK_FOR_AVX()
+find_package(Eigen3 3.3 NO_MODULE)
 
 add_subdirectory(io)
 add_subdirectory(components)

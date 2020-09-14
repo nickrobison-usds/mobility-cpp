@@ -1,5 +1,5 @@
-add_executable(epi-rank epi-rank.cpp SafegraphCountyMapper.cpp SafegraphCountyMapper.hpp SafegraphCountyTiler.cpp SafegraphCountyTiler.hpp EpiConfig.cpp)
-target_link_libraries(epi-rank PRIVATE MCPP::map-tile shared yaml-cpp::yaml-cpp MCPP::components)
+add_executable(epi-rank epi-rank.cpp SafegraphCountyMapper.cpp SafegraphCountyMapper.hpp SafegraphCountyTiler.cpp SafegraphCountyTiler.hpp EpiConfig.cpp EigenMatricies.cpp EigenMatricies.hpp)
+target_link_libraries(epi-rank PRIVATE MCPP::map-tile shared yaml-cpp::yaml-cpp MCPP::components Eigen3::Eigen)
 target_compile_options(epi-rank PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(epi-rank PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 add_sanitizers(epi-rank)

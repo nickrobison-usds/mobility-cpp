@@ -1,6 +1,3 @@
-# We don't require Eigen to build the project, but the tests do require it
-find_package(Eigen3 3.3 NO_MODULE)
-
 set(EMIT_SIZE 4096 CACHE STRING "Buffer size (bytes) before emitting")
 
 

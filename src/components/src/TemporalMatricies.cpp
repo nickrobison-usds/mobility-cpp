@@ -12,7 +12,7 @@ namespace components {
         spdlog::debug("Allocating {} matricies of size (rows/cols) {}/{}", matricies, row_dimension, col_dimension);
         std::vector<MatrixPair> pairs;
         pairs.reserve(matricies);
-        for (int i = 0; i < matricies; i++) {
+        for (std::size_t i = 0; i < matricies; i++) {
             pairs.emplace_back(
                     visit_matrix(row_dimension, col_dimension, 0),
                     distance_matrix(row_dimension, col_dimension, 0)
