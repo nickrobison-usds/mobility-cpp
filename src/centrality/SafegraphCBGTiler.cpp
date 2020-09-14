@@ -62,7 +62,7 @@ void SafegraphCBGTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::
     const date::sys_days e(end_date);
     _start_date = d;
 
-    _s = std::make_unique<components::ShapefileWrapper>(components::ShapefileWrapper(*cbg_path));
+    _s = std::make_unique<components::CBGShapefileWrapper>(components::CBGShapefileWrapper(*cbg_path));
 
     _tc._nr = 16;
     // These values are really confusing

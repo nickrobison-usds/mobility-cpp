@@ -9,7 +9,7 @@
 #include <components/detail/CBGOffsetCalculator.hpp>
 #include <components/TemporalGraphs.hpp>
 #include <components/TemporalMatricies.hpp>
-#include <components/ShapefileWrapper.hpp>
+#include <components/CBGShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <shared/data.hpp>
 
@@ -31,7 +31,7 @@ private:
     void write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
     std::unique_ptr<components::detail::CBGOffsetCalculator> _oc;
-    std::unique_ptr<components::ShapefileWrapper> _s;
+    std::unique_ptr<components::CBGShapefileWrapper> _s;
     std::unique_ptr<components::TemporalMatricies> _tm;
     std::unique_ptr<components::TemporalGraphs> _graphs;
     components::TileConfiguration _tc;

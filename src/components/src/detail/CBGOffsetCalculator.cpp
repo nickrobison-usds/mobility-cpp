@@ -7,7 +7,7 @@
 
 namespace components::detail {
 
-    offset_bimap build_offset_map(const server::ShapefileServer::offset_type &offsets) {
+    offset_bimap build_offset_map(const server::CBGShapefileServer::offset_type &offsets) {
         detail::offset_bimap cbg_offsets;
 
         std::for_each(offsets.begin(), offsets.end(), [&cbg_offsets](const auto &pair) {
@@ -17,7 +17,7 @@ namespace components::detail {
         return cbg_offsets;
     };
 
-    CBGOffsetCalculator::CBGOffsetCalculator(const server::ShapefileServer::offset_type &init,
+    CBGOffsetCalculator::CBGOffsetCalculator(const server::CBGShapefileServer::offset_type &init,
                                              const TileConfiguration &config) : _cbg_map(build_offset_map(init)),
                                                                           _start_idx(config._tile_min),
                                                                           _end_idx(config._tile_max) {

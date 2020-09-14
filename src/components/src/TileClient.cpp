@@ -3,7 +3,7 @@
 //
 
 #include "components/TileClient.hpp"
-#include "components/server/ShapefileServer.hpp"
+#include "components/server/CBGShapefileServer.hpp"
 
 
 namespace components {

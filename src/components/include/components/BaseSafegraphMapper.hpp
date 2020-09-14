@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_BASESAFEGRAPHMAPPER_HPP
 
 #include "JoinedLocation.hpp"
-#include "ShapefileWrapper.hpp"
+#include "CBGShapefileWrapper.hpp"
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <shared/ConversionUtils.hpp>
@@ -56,7 +56,7 @@ namespace components {
 
             const auto time_bounds = chrono::duration_cast<shared::days>(end_date - start_date).count();
             _l = std::make_unique<components::JoinedLocation>(components::JoinedLocation({}, *poi_path, *poi_path));
-            _s = std::make_unique<components::ShapefileWrapper>(components::ShapefileWrapper(*cbg_path));
+            _s = std::make_unique<components::CBGShapefileWrapper>(components::CBGShapefileWrapper(*cbg_path));
 
             _tc._nr = 16;
             // These values are really confusing
@@ -116,7 +116,7 @@ namespace components {
 
     protected:
         std::unique_ptr<components::JoinedLocation> _l;
-        std::unique_ptr<components::ShapefileWrapper> _s;
+        std::unique_ptr<components::CBGShapefileWrapper> _s;
         components::TileConfiguration _tc;
         date::sys_days _begin_date;
         date::sys_days _end_date;

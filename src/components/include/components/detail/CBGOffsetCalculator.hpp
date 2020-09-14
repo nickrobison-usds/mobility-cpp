@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_CBGOFFSETCALCULATOR_HPP
 
 #include "components/OffsetCalculator.hpp"
-#include "components/server/ShapefileServer.hpp"
+#include "components/server/CBGShapefileServer.hpp"
 #include "shared/TileConfiguration.hpp"
 #include "offset_shared.hpp"
 #include <optional>
@@ -17,7 +17,7 @@ namespace components::detail {
 
     class CBGOffsetCalculator : public OffsetCalculator<CBGOffsetCalculator> {
     public:
-        explicit CBGOffsetCalculator(const server::ShapefileServer::offset_type &init, const TileConfiguration &config);
+        explicit CBGOffsetCalculator(const server::CBGShapefileServer::offset_type &init, const TileConfiguration &config);
 
         /**
      * Compute the global offset for a given CBG code

@@ -8,7 +8,7 @@
 #include "shared/TileConfiguration.hpp"
 #include "shared/data.hpp"
 #include <components/JoinedLocation.hpp>
-#include <components/ShapefileWrapper.hpp>
+#include <components/CBGShapefileWrapper.hpp>
 #include <hpx/include/components.hpp>
 #include <blaze/math/CompressedMatrix.h>
 
@@ -35,7 +35,7 @@ namespace components::server {
         const std::string _output_dir;
         const std::string _output_name;
         JoinedLocation _l;
-        ShapefileWrapper _s;
+        CBGShapefileWrapper _s;
     };
 }
 

@@ -1,4 +1,4 @@
-add_executable(epi-rank epi-rank.cpp SafegraphCountyMapper.cpp SafegraphCountyMapper.hpp SafegraphCountyTiler.cpp SafegraphCountyTiler.hpp)
+add_executable(epi-rank epi-rank.cpp SafegraphCountyMapper.cpp SafegraphCountyMapper.hpp SafegraphCountyTiler.cpp SafegraphCountyTiler.hpp EpiConfig.cpp)
 target_link_libraries(epi-rank PRIVATE MCPP::map-tile shared yaml-cpp::yaml-cpp MCPP::components)
 target_compile_options(epi-rank PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(epi-rank PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
