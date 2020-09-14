@@ -3,7 +3,7 @@
 //
 
 #include "TileServer.hpp"
-#include "components/CBGOffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include "components/RowProcessor.hpp"
 #include <absl/strings/str_split.h>
 #include <blaze/math/Math.h>

@@ -9,7 +9,7 @@
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
 #include <shared/data.hpp>
-#include "CBGOffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include "TemporalMatricies.hpp"
 #include "shared/TileConfiguration.hpp"
 

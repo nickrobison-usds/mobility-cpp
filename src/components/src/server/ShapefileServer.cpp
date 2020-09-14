@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/3/20.
 //
 
-#include "ShapefileServer.hpp"
+#include "components/server/ShapefileServer.hpp"
 #include <shared/debug.hpp>
 #include "shared/constants.hpp"
 #include "spdlog/spdlog.h"

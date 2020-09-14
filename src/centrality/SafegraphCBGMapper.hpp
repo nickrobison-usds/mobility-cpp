@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_SAFEGRAPHCBGMAPPER_HPP
 
 #include <components/BaseSafegraphMapper.hpp>
-#include <components/CBGOffsetCalculator.hpp>
+#include <components/detail/CBGOffsetCalculator.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <shared/data.hpp>

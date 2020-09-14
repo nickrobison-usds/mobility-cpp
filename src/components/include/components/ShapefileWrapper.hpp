@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_SHAPEFILEWRAPPER_HPP
 #define MOBILITY_CPP_SHAPEFILEWRAPPER_HPP
 
-#include "../../src/server/ShapefileServer.hpp"
+#include "components/server/ShapefileServer.hpp"
 #include <hpx/include/actions.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/components.hpp>

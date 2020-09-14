@@ -5,16 +5,15 @@
 #ifndef MOBILITY_CPP_CBGOFFSETCALCULATOR_HPP
 #define MOBILITY_CPP_CBGOFFSETCALCULATOR_HPP
 
-#include "OffsetCalculator.hpp"
-#include "../../src/server/ShapefileServer.hpp"
+#include "components/OffsetCalculator.hpp"
+#include "components/server/ShapefileServer.hpp"
 #include "shared/TileConfiguration.hpp"
-#include <boost/bimap.hpp>
+#include "offset_shared.hpp"
 #include <optional>
 
 namespace components::detail {
 
-    typedef boost::bimap<std::string, std::size_t> offset_bimap;
-    typedef offset_bimap::value_type position;
+
 
     class CBGOffsetCalculator : public OffsetCalculator<CBGOffsetCalculator> {
     public:

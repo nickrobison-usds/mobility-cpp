@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/10/20.
 //
 
-#include "components/CBGOffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include <spdlog/spdlog.h>
 
 namespace components::detail {

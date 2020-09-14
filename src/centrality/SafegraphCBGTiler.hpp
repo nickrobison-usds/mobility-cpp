@@ -6,7 +6,7 @@
 #define MOBILITY_CPP_SAFEGRAPHCBGTILER_HPP
 
 #include <map-tile/coordinates/Coordinate3D.hpp>
-#include <components/CBGOffsetCalculator.hpp>
+#include <components/detail/CBGOffsetCalculator.hpp>
 #include <components/TemporalGraphs.hpp>
 #include <components/TemporalMatricies.hpp>
 #include <components/ShapefileWrapper.hpp>

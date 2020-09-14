@@ -3,7 +3,7 @@
 //
 
 #include "SafegraphCBGMapper.hpp"
-#include <components/CBGOffsetCalculator.hpp>
+#include <components/detail/CBGOffsetCalculator.hpp>
 
 void SafegraphCBGMapper::setup_impl(const mt::ctx::MapContext<v2, mt::coordinates::Coordinate3D> &ctx) {
     _oc = std::make_unique<components::detail::CBGOffsetCalculator>(

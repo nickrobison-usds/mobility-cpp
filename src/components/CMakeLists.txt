@@ -11,11 +11,11 @@ add_library(mcpp-components
         src/server/WeekSplitterServer.cpp src/server/WeekSplitterServer.hpp
         src/server/TileServer.cpp src/server/TileServer.hpp
         include/components/TileClient.hpp src/TileClient.cpp
-        src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
+        src/server/ShapefileServer.cpp include/components/server/ShapefileServer.hpp
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
         src/TemporalMatricies.cpp include/components/TemporalMatricies.hpp
-        src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/CBGOffsetCalculator.cpp include/components/CBGOffsetCalculator.hpp
-        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp include/components/BaseSafegraphMapper.hpp src/BaseSafegraphMapper.cpp include/components/OffsetCalculator.hpp)
+        src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/detail/CBGOffsetCalculator.cpp include/components/detail/CBGOffsetCalculator.hpp
+        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp include/components/BaseSafegraphMapper.hpp src/BaseSafegraphMapper.cpp include/components/OffsetCalculator.hpp src/detail/CountyOffsetCalculator.cpp include/components/detail/CountyOffsetCalculator.hpp include/components/detail/offset_shared.hpp)
 
 add_library(MCPP::components ALIAS mcpp-components)
 

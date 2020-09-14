@@ -5,10 +5,10 @@
 #ifndef MOBILITY_CPP_VISITMATRIXWRITER_HPP
 #define MOBILITY_CPP_VISITMATRIXWRITER_HPP
 
-#include "components/CBGOffsetCalculator.hpp"
 #include "components/TemporalMatricies.hpp"
 #include <io/parquet.hpp>
 #include <date/date.h>
+#include "components/detail/CBGOffsetCalculator.hpp"
 
 namespace components {
     class VisitMatrixWriter {
