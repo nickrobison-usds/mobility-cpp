@@ -9,7 +9,7 @@
 #include <components/JoinedLocation.hpp>
 #include <components/ShapefileWrapper.hpp>
 #include <shared/data.hpp>
-#include "OffsetCalculator.hpp"
+#include "CBGOffsetCalculator.hpp"
 #include "TemporalMatricies.hpp"
 #include "shared/TileConfiguration.hpp"
 
@@ -20,9 +20,9 @@ namespace components {
     class RowProcessor {
 
     public:
-        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, detail::OffsetCalculator &oc,
+        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, detail::CBGOffsetCalculator &oc,
                      const date::sys_days &start_date) : _conf(conf), _l(l), _s(s), _matricies(
-                {conf._time_count, conf._cbg_max - conf._cbg_min, shared::MAX_CBG}), _start_date(start_date),
+                {conf._time_count, conf._tile_max - conf._tile_min, shared::MAX_CBG}), _start_date(start_date),
                                                          _offset_calculator(oc) {
             // Not used
         };
@@ -35,7 +35,7 @@ namespace components {
         const TileConfiguration _conf;
         const JoinedLocation _l;
         const ShapefileWrapper _s;
-        const detail::OffsetCalculator _offset_calculator;
+        const detail::CBGOffsetCalculator _offset_calculator;
         const date::sys_days _start_date;
         TemporalMatricies _matricies;
 

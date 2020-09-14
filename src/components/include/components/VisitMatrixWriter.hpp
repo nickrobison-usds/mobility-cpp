@@ -5,7 +5,7 @@
 #ifndef MOBILITY_CPP_VISITMATRIXWRITER_HPP
 #define MOBILITY_CPP_VISITMATRIXWRITER_HPP
 
-#include "components/OffsetCalculator.hpp"
+#include "components/CBGOffsetCalculator.hpp"
 #include "components/TemporalMatricies.hpp"
 #include <io/parquet.hpp>
 #include <date/date.h>
@@ -13,12 +13,12 @@
 namespace components {
     class VisitMatrixWriter {
     public:
-        VisitMatrixWriter(const std::string &filename, detail::OffsetCalculator oc);
+        VisitMatrixWriter(const std::string &filename, detail::CBGOffsetCalculator oc);
         arrow::Status writeResults(const date::sys_days &result_date, const visit_matrix &matrix);
 
     private:
         const io::Parquet _p;
-        const detail::OffsetCalculator _offset_calculator;
+        const detail::CBGOffsetCalculator _offset_calculator;
         arrow::StringBuilder _poi_cbg_builder;
         arrow::StringBuilder _visitor_cbg_builder;
         arrow::Date32Builder _date_builder;

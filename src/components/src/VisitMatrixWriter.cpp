@@ -8,7 +8,7 @@
 #include <utility>
 
 namespace components {
-    VisitMatrixWriter::VisitMatrixWriter(const std::string &filename, detail::OffsetCalculator oc) : _p(
+    VisitMatrixWriter::VisitMatrixWriter(const std::string &filename, detail::CBGOffsetCalculator oc) : _p(
             io::Parquet(filename)), _offset_calculator(std::move(oc)) {
         // Not used
     }
@@ -17,14 +17,14 @@ namespace components {
         arrow::Status status;
 
         for (size_t i = 0; i < matrix.columns(); i++) {
-            const auto poi_cbg = _offset_calculator.cbg_from_local_offset(i);
+            const auto poi_cbg = _offset_calculator.from_local_offset(i);
             if (!poi_cbg.has_value()) {
                 spdlog::error("Cannot process source cbg: `{}`", i);
                 continue;
             }
             for (visit_matrix::ConstIterator it = matrix.cbegin(i); it != matrix.cend(i); ++it) {
                 const auto id = it->index();
-                const auto visitor_cbg = _offset_calculator.cbg_from_offset(id);
+                const auto visitor_cbg = _offset_calculator.from_global_offset(id);
                 if (!visitor_cbg.has_value()) {
                     spdlog::error("Cannot process dest cbg: `{}`", id);
                     continue;

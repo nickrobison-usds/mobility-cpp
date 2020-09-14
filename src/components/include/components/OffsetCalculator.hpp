@@ -1,41 +1,34 @@
 //
-// Created by Nicholas Robison on 6/10/20.
+// Created by Nicholas Robison on 9/14/20.
 //
 
 #ifndef MOBILITY_CPP_OFFSETCALCULATOR_HPP
 #define MOBILITY_CPP_OFFSETCALCULATOR_HPP
 
-#include "../../src/server/ShapefileServer.hpp"
-#include "shared/TileConfiguration.hpp"
-#include <boost/bimap.hpp>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 
-namespace components::detail {
-
-    typedef boost::bimap<std::string, std::size_t> offset_bimap;
-    typedef offset_bimap::value_type position;
-
+namespace components {
+    template<typename Calculator>
     class OffsetCalculator {
     public:
-        explicit OffsetCalculator(const server::ShapefileServer::offset_type &init, const TileConfiguration &config);
+        std::optional<std::size_t> to_global_offset(const std::string_view value) const {
+            return static_cast<Calculator const &> (*this).to_global_offset_impl(value);
+        }
 
-        /**
-     * Compute the global offset for a given CBG code
-     * @param cbg_code - CBG code (string)
-     * @return offset
-     */
-        [[nodiscard]] std::optional<std::size_t> calculate_cbg_offset(const std::string &cbg_code) const;
+        std::size_t to_local_offset(const std::string_view value) const {
+            return static_cast<Calculator const &> (*this).to_local_offset_impl(value);
+        }
 
-        [[nodiscard]] std::size_t calculate_local_offset(const std::string &cbg_code) const;
+        std::optional<std::string> from_global_offset(const std::size_t offset) const {
+            return static_cast<Calculator const &> (*this).from_global_offset_impl(offset);
+        }
 
-        [[nodiscard]] std::optional<std::string> cbg_from_local_offset(size_t cbg_idx) const;
-
-        [[nodiscard]] optional<string> cbg_from_offset(size_t cbg_idx) const;
-
-    private:
-        const std::size_t _start_idx;
-        const std::size_t _end_idx;
-        const offset_bimap _cbg_map;
+        std::optional<std::string> from_local_offset(const std::size_t offset) const {
+            return static_cast<Calculator const &> (*this).from_local_offset(offset);
+        }
     };
 }
 

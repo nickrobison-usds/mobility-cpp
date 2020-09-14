@@ -5,7 +5,7 @@
 
 #include "config.cpp"
 #include "SafegraphCBGMapper.hpp"
-#include "SafegraphTiler.hpp"
+#include "SafegraphCBGTiler.hpp"
 #include <io/parquet.hpp>
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
@@ -26,7 +26,7 @@ using namespace std;
 
 // Register the map-tile instance
 typedef vector<cbg_centrality> reduce_type;
-REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type, string,
+REGISTER_MAPPER(v2, mt::coordinates::Coordinate3D, SafegraphCBGMapper, SafegraphCBGTiler, reduce_type, string,
                 mt::io::FileProvider);
 
 int hpx_main(hpx::program_options::variables_map &vm) {
@@ -75,12 +75,12 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
 
     // Create the client using the builder
-    mt::MapTileBuilder<v2, Coordinate3D, SafegraphCBGMapper, SafegraphTiler, reduce_type> builder(Coordinate3D(0, 0, 0),
-                                                                                                  Coordinate3D(
+    mt::MapTileBuilder<v2, Coordinate3D, SafegraphCBGMapper, SafegraphCBGTiler, reduce_type> builder(Coordinate3D(0, 0, 0),
+                                                                                                     Coordinate3D(
                                                                                                           time_bounds,
                                                                                                           shared::MAX_CBG,
                                                                                                           shared::MAX_CBG),
-                                                                                                  csv_path);
+                                                                                                     csv_path);
 
     auto engine = builder
             .set_stride(stride)

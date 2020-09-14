@@ -14,8 +14,8 @@ add_library(mcpp-components
         src/server/ShapefileServer.cpp src/server/ShapefileServer.hpp
         src/ShapefileWrapper.cpp include/components/ShapefileWrapper.hpp
         src/TemporalMatricies.cpp include/components/TemporalMatricies.hpp
-        src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/OffsetCalculator.cpp include/components/OffsetCalculator.hpp
-        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp include/components/BaseSafegraphMapper.hpp src/BaseSafegraphMapper.cpp)
+        src/TileWriter.cpp include/components/TileWriter.hpp src/RowProcessor.cpp include/components/RowProcessor.hpp src/CBGOffsetCalculator.cpp include/components/CBGOffsetCalculator.hpp
+        src/VisitMatrixWriter.cpp include/components/VisitMatrixWriter.hpp TemporalGraphs.cpp include/components/TemporalGraphs.hpp include/components/BaseSafegraphMapper.hpp src/BaseSafegraphMapper.cpp include/components/OffsetCalculator.hpp)
 
 add_library(MCPP::components ALIAS mcpp-components)
 

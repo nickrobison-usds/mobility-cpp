@@ -116,15 +116,15 @@ namespace components {
                         spdlog::warn("Cannot find CBG for safegraph place: {}", row->safegraph_place_id);
                         return hpx::make_ready_future();
                     }
-                    const auto offset = _offset_calculator.calculate_cbg_offset(jl->location_cbg);
+                    const auto offset = _offset_calculator.to_global_offset(jl->location_cbg);
                     if (!offset.has_value()) {
                         spdlog::error("Cannot find offset {} in map", jl->location_cbg);
                         return hpx::make_ready_future();
                     }
 //                     If the cbg is outside of our partition, then return immediately.
 //                     Otherwise, start the processing
-                    if (*offset < _conf._cbg_min || *offset >= _conf._cbg_max) {
-                        spdlog::debug("CBG {} is outside of boundary {}/{}", *offset, _conf._cbg_min, _conf._cbg_max);
+                    if (*offset < _conf._tile_min || *offset >= _conf._tile_max) {
+                        spdlog::debug("CBG {} is outside of boundary {}/{}", *offset, _conf._tile_min, _conf._tile_max);
                         return hpx::make_ready_future();
                     } else {
                         return handle_row(row, jl);
@@ -169,8 +169,8 @@ namespace components {
                           // Compute the temporal offset
                           const auto t_offset = compute_temporal_offset(_start_date,
                                                                         expanded_row.visit_date);
-                          const auto x_idx = _offset_calculator.calculate_local_offset(expanded_row.location_cbg);
-                          const auto y_idx = _offset_calculator.calculate_cbg_offset(expanded_row.visit_cbg);
+                          const auto x_idx = _offset_calculator.to_local_offset(expanded_row.location_cbg);
+                          const auto y_idx = _offset_calculator.to_global_offset(expanded_row.visit_cbg);
                           if (y_idx.has_value()) {
                               _matricies.insert(t_offset,
                                                 x_idx,
