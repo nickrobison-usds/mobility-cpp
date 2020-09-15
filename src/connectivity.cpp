@@ -4,6 +4,7 @@
 
 #include <shared/constants.hpp>
 #include <components/TileClient.hpp>
+#include <shared/constants.hpp>
 #include <shared/HostnameLogger.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/DirectoryUtils.hpp>
@@ -95,10 +96,10 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     std::for_each(input_files.begin(), input_files.end(),
                   [&tiles, &tile_parititions, &cbg_path, &poi_path, &nr, &start_date](const auto &pair) {
                       const size_t ds = chrono::duration_cast<days>(start_date.time_since_epoch()).count();
-                      const auto stride = components::MAX_CBG / tile_parititions;
+                      const auto stride = shared::MAX_CBG / tile_parititions;
 
-                      for (size_t i = 0; i < components::MAX_CBG; i += stride) {
-                          components::TileConfiguration dim{pair.first, i, std::min(i + stride, components::MAX_CBG),
+                      for (size_t i = 0; i < shared::MAX_CBG; i += stride) {
+                          components::TileConfiguration dim{pair.first, i, std::min(i + stride, shared::MAX_CBG),
                                                             ds, 7, nr};
                           tiles.push_back(dim);
                       }

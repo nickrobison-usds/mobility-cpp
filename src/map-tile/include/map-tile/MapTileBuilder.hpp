@@ -34,7 +34,7 @@ namespace mt {
         }
 
         MapTileBuilder &add_config_value(const std::string_view key, const std::string_view value) {
-            _config_values[key] = value;
+            _config_values[std::string(key)] = std::string(value);
             return *this;
         }
 
