@@ -48,8 +48,9 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     using namespace mt::coordinates;
     // Compute the Z-index, the number of days in the analysis
     const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
-    std::array<std::size_t, 3> stride{static_cast<std::size_t>(time_bounds),
-                                      static_cast<std::size_t>(floor(shared::MAX_COUNTY / locales.size())), shared::MAX_COUNTY};
+    // We'll stride by date, that way we have a complete matrix on each locale.
+    std::array<std::size_t, 3> stride{static_cast<std::size_t>(floor(time_bounds / locales.size())),
+                                      shared::MAX_COUNTY, shared::MAX_COUNTY};
 
     const auto sd = chrono::floor<date::days>(config.start_date);
     const auto ed = chrono::floor<date::days>(config.end_date);
