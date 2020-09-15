@@ -24,12 +24,12 @@ public:
     void compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx);
 
 private:
-    void write_eigenvalues(std::size_t offset, blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const;
+    void write_eigenvalues(std::size_t offset, const blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const;
     std::unique_ptr<components::detail::CountyOffsetCalculator> _oc;
     std::unique_ptr<components::CountyShapefileWrapper> _c_wrapper;
     components::TileConfiguration _tc;
     date::sys_days _start_date;
-    std::unique_ptr<BlazeMatricies> _bm;
+    std::unique_ptr<BlazeMatricies> matricies;
     std::string _output_path;
 };
 

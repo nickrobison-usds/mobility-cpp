@@ -12,37 +12,6 @@
 
 namespace fs = boost::filesystem;
 
-void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
-                                   const mt::coordinates::Coordinate3D &key, const county_visit &value) {
-    // Convert back to local coordinate space
-    const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
-    const auto x_idx = _oc->to_local_offset(value.location_fips);
-    const auto y_idx = _oc->to_global_offset(value.visit_fips);
-    const auto l_time_count = local_temporal.time_since_epoch().count();
-    if (y_idx.has_value()) {
-        _bm->insert(l_time_count, x_idx, *y_idx, value.visits);
-    } else {
-        spdlog::error("Visitor FIPS {} is not in map, skipping insert", value.visit_fips);
-    }
-
-}
-
-void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
-    // Compute some eigen values
-    spdlog::debug("Computing eigenvalue centrality");
-    // Figure out how many eigenvectors we need, based on the number of locations
-    for (std::size_t i = 0; i < _tc._time_count; i++) {
-        // Compute for Blaze as well
-        auto B = _bm->get_matrix_pair(i);
-        blaze::DynamicVector<complex<double>, blaze::columnVector>
-        w(_tc._tile_max - _tc._tile_min);   // The vector for the complex eigenvalues
-        blaze::eigen(B, w);
-        // Write it out
-        write_eigenvalues(i, w);
-    }
-}
-
-
 void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
     const auto county_path = ctx.get_config_value("county_path");
     const auto poi_path = ctx.get_config_value("poi_path");
@@ -70,12 +39,53 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
 
     _c_wrapper = std::make_unique<components::CountyShapefileWrapper>(*county_path);
     _oc = std::make_unique<components::detail::CountyOffsetCalculator>(_c_wrapper->build_offsets().get(), _tc);
-    _bm = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
+    matricies = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
 
     _output_path = *ctx.get_config_value("output_path");
 }
 
-void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {
+void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
+                                   const mt::coordinates::Coordinate3D &key, const county_visit &value) {
+    // Convert back to local coordinate space
+    const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
+    const auto x_idx = _oc->to_local_offset(value.location_fips);
+    const auto y_idx = _oc->to_global_offset(value.visit_fips);
+    const auto l_time_count = local_temporal.time_since_epoch().count();
+    if (y_idx.has_value()) {
+        matricies->insert(l_time_count, x_idx, *y_idx, value.visits);
+    } else {
+        spdlog::error("Visitor FIPS {} is not in map, skipping insert", value.visit_fips);
+    }
+
+}
+
+void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
+    // Compute some eigen values
+    spdlog::debug("Computing eigenvalue centrality");
+    // Figure out how many eigenvectors we need, based on the number of locations
+    std::vector<hpx::future<void>> results;
+    results.reserve(_tc._time_count);
+    // Compute and write the results in parallel
+    for (std::size_t i = 0; i < _tc._time_count; i++) {
+        auto computation = hpx::async([this, i]() {
+            auto B = matricies->get_matrix_pair(i);
+            blaze::DynamicVector<complex<double>, blaze::columnVector>
+                    w(_tc._tile_max - _tc._tile_min);   // The vector for the complex eigenvalues
+            blaze::eigen(B, w);
+            return w;
+        }).then([this, i](auto f) {
+            const auto values = f.get();
+            // Write it out
+            write_eigenvalues(i, values);
+        });
+        results.push_back(std::move(computation));
+    }
+
+    hpx::wait_all(results);
+    spdlog::info("Computation is complete");
+}
+
+void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {
 
     // Some nice pretty-printing of the dates
     const date::sys_days matrix_date = _start_date + date::days{offset};
