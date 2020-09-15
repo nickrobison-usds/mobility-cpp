@@ -5,13 +5,11 @@
 #ifndef MOBILITY_CPP_PANDASENGINE_HPP
 #define MOBILITY_CPP_PANDASENGINE_HPP
 
-#include "pybind11/pybind11.h"
-#define FORCE_IMPORT_ARRAY
-
 #include "PythonInterpreter.hpp"
 #include "helpers.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/hana.hpp>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <spdlog/spdlog.h>
 #include <xtensor-python/pyarray.hpp>
@@ -27,12 +25,18 @@ using namespace pybind11::literals;
 
 namespace mcpp::python {
 
+    std::once_flag imported;
+
     template<typename T>
     class PandasEngine {
     public:
         explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1): _interpreter(), _import_path(import_path) {
             // Initialize xtensor and pandas support
-            xt::import_numpy();
+//            std::call_once(imported, []() {
+                spdlog::debug("Initializing XT Numpy");
+                xt::import_numpy();
+//            });
+
             if (length > 0) {
                 hana::for_each(hana::values(_data), [&length](auto vec) {
                     vec.reserve(length);
