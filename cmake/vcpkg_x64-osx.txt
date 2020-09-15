@@ -19,6 +19,7 @@ boost-accumulators
 boost-algorithm
 boost-asio
 boost-assign
+boost-hana
 boost-bimap
 boost-config
 boost-context

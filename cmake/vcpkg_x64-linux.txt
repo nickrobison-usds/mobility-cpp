@@ -28,6 +28,7 @@ boost-exception
 boost-filesystem
 boost-geometry
 boost-graph
+boost-hana
 boost-iostreams
 boost-lockfree
 boost-multiprecision

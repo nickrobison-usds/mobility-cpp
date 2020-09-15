@@ -37,13 +37,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev
+          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9
 
-      - name: (Linux) Install dependencies
-        if: runner.os == 'Linux'
+      - name: Install Python dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-9 g++-9
+          python -m pip install --upgrade pip
+          pip install pandas
 
       - name: (Linux) Set GCC9 as default compiler
         uses: lukka/set-shell-env@master
@@ -59,17 +58,17 @@ jobs:
           vcpkgDirectory: '${{ github.workspace }}/extern/vcpkg'
           # Ensure the cache key changes any time the content of the response file changes.
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
-
-      - name: Run CMake with Ninja
-        uses: lukka/run-cmake@v2
-        id: runcmake
-        with:
-          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
-          useVcpkgToolchainFile: true
-          buildDirectory: '${{ github.workspace }}/build/'
-          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
-
-      - name: Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/
-          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
+#
+#      - name: Run CMake with Ninja
+#        uses: lukka/run-cmake@v2
+#        id: runcmake
+#        with:
+#          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
+#          useVcpkgToolchainFile: true
+#          buildDirectory: '${{ github.workspace }}/build/'
+#          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
+#
+#      - name: Unit Tests
+#        run: |
+#          cd ${{ github.workspace }}/build/
+#          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
