@@ -7,14 +7,16 @@
 #include "catch2/catch.hpp"
 
 struct Person {
-    int name;
+    std::string name;
     int age;
 };
 
 BOOST_HANA_ADAPT_STRUCT(Person, name, age);
 
 TEST_CASE("Simple Pandas Test", "[python]") {
-    mcpp::python::PandasEngine<Person> p(1);
-    p.load({40, 31});
-    REQUIRE(p.evaluate() == "1");
+    mcpp::python::PandasEngine<Person> p("simple_test", 1);
+    p.load({"Nick Robison", 31});
+    p.load({"Tom Ford", 20});
+    p.load({"Bruce Willis", 42});
+    REQUIRE(p.evaluate() == "12");
 }

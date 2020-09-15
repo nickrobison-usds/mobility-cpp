@@ -11,20 +11,27 @@
 #include "PythonInterpreter.hpp"
 #include "helpers.hpp"
 #include <boost/hana.hpp>
+#include <pybind11/stl.h>
+#include <spdlog/spdlog.h>
 #include <xtensor-python/pyarray.hpp>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace hana = boost::hana;
 using namespace hana::literals;
+namespace py = pybind11;
+using namespace pybind11::literals;
 
 namespace mcpp::python {
 
     template<typename T>
     class PandasEngine {
     public:
-        explicit PandasEngine(const std::size_t length = 0): _interpreter() {
+        explicit PandasEngine(const std::string_view filename, const std::size_t length = 1): _interpreter(), _filename(filename) {
+            // Initialize xtensor and pandas support
+            xt::import_numpy();
             if (length > 0) {
                 hana::for_each(hana::values(_internal), [&length](auto vec) {
                     vec.reserve(length);
@@ -41,31 +48,37 @@ namespace mcpp::python {
         }
 
         std::string evaluate() const {
+            // Create a new Python dictionary for the results
+            auto input_dict = py::dict();
+            hana::for_each(_internal, [&input_dict](auto entry) {
+                auto key = hana::first(entry).c_str();
+                spdlog::debug("Loading column: {}", key);
+                input_dict[key] = hana::second(entry);
+            });
 
-            // Adapt our vectors into tensors and prepare to load them
-            auto entries = hana::front(hana::values(_internal)).size();
+            // Try to import the file
+            py::module sys = py::module::import("sys");
+            py::print(sys.attr("path"));
+            py::module compute = py::module::import(_filename.data());
 
-            // Create the index array
-            auto indicies = xt::pyarray<std::size_t>::from_shape({2, 3, 2});
-//            std::iota(indicies.begin(), indicies.end(), 0);
+            // Load pandas and create the dataframe
+            auto pandas = py::module::import("pandas");
+            auto args = py::make_tuple(input_dict);
+
+            auto df = pandas.attr("DataFrame").attr("from_records")(*args);
 
 
-            return std::to_string(indicies.size());
+            compute.attr("compute")(df);
+
+            return "12";
         }
 
     private:
         using A = decltype(detail::type_map<T>());
         A _internal;
         PythonInterpreter _interpreter;
+        const std::string_view _filename;
     };
-}
-
-PYBIND11_MODULE(pandas_engine, m) {
-    xt::import_numpy();
-
-    m.doc() = "Map-tile Python engine";
-
-//    py::class_<mcpp::python::PandasEngine>(c)
 }
 
 #endif //MOBILITY_CPP_PANDASENGINE_HPP
