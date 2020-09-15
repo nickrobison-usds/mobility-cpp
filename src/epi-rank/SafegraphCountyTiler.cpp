@@ -3,7 +3,9 @@
 //
 
 #include "SafegraphCountyTiler.hpp"
+#include <blaze/math/dense/Eigen.h>
 #include <Eigen/Core>
+#include <shared/constants.hpp>
 #include <shared/ConversionUtils.hpp>
 #include <shared/DateUtils.hpp>
 #include <Spectra/GenEigsSolver.h>
@@ -17,6 +19,8 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
         _matricies->insert(l_time_count, x_idx, *y_idx, value.visits);
+        // Add to blaze matrix as well
+        _bm->insert(l_time_count, x_idx, *y_idx, value.visits);
     } else {
         spdlog::error("Visitor FIPS {} is not in map, skipping insert", value.visit_fips);
     }
@@ -26,7 +30,8 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
 void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
     // Compute some eigen values
     spdlog::debug("Computing centrality");
-    for(std::size_t i = 0; i < _tc._time_count; i++) {
+    // Figure out how many eigenvectors we need, based on the number of locations
+    for (std::size_t i = 0; i < _tc._time_count; i++) {
         auto A = _matricies->get_matrix_pair(i);
         auto M = A + A.transpose();
 
@@ -37,7 +42,7 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
         int nconv = eigs.compute();
 
         Eigen::VectorXcd evalues;
-        if (eigs.info() == Spectra::SUCCESSFUL){
+        if (eigs.info() == Spectra::SUCCESSFUL) {
             spdlog::debug("Found eigen values");
             evalues = eigs.eigenvalues();
         } else {
@@ -46,9 +51,16 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
 
         spdlog::info("Eigenvalues: {}", evalues);
 
+        // Compute for Blaze as well
+        auto B = _bm->get_matrix_pair(i);
+        blaze::DynamicVector<complex<double>, blaze::columnVector>
+        w(shared::MAX_COUNTY);   // The vector for the complex eigenvalues
+
+        blaze::eigen(B, w);
+        spdlog::info("Blaze eigen: {}", w);
+
     }
 }
-
 
 
 void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
@@ -79,4 +91,5 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
     _c_wrapper = std::make_unique<components::CountyShapefileWrapper>(*county_path);
     _oc = std::make_unique<components::detail::CountyOffsetCalculator>(_c_wrapper->build_offsets().get(), _tc);
     _matricies = std::make_unique<EigenMatricies>(_tc._time_count, loc_dims, visit_dims);
+    _bm = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
 }

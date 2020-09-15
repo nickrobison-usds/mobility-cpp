@@ -5,6 +5,7 @@
 #ifndef MOBILITY_CPP_SAFEGRAPHCOUNTYTILER_HPP
 #define MOBILITY_CPP_SAFEGRAPHCOUNTYTILER_HPP
 
+#include "BlazeMatricies.hpp"
 #include "EigenMatricies.hpp"
 #include <components/CountyShapefileWrapper.hpp>
 #include <components/detail/CountyOffsetCalculator.hpp>
@@ -29,6 +30,7 @@ private:
     components::TileConfiguration _tc;
     date::sys_days _start_date;
     std::unique_ptr<EigenMatricies> _matricies;
+    std::unique_ptr<BlazeMatricies> _bm;
 };
 
 
