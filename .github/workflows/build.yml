@@ -31,7 +31,13 @@ jobs:
       - name: (macOS) Install dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install hwloc bison flex gdal
+          brew install hwloc bison flex gdal pkg-config
+
+      - name: (Linux) Install dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libxml2-dev libnuma-dev
 
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'

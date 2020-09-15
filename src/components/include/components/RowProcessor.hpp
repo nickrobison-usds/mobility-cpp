@@ -13,7 +13,7 @@
 #include "TemporalMatricies.hpp"
 #include "shared/TileConfiguration.hpp"
 
-#include <hpx/lcos/future.hpp>
+#include <hpx/future.hpp>
 #include <utility>
 
 namespace components {

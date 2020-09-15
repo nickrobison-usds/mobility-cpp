@@ -39,6 +39,8 @@ set(BLAZE_USE_VECTORIZATION TRUE)
 set(DEFAULT_MALLOC "system" CACHE STRING "Set the default memory allocator")
 set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc")
 
+set(RANGES_CXX_STD 17 CACHE STRING "")
+
 # Whether or not we should build HPX ourselves
 set(USE_INTERNAL_HPX OFF CACHE BOOL "Build the bundled version of HPX")
 set(USE_INTERNAL_HDF5 OFF CACHE BOOL "Build the bundled version of HDF5")
