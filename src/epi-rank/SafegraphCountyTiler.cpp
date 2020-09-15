@@ -4,11 +4,13 @@
 
 #include "SafegraphCountyTiler.hpp"
 #include <blaze/math/dense/Eigen.h>
-#include <Eigen/Core>
+#include <boost/filesystem.hpp>
+#include <io/parquet.hpp>
 #include <shared/constants.hpp>
 #include <shared/ConversionUtils.hpp>
 #include <shared/DateUtils.hpp>
-#include <Spectra/GenEigsSolver.h>
+
+namespace fs = boost::filesystem;
 
 void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
                                    const mt::coordinates::Coordinate3D &key, const county_visit &value) {
@@ -18,8 +20,6 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
     const auto y_idx = _oc->to_global_offset(value.visit_fips);
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        _matricies->insert(l_time_count, x_idx, *y_idx, value.visits);
-        // Add to blaze matrix as well
         _bm->insert(l_time_count, x_idx, *y_idx, value.visits);
     } else {
         spdlog::error("Visitor FIPS {} is not in map, skipping insert", value.visit_fips);
@@ -29,36 +29,16 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
 
 void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
     // Compute some eigen values
-    spdlog::debug("Computing centrality");
+    spdlog::debug("Computing eigenvalue centrality");
     // Figure out how many eigenvectors we need, based on the number of locations
     for (std::size_t i = 0; i < _tc._time_count; i++) {
-        auto A = _matricies->get_matrix_pair(i);
-        auto M = A + A.transpose();
-
-        Spectra::DenseGenMatProd<double> op(M);
-        Spectra::GenEigsSolver<double, Spectra::LARGEST_MAGN, Spectra::DenseGenMatProd<double>> eigs(&op, 3, 6);
-
-        eigs.init();
-        int nconv = eigs.compute();
-
-        Eigen::VectorXcd evalues;
-        if (eigs.info() == Spectra::SUCCESSFUL) {
-            spdlog::debug("Found eigen values");
-            evalues = eigs.eigenvalues();
-        } else {
-            spdlog::error("Cannot compute eigen vectors: {}", eigs.info());
-        }
-
-        spdlog::info("Eigenvalues: {}", evalues);
-
         // Compute for Blaze as well
         auto B = _bm->get_matrix_pair(i);
         blaze::DynamicVector<complex<double>, blaze::columnVector>
-        w(shared::MAX_COUNTY);   // The vector for the complex eigenvalues
-
+        w(_tc._tile_max - _tc._tile_min);   // The vector for the complex eigenvalues
         blaze::eigen(B, w);
-        spdlog::info("Blaze eigen: {}", w);
-
+        // Write it out
+        write_eigenvalues(i, w);
     }
 }
 
@@ -90,6 +70,50 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
 
     _c_wrapper = std::make_unique<components::CountyShapefileWrapper>(*county_path);
     _oc = std::make_unique<components::detail::CountyOffsetCalculator>(_c_wrapper->build_offsets().get(), _tc);
-    _matricies = std::make_unique<EigenMatricies>(_tc._time_count, loc_dims, visit_dims);
     _bm = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
+
+    _output_path = *ctx.get_config_value("output_path");
+}
+
+void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {
+
+    // Some nice pretty-printing of the dates
+    const date::sys_days matrix_date = _start_date + date::days{offset};
+    const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
+                                              "centrality",
+                                              *_oc->from_global_offset(_tc._tile_min),
+                                              *_oc->from_global_offset(_tc._tile_max),
+                                              date::format("%F", matrix_date));
+    const auto p_file = fs::path(_output_path) /= fs::path(parquet_filename);
+    spdlog::info("Writing: {}", p_file);
+
+    // Write out the CBGs by rank
+    const io::Parquet p(p_file.string());
+    arrow::StringBuilder _county_builder;
+    arrow::Date32Builder _date_builder;
+    arrow::DoubleBuilder _rank_builder;
+
+    arrow::Status status;
+    for(std::size_t i = 0; i < values.size(); i++) {
+        const auto county = _oc->from_local_offset(i);
+        status = _county_builder.Append(*county);
+        status = _date_builder.Append(matrix_date.time_since_epoch().count());
+        status = _rank_builder.Append(values[i].real());
+    }
+
+    std::shared_ptr<arrow::Array> county_array;
+    status = _county_builder.Finish(&county_array);
+    std::shared_ptr<arrow::Array> date_array;
+    status = _date_builder.Finish(&date_array);
+    std::shared_ptr<arrow::Array> rank_array;
+    status = _rank_builder.Finish(&rank_array);
+
+    auto schema = arrow::schema(
+            {arrow::field("county", arrow::utf8()),
+             arrow::field("date", arrow::date32()),
+             arrow::field("rank", arrow::float64())
+            });
+
+    auto table = arrow::Table::Make(schema, {county_array, date_array, rank_array});
+    status = p.write(*table);
 }

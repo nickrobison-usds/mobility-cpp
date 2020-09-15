@@ -27,7 +27,7 @@ namespace components {
         }
 
         std::optional<std::string> from_local_offset(const std::size_t offset) const {
-            return static_cast<Calculator const &> (*this).from_local_offset(offset);
+            return static_cast<Calculator const &> (*this).from_local_offset_impl(offset);
         }
     };
 }
