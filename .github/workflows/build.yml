@@ -41,7 +41,6 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          python3 -m pip3 install --upgrade pip3
           pip3 install pandas
 
       - name: (Linux) Set GCC9 as default compiler
