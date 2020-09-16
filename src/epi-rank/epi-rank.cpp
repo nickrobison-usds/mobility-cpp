@@ -52,6 +52,8 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     std::array<std::size_t, 3> stride{static_cast<std::size_t>(floor(time_bounds / locales.size())),
                                       shared::MAX_COUNTY, shared::MAX_COUNTY};
 
+    spdlog::debug("Stride: {}/{}/{}", stride[0], stride[1], stride[2]);
+
     const auto sd = chrono::floor<date::days>(config.start_date);
     const auto ed = chrono::floor<date::days>(config.end_date);
 
@@ -105,7 +107,8 @@ int main(int argc, char **argv) {
 
     options_description desc_commandline;
     desc_commandline.add_options()
-            ("config", value<std::string>()->default_value("./config.yml"), "Config file location");
+            ("config", value<std::string>()->default_value("./config.yml"), "Config file location")
+            ("silent", "disable debug logging");
 
     return hpx::init(desc_commandline, argc, argv);
 }

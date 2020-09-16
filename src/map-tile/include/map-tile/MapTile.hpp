@@ -15,6 +15,7 @@
 #include <range/v3/algorithm/for_each.hpp>
 #include <shared/DirectoryUtils.hpp>
 #include <spdlog/spdlog.h>
+#include <numeric>
 #include <unordered_map>
 #include <vector>
 
@@ -38,7 +39,7 @@ namespace mt {
                          const std::string_view regex, const std::map<std::string, std::string> &config_values) {
             // Tile the input space
             const auto locales = hpx::find_all_localities();
-            spdlog::debug("Executing on {} locales", locales.size());
+            spdlog::info("Executing on {} locales", locales.size());
 
             const auto tiles = coordinates::LocaleTiler::tile<Coordinate>(min,
                                                                           max, stride);
@@ -51,10 +52,16 @@ namespace mt {
             }
 
             // Partition the input files, try one for each tile
+            spdlog::info("Reading files from: {}, with filter: {}", directory, regex);
             const auto files = shared::DirectoryUtils::partition_files(
                     directory.string(),
                     tiles.size(),
                     regex);
+
+            const auto num_files = std::accumulate(files.begin(), files.end(), 0, [](auto acc, const auto &f) {
+                return acc + f.size();
+            });
+            spdlog::info("Processing {} input files", num_files);
 
             // Create a queue that will let us handle cases where we have more servers than input files.
             // If the queue is empty, we'll simply pass an empty vector to the server
