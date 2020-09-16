@@ -15,7 +15,6 @@ glog
 uriparser
 openssl
 utf8proc
-hwloc
 boost-accumulators
 boost-algorithm
 boost-asio
@@ -41,3 +40,5 @@ boost-winapi
 geos
 gdal
 eigen3
+--overlay-ports=./ports/
+hwloc
