@@ -7,6 +7,7 @@
 
 #include "JoinedLocation.hpp"
 #include "CBGShapefileWrapper.hpp"
+#include "detail/helpers.hpp"
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate3D.hpp>
 #include <shared/ConversionUtils.hpp>
@@ -18,12 +19,6 @@
 namespace components {
 
     weekly_pattern parse_string(std::string_view v);
-
-    size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date);
-
-    std::vector<v2>
-    compute_distance(std::shared_ptr<joined_location> loc, const std::vector<v2> &patterns,
-                     const absl::flat_hash_map<std::string, OGRPoint> &centroids);
 
     std::vector<v2>
     expandRow(const weekly_pattern &row,
@@ -100,7 +95,7 @@ namespace components {
             const auto visits = extract_cbg_visits(row);
             auto centroid_future = get_centroid_map(visits);
             std::vector<v2> row_expanded = expandRow(row, visits);
-            return compute_distance(jl, row_expanded, centroid_future);
+            return detail::compute_distance(jl, row_expanded, centroid_future);
         };
         [[nodiscard]] absl::flat_hash_map<std::string, OGRPoint>
         get_centroid_map(const std::vector<std::pair<std::string, std::uint16_t>> &visits) const {

@@ -30,39 +30,6 @@ namespace components {
         return w;
     }
 
-    size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
-        const auto diff = row_date - start_date;
-        return std::abs(diff.count());
-    }
-
-    std::vector<v2>
-    compute_distance(const std::shared_ptr<joined_location> loc, const std::vector<v2> &patterns,
-                     const absl::flat_hash_map<std::string, OGRPoint> &centroids) {
-        spdlog::debug("Calculating distances for {}", loc->safegraph_place_id);
-        const OGRPoint loc_point(loc->longitude, loc->latitude);
-        patterns.size();
-        std::vector<v2> o;
-        o.reserve(patterns.size());
-        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
-                       [&centroids, &loc_point, &loc](auto &row) {
-                           OGRPoint cbg_centroid;
-                           try {
-                               cbg_centroid = centroids.at(row.visit_cbg);
-                           } catch (std::exception &e) {
-                               spdlog::error("Cannot find point for CBG: {}", row.visit_cbg);
-                               spdlog::error("Row: {}", row);
-                               throw e;
-                           }
-
-                           const auto distance = loc_point.Distance(&cbg_centroid);
-                           v2 r2{row.safegraph_place_id, row.visit_date, loc->location_cbg,
-                                 row.visit_cbg, row.visits, distance, 0.0F};
-                           return r2;
-                       });
-        spdlog::debug("Finished calculating distances for {}", loc->safegraph_place_id);
-        return o;
-    }
-
     std::vector<v2>
     expandRow(const weekly_pattern &row,
               const std::vector<std::pair<std::string, std::uint16_t>> &cbg_visits) {

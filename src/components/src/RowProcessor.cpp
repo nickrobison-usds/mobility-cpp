@@ -3,6 +3,7 @@
 //
 
 #include "components/RowProcessor.hpp"
+#include "components/detail/helpers.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/regex.hpp>
 #include <shared/debug.hpp>
@@ -15,33 +16,6 @@ using hpx::dataflow;
 using hpx::util::unwrapping;
 
 namespace components {
-
-    size_t compute_temporal_offset(const date::sys_days &start_date, const date::sys_days &row_date) {
-        const auto diff = row_date - start_date;
-        return std::abs(diff.count());
-    }
-
-    std::vector<v2>
-    compute_distance(const std::shared_ptr<joined_location> loc, const std::vector<v2> &patterns,
-                     const absl::flat_hash_map<std::string, OGRPoint> &centroids) {
-        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::COMPUTE_DISTANCES);
-        spdlog::debug("Calculating distances for {}", loc->safegraph_place_id);
-        const OGRPoint loc_point(loc->longitude, loc->latitude);
-        patterns.size();
-        std::vector<v2> o;
-        o.reserve(patterns.size());
-        std::transform(patterns.begin(), patterns.end(), std::back_inserter(o),
-                       [&centroids, &loc_point, &loc](auto &row) {
-                           const auto cbg_centroid = centroids.at(row.visit_cbg);
-                           const auto distance = loc_point.Distance(&cbg_centroid);
-                           v2 r2{row.safegraph_place_id, row.visit_date, loc->location_cbg,
-                                 row.visit_cbg, row.visits, distance, 0.0F};
-                           return r2;
-                       });
-        spdlog::debug("Finished calculating distances for {}", loc->safegraph_place_id);
-        dp.stop();
-        return o;
-    }
 
     std::vector<std::pair<std::string, std::uint16_t>> extract_cbg_visits(const std::shared_ptr<weekly_pattern> &row) {
         // Extract the CBGs which get visited
@@ -138,7 +112,7 @@ namespace components {
                 extract_cbg_visits(row));
         auto centroid_future = get_centroid_map(visits);
         std::vector<v2> row_expanded = expandRow(row, visits);
-        auto distances = compute_distance(jl, row_expanded, centroid_future);
+        auto distances = detail::compute_distance(jl, row_expanded, centroid_future);
         insert_rows(distances);
 
         return hpx::make_ready_future<void>();
@@ -167,7 +141,7 @@ namespace components {
         std::for_each(expanded_rows.begin(), expanded_rows.end(),
                       [this](const v2 &expanded_row) {
                           // Compute the temporal offset
-                          const auto t_offset = compute_temporal_offset(_start_date,
+                          const auto t_offset = detail::compute_temporal_offset(_start_date,
                                                                         expanded_row.visit_date);
                           const auto x_idx = _offset_calculator.to_local_offset(expanded_row.location_cbg);
                           const auto y_idx = _offset_calculator.to_global_offset(expanded_row.visit_cbg);

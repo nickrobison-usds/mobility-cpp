@@ -83,7 +83,7 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
     }
 
     hpx::wait_all(results);
-    spdlog::info("Computation is complete");
+    spdlog::info("Tile computation is complete");
 }
 
 void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {
@@ -96,7 +96,7 @@ void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const bla
                                               *_oc->from_global_offset(_tc._tile_max),
                                               date::format("%F", matrix_date));
     const auto p_file = fs::path(_output_path) /= fs::path(parquet_filename);
-    spdlog::info("Writing: {}", p_file);
+    spdlog::info("Writing {} values to: {}", values.size(), p_file);
 
     // Write out the CBGs by rank
     const io::Parquet p(p_file.string());
