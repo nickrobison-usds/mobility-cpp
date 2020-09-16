@@ -106,7 +106,6 @@ if (${USE_INTERNAL_HDF5})
 endif ()
 
 if (${USE_INTERNAL_ARROW})
-    #    find_package(Thrift REQUIRED)
     message("Using internal Apache Arrow")
     set(ARROW_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/arrow")
     set(ARROW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/arrow")

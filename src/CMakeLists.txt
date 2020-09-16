@@ -1,4 +1,5 @@
 find_package(Boost COMPONENTS filesystem regex program_options system iostreams REQUIRED)
+find_package(GDAL REQUIRED)
 # If we're using our own copy of HPX, we need to crate an alias target to match what find_pacakage would return
 if (${USE_INTERNAL_HPX})
     add_library(HPX::hpx ALIAS hpx)

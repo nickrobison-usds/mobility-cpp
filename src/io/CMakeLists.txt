@@ -1,10 +1,8 @@
-find_package(GDAL REQUIRED)
-
 # Find HDF5
 set(HDF5_PREFER_PARALLEL False)
 
 add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/hdf5.hpp)
-target_link_libraries(io PUBLIC ${GDAL_LIBRARY} arrow parquet ${HDF5_C_LIBRARIES} ${HDF5_C_HL_LIBRARIES} PRIVATE spdlog)
+target_link_libraries(io PUBLIC GDAL::GDAL arrow parquet ${HDF5_C_LIBRARIES} ${HDF5_C_HL_LIBRARIES} PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>

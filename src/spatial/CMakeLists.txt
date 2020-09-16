@@ -1,11 +1,9 @@
-find_package(GDAL REQUIRED)
-
 add_library(spatial SHARED
         include/spatial/SpatialProcessor.hpp src/Algorithms.cpp
         src/GEOSProcessor.cpp
         include/spatial/GEOSProcessor.hpp)
 
-target_link_libraries(spatial PUBLIC ${GDAL_LIBRARY} PRIVATE)
+target_link_libraries(spatial PUBLIC GDAL::GDAL PRIVATE)
 target_include_directories(spatial PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
