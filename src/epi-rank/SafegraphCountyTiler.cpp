@@ -25,7 +25,7 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
     // Force cast to sys_days
     const date::sys_days d(start_date);
     const date::sys_days e(end_date);
-    _start_date = d;
+
 
     _tc._nr = 16;
     // These values are really confusing
@@ -33,6 +33,7 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
     _tc._time_count = ctx.get_tile().max_corner().get_dim0() - ctx.get_tile().min_corner().get_dim0();
     _tc._tile_min = ctx.get_tile().min_corner().get_dim1();
     _tc._tile_max = ctx.get_tile().max_corner().get_dim1();
+    _start_date = d + date::days{_tc._time_offset};
 
     const auto loc_dims = ctx.get_tile().max_corner().get_dim1() - ctx.get_tile().min_corner().get_dim1();
     const auto visit_dims = ctx.get_tile().max_corner().get_dim2() - ctx.get_tile().min_corner().get_dim2();
@@ -41,7 +42,7 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
     _oc = std::make_unique<components::detail::CountyOffsetCalculator>(_c_wrapper->build_offsets().get(), _tc);
     matricies = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
 
-    _output_path = *ctx.get_config_value("output_path");
+    _output_path = *ctx.get_config_value("output_dir");
 }
 
 void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
@@ -88,9 +89,9 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
 void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {
 
     // Some nice pretty-printing of the dates
-    const date::sys_days matrix_date = _start_date + date::days{offset};
+    const date::sys_days matrix_date = date::sys_days(shared::days(_tc._time_offset)) + date::days{offset};
     const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
-                                              "centrality",
+                                              "epi-rank",
                                               *_oc->from_global_offset(_tc._tile_min),
                                               *_oc->from_global_offset(_tc._tile_max),
                                               date::format("%F", matrix_date));
