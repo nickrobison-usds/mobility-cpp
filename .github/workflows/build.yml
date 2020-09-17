@@ -37,7 +37,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev
+          sudo apt-get install libxml2-dev libnuma-dev libhwloc-dev
 
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'
@@ -60,16 +60,16 @@ jobs:
           # Ensure the cache key changes any time the content of the response file changes.
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
 
-      - name: Run CMake with Ninja
-        uses: lukka/run-cmake@v2
-        id: runcmake
-        with:
-          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
-          useVcpkgToolchainFile: true
-          buildDirectory: '${{ github.workspace }}/build/'
-          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
-
-      - name: Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/
-          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
+#      - name: Run CMake with Ninja
+#        uses: lukka/run-cmake@v2
+#        id: runcmake
+#        with:
+#          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
+#          useVcpkgToolchainFile: true
+#          buildDirectory: '${{ github.workspace }}/build/'
+#          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
+#
+#      - name: Unit Tests
+#        run: |
+#          cd ${{ github.workspace }}/build/
+#          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
