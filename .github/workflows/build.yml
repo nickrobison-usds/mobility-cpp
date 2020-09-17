@@ -31,7 +31,7 @@ jobs:
       - name: (macOS) Install dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install hwloc bison flex gdal pkg-config
+          brew install hwloc bison flex pkg-config
 
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'
