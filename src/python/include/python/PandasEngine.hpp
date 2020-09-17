@@ -12,7 +12,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <spdlog/spdlog.h>
-#include <xtensor-python/pyarray.hpp>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -33,8 +32,8 @@ namespace mcpp::python {
         explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1): _interpreter(), _import_path(import_path) {
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
-                spdlog::debug("Initializing XT Numpy");
-                xt::import_numpy();
+//                spdlog::debug("Initializing XT Numpy");
+//                xt::import_numpy();
 //            });
 
             if (length > 0) {

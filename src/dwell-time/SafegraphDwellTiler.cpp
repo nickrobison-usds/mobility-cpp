@@ -12,6 +12,8 @@ void SafegraphDwellTiler::receive(const mt::ctx::ReduceContext<dwell_times, mt::
              const mt::coordinates::Coordinate2D &key,
              const dwell_times &value) {
 
+    key.get_dim1();
+
 }
 
 void SafegraphDwellTiler::compute(const mt::ctx::ReduceContext<dwell_times, mt::coordinates::Coordinate2D> &ctx) {

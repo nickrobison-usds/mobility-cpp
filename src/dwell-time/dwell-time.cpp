@@ -3,16 +3,18 @@
 //
 
 #include "DwellConfig.hpp"
+#include "DwellTimes.hpp"
 #include "SafegraphDwellMapper.hpp"
-#include "SafegraphDwellTiler.hpp"
 #include <hpx/program_options.hpp>
 #include <hpx/hpx_init.hpp>
 #include <map-tile/MapTileBuilder.hpp>
 #include <map-tile/client/MapTileClient.hpp>
 #include <map-tile/coordinates/Coordinate2D.hpp>
 #include <map-tile/io/FileProvider.hpp>
+#include <python/PythonTiler.hpp>
 #include <shared/constants.hpp>
-#include <shared/data.hpp>
+
+typedef mcpp::python::PythonTiler<mt::coordinates::Coordinate2D, dwell_times> SafegraphDwellTiler;
 
 REGISTER_MAPPER(dwell_times, mt::coordinates::Coordinate2D, SafegraphDwellMapper, SafegraphDwellTiler, void, string,
                 mt::io::FileProvider);

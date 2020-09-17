@@ -7,6 +7,7 @@
 
 #include <map-tile/coordinates/Coordinate2D.hpp>
 #include <map-tile/ctx/Context.hpp>
+#include <python/PandasEngine.hpp>
 #include <shared/data.hpp>
 
 
@@ -19,6 +20,9 @@ public:
                  const dwell_times &value);
 
     void compute(const mt::ctx::ReduceContext<dwell_times, mt::coordinates::Coordinate2D> &ctx);
+
+private:
+    std::unique_ptr<python::PandasEngine<dwell_times> _engine;
 };
 
 

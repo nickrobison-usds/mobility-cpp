@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <map>
 #include <utility>
 #include "serializers.hpp"
 #include "ogr_geometry.h"
@@ -64,8 +65,10 @@ struct weekly_pattern {
     uint32_t raw_visitor_counts;
     string visits_by_day;
     string visits_by_each_hour;
-    uint64_t poi_cbg;
+    std::string poi_cbg;
     string visitor_home_cbgs;
+    float median_dwell_times;
+    std::map<std::string, std::uint16_t>  bucketed_dwell_times;
 };
 
 struct visit_row {
@@ -196,19 +199,6 @@ struct safegraph_location {
     }
 };
 
-struct dwell_times {
-    std::string safegraph_place_id;
-    std::string bucketed_dwell_times;
-    std::uint32_t visit_counts;
-    float median_dwell;
-    std::vector<std::uint16_t> dwell_array;
 
-    friend class hpx::serialization::access;
-
-    template<typename Archive>
-    void serialize(Archive &ar, const unsigned int version) {
-        ar & safegraph_place_id & bucketed_dwell_times & visit_counts & median_dwell & dwell_array;
-    }
-};
 
 #endif //MOBILITY_CPP_DATA_HPP

@@ -6,6 +6,9 @@
 #define MOBILITY_CPP_SAFEGRAPHDWELLMAPPER_HPP
 
 
+#include "DwellTimes.hpp"
+#include <components/detail/CountyOffsetCalculator.hpp>
+#include <components/CountyShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <map-tile/coordinates/Coordinate2D.hpp>
 #include <shared/data.hpp>
@@ -21,6 +24,8 @@ private:
     components::TileConfiguration _tc;
     date::sys_days _begin_date;
     date::sys_days _end_date;
+    std::unique_ptr<components::detail::CountyOffsetCalculator> _oc;
+    std::unique_ptr<components::CountyShapefileWrapper> _c_wrapper;
 
 };
 

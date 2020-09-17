@@ -43,3 +43,6 @@
 [submodule "extern/xtl"]
 	path = extern/xtl
 	url = ../../xtensor-stack/xtl.git
+[submodule "extern/jsoon"]
+	path = extern/jsoon
+	url = ../../nlohmann/json

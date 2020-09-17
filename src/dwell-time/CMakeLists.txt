@@ -1,4 +1,4 @@
-add_executable(dwell-time dwell-time.cpp DwellConfig.hpp SafegraphDwellMapper.cpp SafegraphDwellMapper.hpp SafegraphDwellTiler.cpp SafegraphDwellTiler.hpp)
+add_executable(dwell-time dwell-time.cpp DwellConfig.hpp SafegraphDwellMapper.cpp SafegraphDwellMapper.hpp DwellTimes.hpp)
 target_link_libraries(dwell-time PRIVATE map-tile shared Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog yaml-cpp::yaml-cpp MCPP::components range-v3 MCPP::python)
 target_compile_options(dwell-time PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(dwell-time PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")

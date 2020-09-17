@@ -5,8 +5,6 @@
 #include "TileServer.hpp"
 #include "components/detail/CBGOffsetCalculator.hpp"
 #include "components/RowProcessor.hpp"
-#include <absl/strings/str_split.h>
-#include <blaze/math/Math.h>
 #include "components/TileWriter.hpp"
 #include "components/VisitMatrixWriter.hpp"
 #include <blaze/math/CompressedVector.h>
@@ -49,7 +47,7 @@ namespace components::server {
         uint32_t raw_visitor_counts;
         string visits_by_day;
         string visits_by_each_hour;
-        uint64_t poi_cbg;
+        string poi_cbg;
         string visitor_home_cbgs;
 
         return l.read<weekly_pattern>(
@@ -68,7 +66,7 @@ namespace components::server {
                    const uint32_t raw_visitor_counts,
                    const string visits_by_day,
                    const string visits_by_each_hour,
-                   const uint64_t poi_cbg,
+                   const string poi_cbg,
                    const string &visitor_home_cbgs) {
 
                     // Parse the start/end dates

@@ -3,12 +3,16 @@
 //
 
 #include "components/detail/helpers.hpp"
+#include <boost/algorithm/string/replace.hpp>
+#include <nlohmann/json.hpp>
 #include <shared/constants.hpp>
 #include <shared/debug.hpp>
 #include <shared/ConversionUtils.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/QuotedLineSplitter.hpp>
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <string>
 
 namespace components::detail {
 
@@ -39,6 +43,14 @@ namespace components::detail {
         return o;
     }
 
+    std::map<std::string, std::uint16_t> dwell_time_to_map(std::string_view v) {
+        // Strip off the leading and trailing `"` characters.
+        auto v2 = std::string(v).substr(1, v.size() - 2);
+        // Remove the double quoting from the keys
+        boost::replace_all(v2, R"("")", R"(")");
+        return nlohmann::json::parse(v2);
+    }
+
     weekly_pattern parse_string(const std::string_view v) {
         const auto splits = shared::QuotedStringSplitter(v);
 
@@ -51,8 +63,10 @@ namespace components::detail {
                 shared::ConversionUtils::convert_empty<uint32_t>(splits[12]),
                 splits[13],
                 splits[14],
-                shared::ConversionUtils::convert_empty<uint64_t>(splits[15]),
-                splits[16]
+                splits[15],
+                splits[16],
+                shared::ConversionUtils::convert_empty<float>(splits[20]),
+                dwell_time_to_map(splits[21]),
         };
 
         return w;
