@@ -77,7 +77,7 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
         }).then([this, i](auto f) {
             const auto values = f.get();
             // Write it out
-            write_eigenvalues(i, values);
+            return write_eigenvalues(i, values);
         });
         results.push_back(std::move(computation));
     }
@@ -104,20 +104,19 @@ void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const bla
     arrow::Date32Builder _date_builder;
     arrow::DoubleBuilder _rank_builder;
 
-    arrow::Status status;
     for(std::size_t i = 0; i < values.size(); i++) {
         const auto county = _oc->from_local_offset(i);
-        status = _county_builder.Append(*county);
-        status = _date_builder.Append(matrix_date.time_since_epoch().count());
-        status = _rank_builder.Append(values[i].real());
+        PARQUET_THROW_NOT_OK(_county_builder.Append(*county));
+        PARQUET_THROW_NOT_OK(_date_builder.Append(matrix_date.time_since_epoch().count()));
+        PARQUET_THROW_NOT_OK(_rank_builder.Append(values[i].real()));
     }
 
     std::shared_ptr<arrow::Array> county_array;
-    status = _county_builder.Finish(&county_array);
+    PARQUET_THROW_NOT_OK(_county_builder.Finish(&county_array));
     std::shared_ptr<arrow::Array> date_array;
-    status = _date_builder.Finish(&date_array);
+    PARQUET_THROW_NOT_OK(_date_builder.Finish(&date_array));
     std::shared_ptr<arrow::Array> rank_array;
-    status = _rank_builder.Finish(&rank_array);
+    PARQUET_THROW_NOT_OK(_rank_builder.Finish(&rank_array));
 
     auto schema = arrow::schema(
             {arrow::field("county", arrow::utf8()),
@@ -126,5 +125,5 @@ void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const bla
             });
 
     auto table = arrow::Table::Make(schema, {county_array, date_array, rank_array});
-    status = p.write(*table);
+    PARQUET_THROW_NOT_OK(p.write(*table));
 }
