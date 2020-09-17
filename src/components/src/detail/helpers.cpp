@@ -5,6 +5,9 @@
 #include "components/detail/helpers.hpp"
 #include <shared/constants.hpp>
 #include <shared/debug.hpp>
+#include <shared/ConversionUtils.hpp>
+#include <shared/DateUtils.hpp>
+#include <shared/QuotedLineSplitter.hpp>
 #include <spdlog/spdlog.h>
 
 namespace components::detail {
@@ -34,5 +37,24 @@ namespace components::detail {
         spdlog::debug("Finished calculating distances for {}", loc->safegraph_place_id);
         dp.stop();
         return o;
+    }
+
+    weekly_pattern parse_string(const std::string_view v) {
+        const auto splits = shared::QuotedStringSplitter(v);
+
+        weekly_pattern w{
+                splits[0],
+                splits[1],
+                shared::DateUtils::to_days(splits[9]),
+                shared::DateUtils::to_days(splits[10]),
+                shared::ConversionUtils::convert_empty<uint32_t>(splits[11]),
+                shared::ConversionUtils::convert_empty<uint32_t>(splits[12]),
+                splits[13],
+                splits[14],
+                shared::ConversionUtils::convert_empty<uint64_t>(splits[15]),
+                splits[16]
+        };
+
+        return w;
     }
 }

@@ -196,4 +196,19 @@ struct safegraph_location {
     }
 };
 
+struct dwell_times {
+    std::string safegraph_place_id;
+    std::string bucketed_dwell_times;
+    std::uint32_t visit_counts;
+    float median_dwell;
+    std::vector<std::uint16_t> dwell_array;
+
+    friend class hpx::serialization::access;
+
+    template<typename Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+        ar & safegraph_place_id & bucketed_dwell_times & visit_counts & median_dwell & dwell_array;
+    }
+};
+
 #endif //MOBILITY_CPP_DATA_HPP
