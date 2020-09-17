@@ -53,3 +53,22 @@ TEST_CASE("3D Tiler Tests", "[tiler]") {
     REQUIRE(results[8].first.min_corner() == Coordinate3D(4, 4, 0));
     REQUIRE(results[8].first.max_corner() == Coordinate3D(6, 6, 2));
 }
+
+TEST_CASE("2D Tiler Stride 0", "[tile]") {
+    // Try to tile just a couple of square tiles
+    const auto c1 = Coordinate2D(0, 0);
+    const auto c2 = Coordinate2D(6, 6);
+
+    const std::array<std::size_t, 2> stride{0,
+                                            static_cast<std::size_t>(floor(6 / 2))};
+    REQUIRE_THROWS_WITH(LocaleTiler::tile(c1, c2, stride), "Cannot tile with stride of 0");
+}
+
+TEST_CASE("3D Tiler Stride 0", "[tile]") {
+    // 6x6x2 input space
+    const auto c1 = Coordinate3D(0, 0, 0);
+    const auto c2 = Coordinate3D(6, 6, 2);
+
+    const std::array<std::size_t, 3> stride{0, 2, 2};
+    REQUIRE_THROWS_WITH(LocaleTiler::tile(c1, c2, stride), "Cannot tile with stride of 0");
+}

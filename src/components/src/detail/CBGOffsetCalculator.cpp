@@ -2,12 +2,12 @@
 // Created by Nicholas Robison on 6/10/20.
 //
 
-#include "components/OffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include <spdlog/spdlog.h>
 
 namespace components::detail {
 
-    offset_bimap build_offset_map(const server::ShapefileServer::offset_type &offsets) {
+    offset_bimap build_offset_map(const server::CBGShapefileServer::offset_type &offsets) {
         detail::offset_bimap cbg_offsets;
 
         std::for_each(offsets.begin(), offsets.end(), [&cbg_offsets](const auto &pair) {
@@ -17,15 +17,15 @@ namespace components::detail {
         return cbg_offsets;
     };
 
-    OffsetCalculator::OffsetCalculator(const server::ShapefileServer::offset_type &init,
-                                       const TileConfiguration &config) : _cbg_map(build_offset_map(init)),
-                                                                          _start_idx(config._cbg_min),
-                                                                          _end_idx(config._cbg_max) {
+    CBGOffsetCalculator::CBGOffsetCalculator(const server::CBGShapefileServer::offset_type &init,
+                                             const TileConfiguration &config) : _cbg_map(build_offset_map(init)),
+                                                                          _start_idx(config._tile_min),
+                                                                          _end_idx(config._tile_max) {
         // Not used
     };
 
-    std::optional<std::size_t> OffsetCalculator::calculate_cbg_offset(const std::string &cbg_code) const {
-        const auto iter = _cbg_map.left.find(cbg_code);
+    std::optional<std::size_t> CBGOffsetCalculator::to_global_offset_impl(const std::string_view cbg_code) const {
+        const auto iter = _cbg_map.left.find(std::string(cbg_code));
         if (iter == _cbg_map.left.end()) {
             spdlog::error("Cannot find offset for code {}", cbg_code);
             return {};
@@ -34,7 +34,7 @@ namespace components::detail {
         return iter->second;
     };
 
-    std::optional<std::string> OffsetCalculator::cbg_from_offset(const std::size_t cbg_idx) const {
+    std::optional<std::string> CBGOffsetCalculator::from_global_offset_impl(const std::size_t cbg_idx) const {
         const auto iter = _cbg_map.right.find(cbg_idx);
         if (iter == _cbg_map.right.end()) {
             spdlog::error("Cannot find for index {}/{}", cbg_idx, cbg_idx);
@@ -44,8 +44,8 @@ namespace components::detail {
         return iter->second;
     }
 
-    std::size_t OffsetCalculator::calculate_local_offset(const std::string &cbg_code) const {
-        const auto cbg_idx_opt = calculate_cbg_offset(cbg_code);
+    std::size_t CBGOffsetCalculator::to_local_offset_impl(const std::string_view cbg_code) const {
+        const auto cbg_idx_opt = to_global_offset_impl(cbg_code);
         if (!cbg_idx_opt.has_value()) {
             throw std::invalid_argument("Offset is out of bounds");
         }
@@ -55,8 +55,8 @@ namespace components::detail {
         return *cbg_idx_opt - _start_idx;
     };
 
-    std::optional<std::string> OffsetCalculator::cbg_from_local_offset(const size_t cbg_idx) const {
+    std::optional<std::string> CBGOffsetCalculator::from_local_offset_impl(const size_t cbg_idx) const {
         const auto local_offset = cbg_idx + _start_idx;
-        return cbg_from_offset(local_offset);
+        return from_global_offset_impl(local_offset);
     };
 }

@@ -7,9 +7,11 @@
 
 #include <cstdlib>
 
-namespace components {
+namespace shared {
     // The total number of Census Block Groups (CBGs) in the US
     const static std::size_t MAX_CBG = 220740;
+    // Total number of counties in the US
+    const static std::size_t MAX_COUNTY = 3226;
 
     enum SignPostCode {
         EXPAND_ROW,

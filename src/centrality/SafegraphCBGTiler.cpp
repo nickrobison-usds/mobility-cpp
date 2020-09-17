@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 7/29/20.
 //
 
-#include "SafegraphTiler.hpp"
+#include "SafegraphCBGTiler.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/range/irange.hpp>
 #include <blaze/math/CompressedVector.h>
@@ -47,7 +47,7 @@ struct CentralityComputation {
     const date::sys_days _start_date;
 };
 
-void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+void SafegraphCBGTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
     const auto cbg_path = ctx.get_config_value("cbg_path");
     const auto poi_path = ctx.get_config_value("poi_path");
     const auto start_date_string = ctx.get_config_value("start_date");
@@ -62,16 +62,16 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
     const date::sys_days e(end_date);
     _start_date = d;
 
-    _s = std::make_unique<components::ShapefileWrapper>(components::ShapefileWrapper(*cbg_path));
+    _s = std::make_unique<components::CBGShapefileWrapper>(components::CBGShapefileWrapper(*cbg_path));
 
     _tc._nr = 16;
     // These values are really confusing
     _tc._time_offset = (d + date::days{ctx.get_tile().min_corner().get_dim0()}).time_since_epoch().count();
     _tc._time_count = ctx.get_tile().max_corner().get_dim0() - ctx.get_tile().min_corner().get_dim0();
-    _tc._cbg_min = ctx.get_tile().min_corner().get_dim1();
-    _tc._cbg_max = ctx.get_tile().max_corner().get_dim1();
-    _oc = std::make_unique<components::detail::OffsetCalculator>(
-            components::detail::OffsetCalculator(_s->build_offsets().get(), _tc));
+    _tc._tile_min = ctx.get_tile().min_corner().get_dim1();
+    _tc._tile_max = ctx.get_tile().max_corner().get_dim1();
+    _oc = std::make_unique<components::detail::CBGOffsetCalculator>(
+            components::detail::CBGOffsetCalculator(_s->build_offsets().get(), _tc));
 
     const auto loc_dims = ctx.get_tile().max_corner().get_dim1() - ctx.get_tile().min_corner().get_dim1();
     const auto visit_dims = ctx.get_tile().max_corner().get_dim2() - ctx.get_tile().min_corner().get_dim2();
@@ -80,16 +80,15 @@ void SafegraphTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coo
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
     _graphs = std::make_unique<components::TemporalGraphs>(_tc._time_count);
     spdlog::debug("Tiler setup complete.");
-
 }
 
-void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx,
-                             const mt::coordinates::Coordinate3D &key,
-                             const v2 &value) {
+void SafegraphCBGTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx,
+                                const mt::coordinates::Coordinate3D &key,
+                                const v2 &value) {
     // Convert back to local coordinate space
     const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
-    const auto x_idx = _oc->calculate_local_offset(value.location_cbg);
-    const auto y_idx = _oc->calculate_cbg_offset(value.visit_cbg);
+    const auto x_idx = _oc->to_local_offset(value.location_cbg);
+    const auto y_idx = _oc->to_global_offset(value.visit_cbg);
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
         _tm->insert(l_time_count, x_idx, *y_idx, value.visits, value.distance);
@@ -100,11 +99,11 @@ void SafegraphTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates::C
     }
 }
 
-void SafegraphTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+void SafegraphCBGTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
     write_parquet(ctx);
 }
 
-void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+void SafegraphCBGTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
     const auto output_name = ctx.get_config_value("output_name");
     const auto output_dir = ctx.get_config_value("output_dir");
 
@@ -117,15 +116,15 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
         const date::sys_days matrix_date = start_date + date::days{i};
         const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
                                                   *output_name,
-                                                  *(_oc->cbg_from_offset(_tc._cbg_min)),
-                                                  *(_oc->cbg_from_offset(_tc._cbg_max)),
+                                                  *(_oc->from_global_offset(_tc._tile_min)),
+                                                  *(_oc->from_global_offset(_tc._tile_max)),
                                                   date::format("%F", matrix_date));
         const auto p_file = fs::path(*output_dir) /= fs::path(parquet_filename);
 
         const auto visit_filename = fmt::format("{}-visits-{}-{}-{}.parquet",
                                                 *output_name,
-                                                *(_oc->cbg_from_offset(_tc._cbg_min)),
-                                                *(_oc->cbg_from_offset(_tc._cbg_max)),
+                                                *(_oc->from_global_offset(_tc._tile_min)),
+                                                *(_oc->from_global_offset(_tc._tile_max)),
                                                 date::format("%F", matrix_date));
 
         const auto v_file = fs::path(*output_dir) /= fs::path(visit_filename);
@@ -166,7 +165,7 @@ void SafegraphTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordina
 }
 
 std::vector<cbg_centrality>
-SafegraphTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
+SafegraphCBGTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
     typedef std::vector<cbg_centrality> reduce_type;
 
     // Iterate over all the dates and compute the values for the dates

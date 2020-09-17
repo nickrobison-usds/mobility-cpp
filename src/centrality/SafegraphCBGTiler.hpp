@@ -2,18 +2,18 @@
 // Created by Nicholas Robison on 7/29/20.
 //
 
-#ifndef MOBILITY_CPP_SAFEGRAPHTILER_HPP
-#define MOBILITY_CPP_SAFEGRAPHTILER_HPP
+#ifndef MOBILITY_CPP_SAFEGRAPHCBGTILER_HPP
+#define MOBILITY_CPP_SAFEGRAPHCBGTILER_HPP
 
 #include <map-tile/coordinates/Coordinate3D.hpp>
-#include <components/OffsetCalculator.hpp>
+#include <components/detail/CBGOffsetCalculator.hpp>
 #include <components/TemporalGraphs.hpp>
 #include <components/TemporalMatricies.hpp>
-#include <components/ShapefileWrapper.hpp>
+#include <components/CBGShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <shared/data.hpp>
 
-class SafegraphTiler {
+class SafegraphCBGTiler {
 
 public:
     void setup(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx);
@@ -30,8 +30,8 @@ public:
 private:
     void write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
-    std::unique_ptr<components::detail::OffsetCalculator> _oc;
-    std::unique_ptr<components::ShapefileWrapper> _s;
+    std::unique_ptr<components::detail::CBGOffsetCalculator> _oc;
+    std::unique_ptr<components::CBGShapefileWrapper> _s;
     std::unique_ptr<components::TemporalMatricies> _tm;
     std::unique_ptr<components::TemporalGraphs> _graphs;
     components::TileConfiguration _tc;
@@ -39,4 +39,4 @@ private:
 };
 
 
-#endif //MOBILITY_CPP_SAFEGRAPHTILER_HPP
+#endif //MOBILITY_CPP_SAFEGRAPHCBGTILER_HPP

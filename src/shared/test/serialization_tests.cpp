@@ -21,3 +21,16 @@ TEST_CASE("V2 serialization", "[serialization]") {
     ia >> deser;
     REQUIRE(deser == orig);
 }
+
+TEST_CASE("County visit serialization", "[serialization]") {
+    const v2 orig{"hello", date::sys_days{} + date::days{1000}, "loc", "cbg", 1};
+
+    std::vector<char> out_buffer;
+    hpx::serialization::output_archive oa(out_buffer);
+    oa << orig;
+
+    hpx::serialization::input_archive ia(out_buffer, out_buffer.size());
+    v2 deser;
+    ia >> deser;
+    REQUIRE(deser == orig);
+}

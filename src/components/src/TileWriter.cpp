@@ -9,8 +9,8 @@
 
 namespace components {
 
-    TileWriter::TileWriter(const std::string &filename, detail::OffsetCalculator oc) : _p(io::Parquet(filename)),
-                                                                                   _offset_calculator(std::move(oc)) {
+    TileWriter::TileWriter(const std::string &filename, detail::CBGOffsetCalculator oc) : _p(io::Parquet(filename)),
+                                                                                          _offset_calculator(std::move(oc)) {
 
     }
 
@@ -19,7 +19,7 @@ namespace components {
 
         for (size_t i = 0; i < results.size(); i++) {
             // Reverse lookup the index with the matching CBG
-            const auto cbg = _offset_calculator.cbg_from_local_offset(i);
+            const auto cbg = _offset_calculator.from_local_offset(i);
             if (cbg.has_value()) {
                 // Write it out
                 status = _cbg_builder.Append(*cbg);

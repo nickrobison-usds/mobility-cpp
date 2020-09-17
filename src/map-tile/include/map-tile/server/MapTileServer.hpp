@@ -102,7 +102,7 @@ namespace mt::server {
             });
 
             // Flush any remaining values
-            spdlog::info("Flushing remaining values");
+            spdlog::debug("Flushing remaining values");
             _emitter.flush();
         }
 

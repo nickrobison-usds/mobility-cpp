@@ -3,7 +3,7 @@
 //
 
 #include "TileServer.hpp"
-#include "components/OffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include "components/RowProcessor.hpp"
 #include <absl/strings/str_split.h>
 #include <blaze/math/Math.h>
@@ -128,7 +128,7 @@ namespace components::server {
         // TODO: This should be where we do async initialization
         // Build the CBG offsetmap
         const auto of = _s.build_offsets().get();
-        detail::OffsetCalculator offset_calculator(of, dim);
+        detail::CBGOffsetCalculator offset_calculator(of, dim);
 
         std::vector<hpx::future<void>> results;
         results.reserve(rows.size());
@@ -164,15 +164,15 @@ namespace components::server {
             const date::sys_days matrix_date = start_date + date::days{i};
             const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
                                                       _output_name,
-                                                      *offset_calculator.cbg_from_offset(dim._cbg_min),
-                                                      *offset_calculator.cbg_from_offset(dim._cbg_max),
+                                                      *offset_calculator.from_global_offset(dim._tile_min),
+                                                      *offset_calculator.from_global_offset(dim._tile_max),
                                                       date::format("%F", matrix_date));
             const auto p_file = fs::path(_output_dir) /= fs::path(parquet_filename);
 
             const auto visit_filename = fmt::format("{}-visits-{}-{}-{}.parquet",
                                                     _output_name,
-                                                    *offset_calculator.cbg_from_offset(dim._cbg_min),
-                                                    *offset_calculator.cbg_from_offset(dim._cbg_max),
+                                                    *offset_calculator.from_global_offset(dim._tile_min),
+                                                    *offset_calculator.from_global_offset(dim._tile_max),
                                                     date::format("%F", matrix_date));
 
             const auto v_file = fs::path(_output_dir) /= fs::path(visit_filename);

@@ -15,6 +15,10 @@ namespace mt::coordinates {
         const std::size_t stride_x = stride[0];
         const std::size_t stride_y = stride[1];
 
+        if (stride_x == 0 || stride_y == 0) {
+            throw std::invalid_argument("Cannot tile with stride of 0");
+        }
+
         std::vector<LocaleLocator<Coordinate2D>::value> results;
         std::size_t loc_count = 0;
         // Iterate through the coordinate space
@@ -39,6 +43,10 @@ namespace mt::coordinates {
         const std::size_t stride_x = stride[0];
         const std::size_t stride_y = stride[1];
         const std::size_t stride_z = stride[2];
+
+        if (stride_x == 0 || stride_y == 0 || stride_z == 0) {
+            throw std::invalid_argument("Cannot tile with stride of 0");
+        }
 
         std::vector<LocaleLocator<Coordinate3D>::value> results;
         Coordinate3D current_min = min;

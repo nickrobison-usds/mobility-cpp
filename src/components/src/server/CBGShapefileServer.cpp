@@ -2,7 +2,7 @@
 // Created by Nicholas Robison on 6/3/20.
 //
 
-#include "ShapefileServer.hpp"
+#include "components/server/CBGShapefileServer.hpp"
 #include <shared/debug.hpp>
 #include "shared/constants.hpp"
 #include "spdlog/spdlog.h"
@@ -12,13 +12,13 @@
 namespace components::server {
 
 
-    ShapefileServer::ShapefileServer(std::string shapefile) : _shapefile(
+    CBGShapefileServer::CBGShapefileServer(std::string shapefile) : _shapefile(
             io::Shapefile(std::move(shapefile)).openFile()), _centroid_map(build_centroid_map()) {
         // Not used
     }
 
-    std::vector<std::pair<std::string, OGRPoint>> ShapefileServer::get_centroids(const vector<std::string> &geoids) {
-        const auto dp = shared::DebugInterval::create_debug_point(SignPostCode::GET_CENTROIDS);
+    std::vector<std::pair<std::string, OGRPoint>> CBGShapefileServer::get_centroids(const vector<std::string> &geoids) {
+        const auto dp = shared::DebugInterval::create_debug_point(shared::SignPostCode::GET_CENTROIDS);
 
         std::vector<std::pair<std::string, OGRPoint>> centroids;
         centroids.reserve(geoids.size());
@@ -38,8 +38,8 @@ namespace components::server {
         return centroids;
     }
 
-    ShapefileServer::offset_type ShapefileServer::build_offsets() const {
-        ShapefileServer::offset_type offsets;
+    CBGShapefileServer::offset_type CBGShapefileServer::build_offsets() const {
+        CBGShapefileServer::offset_type offsets;
         std::vector<std::string> geoids;
 
         std::size_t idx = 0;
@@ -63,7 +63,7 @@ namespace components::server {
         return offsets;
     }
 
-    ShapefileServer::centroid_map ShapefileServer::build_centroid_map() {
+    CBGShapefileServer::centroid_map CBGShapefileServer::build_centroid_map() {
         spdlog::debug("Building centroid map");
         centroid_map map;
 

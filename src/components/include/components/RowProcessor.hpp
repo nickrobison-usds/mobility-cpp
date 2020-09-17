@@ -7,9 +7,9 @@
 
 #include <shared/constants.hpp>
 #include <components/JoinedLocation.hpp>
-#include <components/ShapefileWrapper.hpp>
+#include <components/CBGShapefileWrapper.hpp>
 #include <shared/data.hpp>
-#include "OffsetCalculator.hpp"
+#include "components/detail/CBGOffsetCalculator.hpp"
 #include "TemporalMatricies.hpp"
 #include "shared/TileConfiguration.hpp"
 
@@ -20,9 +20,9 @@ namespace components {
     class RowProcessor {
 
     public:
-        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const ShapefileWrapper &s, detail::OffsetCalculator &oc,
+        RowProcessor(const TileConfiguration &conf, const JoinedLocation &l, const CBGShapefileWrapper &s, detail::CBGOffsetCalculator &oc,
                      const date::sys_days &start_date) : _conf(conf), _l(l), _s(s), _matricies(
-                {conf._time_count, conf._cbg_max - conf._cbg_min, MAX_CBG}), _start_date(start_date),
+                {conf._time_count, conf._tile_max - conf._tile_min, shared::MAX_CBG}), _start_date(start_date),
                                                          _offset_calculator(oc) {
             // Not used
         };
@@ -34,8 +34,8 @@ namespace components {
     private:
         const TileConfiguration _conf;
         const JoinedLocation _l;
-        const ShapefileWrapper _s;
-        const detail::OffsetCalculator _offset_calculator;
+        const CBGShapefileWrapper _s;
+        const detail::CBGOffsetCalculator _offset_calculator;
         const date::sys_days _start_date;
         TemporalMatricies _matricies;
 
