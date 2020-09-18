@@ -18,8 +18,6 @@
 
 namespace components {
 
-    weekly_pattern parse_string(std::string_view v);
-
     std::vector<v2>
     expandRow(const weekly_pattern &row,
               const std::vector<std::pair<std::string, std::uint16_t>> &cbg_visits);
@@ -65,7 +63,7 @@ namespace components {
             spdlog::debug("Mapper setup complete.");
         }
         void map(const mt::ctx::MapContext<Output, mt::coordinates::Coordinate3D> &ctx, const std::string &info) const {
-            const auto row = parse_string(info);
+            const auto row = detail::parse_string(info);
             if (row.date_range_start < _begin_date || row.date_range_end > _end_date)
                 return;
 
