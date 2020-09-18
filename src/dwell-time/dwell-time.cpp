@@ -48,7 +48,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Compute the Z-index, the number of days in the analysis
     const auto time_bounds = chrono::duration_cast<shared::days>(config.end_date - config.start_date).count();
     // We'll stride by date, that way we have a complete matrix on each locale.
-    std::array<std::size_t, 2> stride{static_cast<std::size_t>(floor(time_bounds / locales.size())),
+    std::array<std::size_t, 2> stride{static_cast<std::size_t>(time_bounds),
                                       static_cast<std::size_t>(floor(shared::MAX_COUNTY / locales.size()))};
 
     spdlog::debug("Stride: {}/{}", stride[0], stride[1]);

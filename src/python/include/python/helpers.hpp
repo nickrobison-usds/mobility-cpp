@@ -6,7 +6,6 @@
 #define MOBILITY_CPP_HELPERS_HPP
 
 #include <boost/hana.hpp>
-//#include <xtensor-python/pyarray.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -30,10 +29,7 @@ namespace mcpp::python::detail {
     constexpr auto types_to_pyarray() {
         return hana::transform(types<T>, [](auto typ) {
             using inner = typename decltype(typ)::type;
-            return std::declval<std::vector<inner>>();
-//                using inner = typename decltype(typ)::type;
-//                return std::declval<xt::pyarray<inner, xt::layout_type::row_major>>();
-//            return hana::typeid_(xt::pyarray<typename decltype(typ)::type, xt::layout_type::row_major>);
+            return hana::traits::declval(hana::type_c<std::vector<inner>>);
         });
     }
 
