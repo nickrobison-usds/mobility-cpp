@@ -23,13 +23,13 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 namespace mcpp::python {
-
     std::once_flag imported;
 
     template<typename T>
     class PandasEngine {
     public:
-        explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1): _interpreter(), _import_path(import_path) {
+        explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1)
+                : _interpreter(), _import_path(import_path) {
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
 //                spdlog::debug("Initializing XT Numpy");

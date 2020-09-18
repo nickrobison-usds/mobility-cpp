@@ -21,7 +21,8 @@ namespace mcpp::python {
 
       void setup(const mt::ctx::MapContext<Value, Coordinate> &ctx) {
           // Do setup here
-          _engine = std::make_unique<PandasEngine<Value>>("hello", 10'000);
+          const auto module = ctx.get_config_value("python_module");
+          _engine = std::make_unique<PandasEngine<Value>>(*module, 10'000);
       }
 
       void receive(const mt::ctx::ReduceContext<Value, Coordinate> &ctx, const Coordinate &key, const Value &value) {
@@ -30,7 +31,11 @@ namespace mcpp::python {
       }
 
       void compute(const mt::ctx::ReduceContext<Value, Coordinate> &ctx) {
-          _engine->evaluate();
+          try {
+              _engine->evaluate();
+          } catch (const std::exception &e) {
+              e.what();
+          }
       }
 
     private:

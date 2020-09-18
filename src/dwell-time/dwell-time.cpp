@@ -65,6 +65,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     config_values["output_dir"] = output_path.string();
     config_values["output_name"] = config.output_name;
     config_values["log_dir"] = log_path.string();
+    config_values["python_module"] = "python.simulate";
 
     // Partition the input files, try one for each tile
     const auto csv_path = shared::DirectoryUtils::build_path(config.data_dir, config.patterns_csv);
