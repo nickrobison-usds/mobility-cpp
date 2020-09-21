@@ -5,7 +5,6 @@
 #ifndef MOBILITY_CPP_PANDASENGINE_HPP
 #define MOBILITY_CPP_PANDASENGINE_HPP
 
-#include "PythonInterpreter.hpp"
 #include "helpers.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/hana.hpp>
@@ -28,8 +27,7 @@ namespace mcpp::python {
     template<typename T>
     class PandasEngine {
     public:
-        explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1)
-                : _interpreter(), _import_path(import_path) {
+        explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1): _import_path(import_path) {
             spdlog::info("Creating Pandas Engine");
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
@@ -82,7 +80,7 @@ namespace mcpp::python {
     private:
         using A = decltype(detail::type_map<T>());
         A _data;
-        PythonInterpreter _interpreter;
+//        PythonInterpreter _interpreter;
         const std::string_view _import_path;
     };
 }
