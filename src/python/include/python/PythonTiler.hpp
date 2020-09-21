@@ -5,8 +5,9 @@
 #ifndef MOBILITY_CPP_PYTHONTILER_HPP
 #define MOBILITY_CPP_PYTHONTILER_HPP
 
-#include <map-tile/ctx/Context.hpp>
 #include "PandasEngine.hpp"
+#include <map-tile/ctx/Context.hpp>
+#include <spdlog/spdlog.h>
 #include <mutex>
 #include <string_view>
 #include <utility>
@@ -20,6 +21,7 @@ namespace mcpp::python {
       explicit PythonTiler() = default;
 
       void setup(const mt::ctx::MapContext<Value, Coordinate> &ctx) {
+          spdlog::info("Enabling Python mode");
           // Do setup here
           const auto module = ctx.get_config_value("python_module");
           _engine = std::make_unique<PandasEngine<Value>>(*module, 10'000);

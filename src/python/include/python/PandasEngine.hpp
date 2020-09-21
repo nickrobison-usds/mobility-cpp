@@ -30,6 +30,7 @@ namespace mcpp::python {
     public:
         explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1)
                 : _interpreter(), _import_path(import_path) {
+            spdlog::info("Creating Pandas Engine");
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
 //                spdlog::debug("Initializing XT Numpy");
@@ -63,6 +64,7 @@ namespace mcpp::python {
             py::print(sys.attr("path"));
 
             // Try to import the file
+            spdlog::info("Loading Python module: ", _import_path);
             auto pkg = py::module::import(_import_path.data());
 
             // Load pandas and create the dataframe
