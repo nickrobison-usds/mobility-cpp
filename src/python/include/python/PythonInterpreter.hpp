@@ -8,6 +8,7 @@
 #include <string_view>
 #include <pybind11/embed.h>
 #include <pybind11/eval.h>
+#include <spdlog/spdlog.h>
 
 namespace py = pybind11;
 
@@ -16,6 +17,7 @@ namespace mcpp::python {
     class PythonInterpreter {
     public:
         explicit PythonInterpreter(): _interpreter({}) {
+            spdlog::info("Starting python interpreter");
             py::module sys = py::module::import("sys");
             py::print(sys.attr("path"));
 

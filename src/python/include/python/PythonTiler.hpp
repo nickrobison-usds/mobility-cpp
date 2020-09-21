@@ -21,9 +21,10 @@ namespace mcpp::python {
       explicit PythonTiler() = default;
 
       void setup(const mt::ctx::MapContext<Value, Coordinate> &ctx) {
-          spdlog::info("Enabling Python mode");
+          spdlog::info("Setting up Python tiler");
           // Do setup here
           const auto module = ctx.get_config_value("python_module");
+          spdlog::debug("Starting Pandas");
           _engine = std::make_unique<PandasEngine<Value>>(*module, 10'000);
       }
 
