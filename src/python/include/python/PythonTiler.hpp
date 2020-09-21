@@ -24,7 +24,7 @@ namespace mcpp::python {
           spdlog::info("Setting up Python tiler");
           // Do setup here
           const auto module = ctx.get_config_value("python_module");
-          spdlog::debug("Starting Pandas");
+          spdlog::info("Starting Pandas");
           _engine = std::make_unique<PandasEngine<Value>>(*module, 10'000);
       }
 
