@@ -5,6 +5,7 @@
 #ifndef MOBILITY_CPP_PANDASENGINE_HPP
 #define MOBILITY_CPP_PANDASENGINE_HPP
 
+#include "PythonInterpreter.hpp"
 #include "helpers.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/hana.hpp>
@@ -14,6 +15,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace hana = boost::hana;
@@ -27,7 +29,7 @@ namespace mcpp::python {
     template<typename T>
     class PandasEngine {
     public:
-        explicit PandasEngine(const std::string_view import_path, const std::size_t length = 1): _import_path(import_path) {
+        explicit PandasEngine(std::string import_path, const std::size_t length = 1): _import_path(std::move(import_path)) {
             spdlog::info("Creating Pandas Engine");
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
@@ -51,6 +53,13 @@ namespace mcpp::python {
         }
 
         std::string evaluate() const {
+            py::module sys = py::module::import("sys");
+            py::print(sys.attr("path"));
+
+            // Try to import the file
+            spdlog::info("Loading Python module: {}", _import_path);
+            auto pkg = py::module::import(_import_path.data());
+
             // Create a new Python dictionary for the results
             auto input_dict = py::dict();
             hana::for_each(_data, [&input_dict](auto entry) {
@@ -58,12 +67,6 @@ namespace mcpp::python {
                 spdlog::debug("Loading column: {}", key);
                 input_dict[key] = hana::second(entry);
             });
-            py::module sys = py::module::import("sys");
-            py::print(sys.attr("path"));
-
-            // Try to import the file
-            spdlog::info("Loading Python module: ", _import_path);
-            auto pkg = py::module::import(_import_path.data());
 
             // Load pandas and create the dataframe
             auto pandas = py::module::import("pandas");
@@ -80,8 +83,8 @@ namespace mcpp::python {
     private:
         using A = decltype(detail::type_map<T>());
         A _data;
-//        PythonInterpreter _interpreter;
-        const std::string_view _import_path;
+        PythonInterpreter _interpreter;
+        const std::string _import_path;
     };
 }
 

@@ -37,7 +37,7 @@ namespace mcpp::python {
           try {
               _engine->evaluate();
           } catch (const std::exception &e) {
-              e.what();
+              spdlog::error("Unable to evaluate: {}", e.what());
           }
       }
 
