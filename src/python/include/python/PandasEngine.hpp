@@ -5,11 +5,10 @@
 #ifndef MOBILITY_CPP_PANDASENGINE_HPP
 #define MOBILITY_CPP_PANDASENGINE_HPP
 
-#include "PythonInterpreter.hpp"
 #include "helpers.hpp"
 #include <absl/strings/str_split.h>
 #include <boost/hana.hpp>
-#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 #include <pybind11/stl.h>
 #include <spdlog/spdlog.h>
 #include <iostream>
@@ -31,6 +30,11 @@ namespace mcpp::python {
     public:
         explicit PandasEngine(std::string import_path, const std::size_t length = 1): _import_path(std::move(import_path)) {
             spdlog::info("Creating Pandas Engine");
+            try {
+                py::scoped_interpreter guard{};
+            } catch(const std::exception &e) {
+                spdlog::error("Error: {}", e.what());
+            }
             // Initialize xtensor and pandas support
 //            std::call_once(imported, []() {
 //                spdlog::debug("Initializing XT Numpy");
@@ -53,6 +57,11 @@ namespace mcpp::python {
         }
 
         std::string evaluate() const {
+            try {
+                py::scoped_interpreter guard{};
+            } catch(const std::exception &e) {
+                spdlog::error("Error: {}", e.what());
+            }
             py::module sys = py::module::import("sys");
             py::print(sys.attr("path"));
 
@@ -83,7 +92,6 @@ namespace mcpp::python {
     private:
         using A = decltype(detail::type_map<T>());
         A _data;
-        PythonInterpreter _interpreter;
         const std::string _import_path;
     };
 }
