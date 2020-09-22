@@ -16,6 +16,30 @@ include(FindAVX)
 CHECK_FOR_AVX()
 find_package(Eigen3 3.3 NO_MODULE)
 
+# Create a custom target that defines the allocator
+string(TOUPPER "${DEFAULT_MALLOC}" MALLOC_UPPER)
+add_library(mcpp-malloc INTERFACE IMPORTED)
+
+if (NOT "${MALLOC_UPPER}" STREQUAL "SYSTEM")
+    if ("${MALLOC_UPPER}" STREQUAL "TCMALLOC")
+        find_package(TCMalloc REQUIRED)
+        message("Using TCMalloc allocator")
+        target_link_libraries(mcpp-malloc INTERFACE ${TCMALLOC_LIBRARY})
+    elseif ("${MALLOC_UPPER}" STREQUAL "JEMALLOC")
+        find_package(Jemalloc REQUIRED)
+        message("Using Jemalloc allocator")
+        target_include_directories(
+                mcpp-malloc INTERFACE ${JEMALLOC_INCLUDE_DIR}
+                ${JEMALLOC_ADDITIONAL_INCLUDE_DIR}
+        )
+        target_link_libraries(
+                mcpp-malloc INTERFACE ${JEMALLOC_LIBRARIES}
+        )
+    else ()
+        message(FATAL_ERROR "Unsupported allocator: ${MALLOC_UPPER}")
+    endif ()
+endif ()
+
 add_subdirectory(io)
 add_subdirectory(components)
 add_subdirectory(shared)
@@ -36,13 +60,7 @@ target_compile_options(distance PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(distance PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
 add_executable(connectivity connectivity.cpp)
-target_link_libraries(connectivity PRIVATE io mcpp-components shared Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog)
+target_link_libraries(connectivity PRIVATE io mcpp-components shared Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog mcpp-malloc)
 target_compile_options(connectivity PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(connectivity PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 add_sanitizers(connectivity)
-
-if (${DEFAULT_MALLOC} STREQUAL "tcmalloc")
-    find_package(TCMalloc)
-    message("Linking with TCMalloc")
-    target_link_libraries(connectivity PRIVATE ${TCMALLOC_LIBRARY})
-endif ()

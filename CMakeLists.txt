@@ -37,7 +37,7 @@ set(BLAZE_USE_VECTORIZATION TRUE)
 
 # Set the default malloc implementation
 set(DEFAULT_MALLOC "system" CACHE STRING "Set the default memory allocator")
-set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc")
+set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc;jemalloc")
 
 set(RANGES_CXX_STD 17 CACHE STRING "")
 

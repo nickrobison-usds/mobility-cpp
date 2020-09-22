@@ -1,10 +1,5 @@
 add_executable(centrality centrality.cpp SafegraphCBGTiler.cpp SafegraphCBGTiler.hpp SafegraphCBGMapper.cpp SafegraphCBGMapper.hpp)
-target_link_libraries(centrality PRIVATE map-tile shared Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog yaml-cpp::yaml-cpp MCPP::components range-v3 MCPP::graph)
+target_link_libraries(centrality PRIVATE map-tile shared Boost::filesystem Boost::regex Boost::program_options spdlog::spdlog yaml-cpp::yaml-cpp MCPP::components range-v3 MCPP::graph mcpp-malloc)
 target_compile_options(centrality PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(centrality PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 add_sanitizers(centrality)
-
-if (${DEFAULT_MALLOC} STREQUAL "tcmalloc")
-    message("Linking with TCMalloc")
-    target_link_libraries(centrality PRIVATE ${TCMALLOC_LIBRARY})
-endif ()

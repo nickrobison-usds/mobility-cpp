@@ -45,7 +45,7 @@ set(HPX_WITH_RDTSCP
         CACHE BOOL ""
         )
 
-set(HPX_WITH_MALLOC "tcmalloc" CACHE STRING "")
+set(HPX_WITH_MALLOC "jemalloc" CACHE STRING "")
 
 # Configure application
-set(DEFAULT_MALLOC "tcmalloc" CACHE STRING "")
+set(DEFAULT_MALLOC "jemalloc" CACHE STRING "")
