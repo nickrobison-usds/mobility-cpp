@@ -11,7 +11,7 @@ namespace shared {
     DirectoryUtils::enumerate_files(const std::string_view input_dir, const std::string_view filter_regex) {
         // Iterate through all the files and do async things
         const boost::regex my_filter((std::string(filter_regex)));
-        const auto dir_iter = fs::directory_iterator(std::string(input_dir));
+        const auto dir_iter = fs::recursive_directory_iterator(std::string(input_dir));
         std::vector<fs::directory_entry> files;
 
         // We have to do this loop because the directory iterator doesn't seem to work correctly.
