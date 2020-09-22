@@ -1,0 +1,59 @@
+spack:
+  packages:
+    all:
+      compiler:
+        - gcc@9
+      target: []
+      buildable: true
+      providers:
+        mpi:
+          - openmpi
+      version: []
+    mpich:
+      buildable: false
+      externals:
+        - spec: openmpi %gcc
+          modules:
+            - openmpi/4.0.3
+        - spec: openmpi %intel
+          modules:
+            - openmpi/3.1.5-intel19
+      version: []
+      target: []
+      compiler: []
+      providers: {}
+    hdf5:
+      buildable: false
+      externals:
+        - spec: hdf5
+          modules:
+            - hdf5-parallel/1.8.21
+      version: []
+      target: []
+      compiler: []
+      providers: {}
+    python:
+      buildable: false
+      externals:
+        - spec: python
+          modules:
+            - anaconda3
+    hwloc:
+      buildable: false
+      externals:
+        - spec: hwloc
+          modules:
+            - hwloc/2.0.4
+  specs:
+    - cmake@3.17.4
+    - boost cxxstd=17
+    - geos@3.6.2
+    - gdal+geos
+    - gperftools
+    - hdf5
+    - eigen
+    - python
+    - hpx@master networking=mpi +async_mpi
+    - arrow+parquet
+  view: true
+  concretization: together

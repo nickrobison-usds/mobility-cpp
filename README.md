@@ -5,8 +5,24 @@ Try to fix some issues with our python analysis and make it more performant.
 git submodule update --init --recursive
 vcpkg install geos tbb arrow range-v3 gdal
 
-## Cluster
-spack install geos tbb arrow range-v3
+### Cluster
+
+#### CADES
+```bash
+module load PE-gnu/4.0
+spack env activate .
+spack install
+cmake -B build/
+``` 
+
+#### CORI
+
+```bash
+module swap PrgEnv-intel PrgEnv-cray
+spack env activate .
+spack install
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/Cori.cmake -B build/
+```
 
 ### Python
 
@@ -34,3 +50,21 @@ The output should be placed in the `${DATA_DIR}/reference` directory.
 #### Output Inspection
 
 This notebook contains some helper cells for inspecting the output of the various analysis tools.
+
+## Reference datasets
+
+The application makes use of a couple of reference datasets that need to be built, prior to launch.
+
+### Unified Census Block file
+
+### Joined_POI
+
+We need to join the Safegraph Core_POI dataset with unified Census Block file generated in the previous step.
+
+1. Download the entirety of the POI catalog from the 
+2. Unzip and un-gzip the poi files.
+```bash
+find . -name '*.zip' -exec sh -c 'unzip -o -d "${0%.*}" "$0"' '{}' ';'
+gunzip -r .
+```
+3. Join them all together into a single, massive set of Parquet files.

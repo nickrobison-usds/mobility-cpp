@@ -1,0 +1,79 @@
+spack:
+  packages:
+    all:
+      compiler: [ cce@9 ]
+      target: [ ]
+      buildable: true
+      providers:
+        mpi: [ mpich ]
+        blas: [ atlas ]
+      paths: { }
+      version: [ ]
+      modules: { }
+    mpich:
+      modules:
+        mpich %cce: cray-mpich
+      buildable: false
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      providers: { }
+      paths: { }
+    hdf5:
+      modules:
+        hdf5 %cce: cray-hdf5-parallel
+      buildable: false
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      providers: { }
+      paths: { }
+    jemalloc:
+      modules:
+        jemalloc %cce: cray-jemalloc
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      paths: { }
+    python:
+      modules:
+        python %cce: python/3.7-anaconda-2019.10
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      paths: { }
+    git:
+      modules:
+        git %cce: git
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      paths: { }
+    cmake:
+      modules:
+        cmake %cce: cmake
+specs:
+  - cmake
+  - hwloc@1.11.11   # We need this version for CORI
+  - openssl@1.0.2u   # We need 1.0.x on CORI
+  - boost cxxstd=17
+  - geos@3.6.2
+  - gdal+geos
+  - gperftools
+  - hdf5
+  - thrift ~python
+  - ncurses~termlib+symlinks   # We need to disable termlib on CORI
+  - mpi
+  - eigen
+  - arrow +parquet
+  - jemalloc
+  - python
+  - hpx@master networking=mpi malloc=jemalloc
+view: true
+concretization: together
