@@ -7,14 +7,11 @@ else ()
     find_package(HPX CONFIG REQUIRED)
 endif ()
 
-if (NOT ${USE_INTERNAL_ARROW})
-    find_package(Arrow CONFIG REQUIRED)
-endif ()
-
 # Include AVX, if it's available
 include(FindAVX)
 CHECK_FOR_AVX()
 find_package(Eigen3 3.3 NO_MODULE)
+find_package(GDAL REQUIRED)
 
 # Create a custom target that defines the allocator
 string(TOUPPER "${DEFAULT_MALLOC}" MALLOC_UPPER)

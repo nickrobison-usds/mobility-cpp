@@ -1,10 +1,25 @@
-find_package(GDAL REQUIRED)
-
 # Find HDF5
 set(HDF5_PREFER_PARALLEL False)
 
+# Create a custom target for Arrow
+add_library(mcpp-arrow INTERFACE IMPORTED)
+# If we're building arrow locally, make sure we build it first
+if (${USE_INTERNAL_ARROW})
+    add_dependencies(mcpp-arrow arrow_ep)
+    # Gross, but for some reason, we need this to make sure the parquet lib is found correctly
+    target_link_directories(mcpp-arrow PUBLIC ${CMAKE_BINARY_DIR}/arrow/lib)
+    target_include_directories(mcpp-arrow PUBLIC ${CMAKE_BINARY_DIR}/arrow/include)
+    target_link_libraries(mcpp-arrow PUBLIC arrow parquet)
+else ()
+    find_package(Arrow CONFIG REQUIRED)
+    target_link_directories(mcpp-arrow PUBLIC ${ARROW_LIB_DIR} ${PARQUET_LIB_DIR})
+    target_include_directories(mcpp-arrow PUBLIC ${ARROW_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR})
+    target_link_libraries(mcpp-arrow PUBLIC ${ARROW_SHARED_LIB})
+endif ()
+
+
 add_library(io src/parquet.cpp include/io/parquet.hpp src/Shapefile.cpp include/io/Shapefile.hpp include/io/csv_reader.hpp include/io/csv.hpp include/io/hdf5.hpp)
-target_link_libraries(io PUBLIC ${GDAL_LIBRARY} arrow parquet ${HDF5_C_LIBRARIES} ${HDF5_C_HL_LIBRARIES} PRIVATE spdlog)
+target_link_libraries(io PUBLIC GDAL::GDAL mcpp-arrow ${HDF5_C_LIBRARIES} ${HDF5_C_HL_LIBRARIES} PRIVATE spdlog)
 target_include_directories(io PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
@@ -17,20 +32,10 @@ target_link_libraries(testio Catch2::Catch2 io Boost::filesystem)
 add_test(testio testio WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/io/test)
 
 add_executable(io-benchmarks benchmarks/simple.cpp benchmarks/row_expansion.cpp)
-target_link_libraries(io-benchmarks arrow benchmark::benchmark_main)
+target_link_libraries(io-benchmarks mcpp-arrow benchmark::benchmark_main)
 target_compile_options(io-benchmarks PRIVATE ${RELEASE_FLAGS})
 
-# If we're building arrow locally, make sure we build it first
-if (${USE_INTERNAL_ARROW})
-    add_dependencies(io arrow_ep)
-    add_dependencies(io-benchmarks arrow_ep)
-    # Gross, but for some reason, we need this to make sure the parquet lib is found correctly
-    target_link_directories(io PUBLIC ${CMAKE_BINARY_DIR}/arrow/lib)
-    target_include_directories(io PUBLIC ${CMAKE_BINARY_DIR}/arrow/include)
-    target_link_directories(io-benchmarks PUBLIC ${CMAKE_BINARY_DIR}/arrow/lib)
-    target_include_directories(io-benchmarks PUBLIC ${CMAKE_BINARY_DIR}/arrow/include)
-endif ()
 
 if (${USE_INTERNAL_HDF5})
     add_dependencies(io hdf5_ep)
-endif()
+endif ()
