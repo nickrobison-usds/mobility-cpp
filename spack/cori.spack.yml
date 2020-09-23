@@ -1,79 +1,107 @@
-spack:
+pack:
   packages:
     all:
-      compiler: [ cce@9 ]
+      compiler:
+        - cce@9
       target: [ ]
       buildable: true
       providers:
-        mpi: [ mpich ]
-        blas: [ atlas ]
-      paths: { }
+        mpi:
+          - mpich
+        blas:
+          - openblas
       version: [ ]
-      modules: { }
     mpich:
-      modules:
-        mpich %cce: cray-mpich
       buildable: false
       version: [ ]
       target: [ ]
       compiler: [ ]
       providers: { }
-      paths: { }
+      externals:
+        - spec: mpich %cce
+          modules:
+            - cray-mpich
+        - spec: mpich %gcc
+          modules:
+            - openmpi/3.1.5
+        - spec: mpich %intel
+          modules:
+            - openmpi/3.1.5-intel19
     hdf5:
-      modules:
-        hdf5 %cce: cray-hdf5-parallel
       buildable: false
       version: [ ]
       target: [ ]
       compiler: [ ]
       providers: { }
-      paths: { }
+      externals:
+        - spec: hdf5 %gcc
+          modules:
+            - hdf5_parallel
+        - spec: hdf5 %cce
+          modules:
+            - cray-hdf5-parallel
+    gperftools:
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      externals:
+        - spec: gperftools %cce
+          modules:
+            - gperftools
     jemalloc:
-      modules:
-        jemalloc %cce: cray-jemalloc
       version: [ ]
       target: [ ]
       compiler: [ ]
       buildable: true
       providers: { }
-      paths: { }
+      externals:
+        - spec: jemalloc %cce
+          modules:
+            - cray-jemalloc
     python:
-      modules:
-        python %cce: python/3.7-anaconda-2019.10
       version: [ ]
       target: [ ]
       compiler: [ ]
       buildable: true
       providers: { }
-      paths: { }
+      externals:
+        - spec: python %cce
+          modules:
+            - python3/3.7-anaconda-2019.10
     git:
-      modules:
-        git %cce: git
       version: [ ]
       target: [ ]
       compiler: [ ]
       buildable: true
       providers: { }
-      paths: { }
+      externals:
+        - spec: git %cce
+          modules:
+            - git
     cmake:
-      modules:
-        cmake %cce: cmake
-specs:
-  - cmake
-  - hwloc@1.11.11   # We need this version for CORI
-  - openssl@1.0.2u   # We need 1.0.x on CORI
-  - boost cxxstd=17
-  - geos@3.6.2
-  - gdal+geos
-  - gperftools
-  - hdf5
-  - thrift ~python
-  - ncurses~termlib+symlinks   # We need to disable termlib on CORI
-  - mpi
-  - eigen
-  - arrow +parquet
-  - jemalloc
-  - python
-  - hpx@master networking=mpi malloc=jemalloc
-view: true
-concretization: together
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      externals:
+        - spec: cmake %cce
+          modules:
+            - cmake
+  specs:
+    - hwloc
+    - cmake
+    - boost cxxstd=17
+    - geos@3.6.2
+    - gdal+geos
+    - gperftools
+    - hdf5
+    - thrift ~python
+    - mpi
+    - eigen
+    - arrow +parquet
+    - jemalloc
+  view: true
+  concretization: together
