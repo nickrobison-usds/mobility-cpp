@@ -40,20 +40,21 @@ void SafegraphCountyTiler::setup(const mt::ctx::ReduceContext<county_visit, mt::
 
     _c_wrapper = std::make_unique<components::CountyShapefileWrapper>(*county_path);
     _oc = std::make_unique<components::detail::CountyOffsetCalculator>(_c_wrapper->build_offsets().get(), _tc);
-    matricies = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
+    _matricies = std::make_unique<BlazeMatricies>(_tc._time_count, loc_dims, visit_dims);
 
     _output_path = *ctx.get_config_value("output_dir");
+    _staging = std::vector<std::vector<county_visit>>(_tc._tile_max - _tc._tile_min);
 }
 
 void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx,
                                    const mt::coordinates::Coordinate3D &key, const county_visit &value) {
     // Convert back to local coordinate space
     const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
-    const auto x_idx = _oc->to_local_offset(value.location_fips);
     const auto y_idx = _oc->to_global_offset(value.visit_fips);
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        matricies->insert(l_time_count, x_idx, *y_idx, value.visits);
+        std::lock_guard<std::mutex> l(_m);
+        _staging.at(l_time_count).push_back(value);
     } else {
         spdlog::error("Visitor FIPS {} is not in map, skipping insert", value.visit_fips);
     }
@@ -61,6 +62,8 @@ void SafegraphCountyTiler::receive(const mt::ctx::ReduceContext<county_visit, mt
 }
 
 void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
+    // Setup the matricies
+    populate_graph(ctx);
     // Compute some eigen values
     spdlog::debug("Computing eigenvalue centrality");
     // Figure out how many eigenvectors we need, based on the number of locations
@@ -69,7 +72,7 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
     // Compute and write the results in parallel
     for (std::size_t i = 0; i < _tc._time_count; i++) {
         auto computation = hpx::async([this, i]() {
-            auto B = matricies->get_matrix_pair(i);
+            auto B = _matricies->get_matrix_pair(i);
             blaze::DynamicVector<complex<double>, blaze::columnVector>
                     w(_tc._tile_max - _tc._tile_min);   // The vector for the complex eigenvalues
             blaze::eigen(B, w);
@@ -84,6 +87,26 @@ void SafegraphCountyTiler::compute(const mt::ctx::ReduceContext<county_visit, mt
 
     hpx::wait_all(results);
     spdlog::info("Tile computation is complete");
+}
+
+void SafegraphCountyTiler::populate_graph(const mt::ctx::ReduceContext<county_visit, mt::coordinates::Coordinate3D> &ctx) {
+    // Do the insert asynchronously. We don't need a lock here, because each thread only touches a single graph/matrix
+    std::vector<hpx::future<void>> results;
+    for (std::size_t i = 0; i < _tc._tile_max - _tc._tile_min; i++) {
+        auto f = hpx::async([this, i]() {
+            const auto values = _staging.at(i);
+//            FIXME(nickrobison): This is still horribly inefficient. But at least the inefficiency is amortized over all the nodes, rather just with the mappers.
+            std::for_each(values.begin(), values.end(), [this, i](const auto &value) {
+                // Convert back to local coordinate space
+                const auto x_idx = _oc->to_local_offset(value.location_fips);
+                const auto y_idx = _oc->to_global_offset(value.visit_fips);
+                _matricies->insert(i, x_idx, *y_idx, value.visits);
+            });
+        });
+        results.push_back(std::move(f));
+    }
+
+    return hpx::wait_all(results);
 }
 
 void SafegraphCountyTiler::write_eigenvalues(const std::size_t offset, const blaze::DynamicVector<complex<double>, blaze::columnVector> &values) const {

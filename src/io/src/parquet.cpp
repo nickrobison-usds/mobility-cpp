@@ -37,7 +37,8 @@ namespace io {
     arrow::Status Parquet::write(const arrow::Table &table, bool append) const {
         parquet::WriterProperties::Builder builder;
         // Enable Snappy compression, to make things smaller
-        builder.compression(_compressor);
+        // Disabling until #33 is resolved.
+//        builder.compression(_compressor);
         const auto writer_props = builder.build();
 
         shared_ptr<arrow::io::FileOutputStream> outfile;
