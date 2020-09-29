@@ -24,6 +24,26 @@ spack install
 cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/Cori.cmake -B build/
 ```
 
+#### Theta
+> Note: We don't currently support building with static linking (which is the default on Theta).
+
+```bash
+export CRAYPE_LINK_TYPE=dynamic
+module swap craype-mic-knl craype-haswell
+module swap PrgEnv-intel PrgEnv-gnu
+spack env activate .
+spack install
+module load cmake cray-jemalloc
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/Theta.cmake -B build/ 
+```
+
+
+```bash
+cd ~/mobility-cpp
+. /gpfs/mira-home/nickrobison/spack/share/spack/setup-env.sh
+spack env activate .
+```
+
 ### Python
 
 This repo contains a couple of helper Jupyter notebooks for testing ideas and building datasets.

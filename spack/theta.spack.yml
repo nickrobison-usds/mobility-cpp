@@ -2,7 +2,7 @@ spack:
   packages:
     all:
       compiler:
-        - cce@9
+        - gcc@9
       target: [ ]
       buildable: true
       providers:
@@ -18,15 +18,9 @@ spack:
       compiler: [ ]
       providers: { }
       externals:
-        - spec: mpich %cce
+        - spec: mpich
           modules:
             - cray-mpich
-        - spec: mpich %gcc
-          modules:
-            - openmpi/3.1.5
-        - spec: mpich %intel
-          modules:
-            - openmpi/3.1.5-intel19
     hdf5:
       buildable: false
       version: [ ]
@@ -34,22 +28,9 @@ spack:
       compiler: [ ]
       providers: { }
       externals:
-        - spec: hdf5 %gcc
-          modules:
-            - hdf5_parallel
-        - spec: hdf5 %cce
+        - spec: hdf5
           modules:
             - cray-hdf5-parallel
-    gperftools:
-      version: [ ]
-      target: [ ]
-      compiler: [ ]
-      buildable: true
-      providers: { }
-      externals:
-        - spec: gperftools %cce
-          modules:
-            - gperftools
     jemalloc:
       version: [ ]
       target: [ ]
@@ -57,29 +38,9 @@ spack:
       buildable: true
       providers: { }
       externals:
-        - spec: jemalloc %cce
+        - spec: jemalloc
           modules:
             - cray-jemalloc
-    python:
-      version: [ ]
-      target: [ ]
-      compiler: [ ]
-      buildable: true
-      providers: { }
-      externals:
-        - spec: python %cce
-          modules:
-            - python3/3.7-anaconda-2019.10
-    git:
-      version: [ ]
-      target: [ ]
-      compiler: [ ]
-      buildable: true
-      providers: { }
-      externals:
-        - spec: git %cce
-          modules:
-            - git
     cmake:
       version: [ ]
       target: [ ]
@@ -87,22 +48,21 @@ spack:
       buildable: true
       providers: { }
       externals:
-        - spec: cmake %cce
+        - spec: cmake
           modules:
-            - cmake
+            - cmake/3.16.2
   specs:
-    - hwloc
+    - hwloc@1.11.11
     - cmake
-    - openssl@1.0.2
     - boost cxxstd=17
     - geos@3.6.2
     - gdal+geos
-    - gperftools
     - hdf5
     - thrift ~python
     - mpi
     - eigen
     - arrow +parquet
     - jemalloc
+    - blas
   view: true
   concretization: together

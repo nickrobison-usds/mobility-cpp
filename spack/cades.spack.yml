@@ -52,6 +52,7 @@ spack:
     - gperftools
     - hdf5
     - eigen
+    - thrift ~python
     - python
     - hpx@master networking=mpi +async_mpi
     - arrow+parquet
