@@ -15,7 +15,7 @@ spack:
       modules:
         mpich %cce: cray-mpich
         mpich %gcc: openmpi/3.1.5
-        mpich %intel: openmpi/3.1.5-intel19
+        mpich1 %intel: openmpi/3.1.5-intel19
       buildable: false
     hdf5:
       modules:

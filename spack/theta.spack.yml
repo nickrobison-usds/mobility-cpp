@@ -1,0 +1,68 @@
+spack:
+  packages:
+    all:
+      compiler:
+        - gcc@9
+      target: [ ]
+      buildable: true
+      providers:
+        mpi:
+          - mpich
+        blas:
+          - openblas
+      version: [ ]
+    mpich:
+      buildable: false
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      providers: { }
+      externals:
+        - spec: mpich
+          modules:
+            - cray-mpich
+    hdf5:
+      buildable: false
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      providers: { }
+      externals:
+        - spec: hdf5
+          modules:
+            - cray-hdf5-parallel
+    jemalloc:
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      externals:
+        - spec: jemalloc
+          modules:
+            - cray-jemalloc
+    cmake:
+      version: [ ]
+      target: [ ]
+      compiler: [ ]
+      buildable: true
+      providers: { }
+      externals:
+        - spec: cmake
+          modules:
+            - cmake/3.16.2
+  specs:
+    - hwloc@1.11.11
+    - cmake
+    - boost cxxstd=17
+    - geos@3.6.2
+    - gdal+geos
+    - hdf5
+    - thrift ~python
+    - mpi
+    - eigen
+    - arrow +parquet
+    - jemalloc
+    - blas
+  view: true
+  concretization: together

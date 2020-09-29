@@ -37,7 +37,7 @@ set(BLAZE_USE_VECTORIZATION TRUE)
 
 # Set the default malloc implementation
 set(DEFAULT_MALLOC "system" CACHE STRING "Set the default memory allocator")
-set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc")
+set_property(CACHE DEFAULT_MALLOC PROPERTY STRINGS "system;tcmalloc;jemalloc")
 
 set(RANGES_CXX_STD 17 CACHE STRING "")
 
@@ -110,7 +110,7 @@ if (${USE_INTERNAL_ARROW})
     message("Using internal Apache Arrow")
     set(ARROW_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/arrow")
     set(ARROW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/arrow")
-    set(ARROW_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARROW_INSTALL_DIR} -DARROW_PARQUET=ON -DARROW_JEMALLOC=OFF -DARROW_BUILD_STATIC=OFF)
+    set(ARROW_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARROW_INSTALL_DIR} -DARROW_PARQUET=ON -DARROW_JEMALLOC=OFF -DARROW_BUILD_STATIC=ON)
     ExternalProject_Add(arrow_ep
             PREFIX ${ARROW_PREFIX}
             URL "https://www.apache.org/dist/arrow/arrow-0.17.1/apache-arrow-0.17.1.tar.gz"
