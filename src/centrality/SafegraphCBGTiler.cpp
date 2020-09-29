@@ -43,6 +43,7 @@ struct CentralityComputation {
 
         return transformed;
     }
+
     components::TemporalGraphs *_graphs;
     const date::sys_days _start_date;
 };
@@ -79,6 +80,7 @@ void SafegraphCBGTiler::setup(const mt::ctx::ReduceContext<v2, mt::coordinates::
     // Initialize the Temporal Matricies
     _tm = std::make_unique<components::TemporalMatricies>(_tc._time_count, loc_dims, visit_dims);
     _graphs = std::make_unique<components::TemporalGraphs>(_tc._time_count);
+    _staging = std::vector<std::vector<v2>>(_tc._tile_max - _tc._tile_min);
     spdlog::debug("Tiler setup complete.");
 }
 
@@ -87,20 +89,42 @@ void SafegraphCBGTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates
                                 const v2 &value) {
     // Convert back to local coordinate space
     const auto local_temporal = value.visit_date - date::days{_tc._time_offset};
-    const auto x_idx = _oc->to_local_offset(value.location_cbg);
     const auto y_idx = _oc->to_global_offset(value.visit_cbg);
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        _tm->insert(l_time_count, x_idx, *y_idx, value.visits, value.distance);
-        // Insert into the graph
-        _graphs->insert(l_time_count, value);
+        // Insert into the staging array
+        std::lock_guard<std::mutex> l(_m);
+        _staging.at(l_time_count).push_back(value);
     } else {
         spdlog::error("Visitor CBG {} is not in map, skipping insert", value.visit_cbg);
     }
 }
 
 void SafegraphCBGTiler::compute(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    populate_graph(ctx);
     write_parquet(ctx);
+}
+
+void SafegraphCBGTiler::populate_graph(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) {
+    // Do the insert asynchronously. We don't need a lock here, because each thread only touches a single graph/matrix
+    std::vector<hpx::future<void>> results;
+    for (std::size_t i = 0; i < _tc._tile_max - _tc._tile_min; i++) {
+        auto f = hpx::async([this, i]() {
+            const auto values = _staging.at(i);
+//            FIXME(nickrobison): This is still horribly inefficient. But at least the inefficiency is amortized over all the nodes, rather just with the mappers.
+            std::for_each(values.begin(), values.end(), [this, i](const auto &value) {
+                // Convert back to local coordinate space
+                const auto x_idx = _oc->to_local_offset(value.location_cbg);
+                const auto y_idx = _oc->to_global_offset(value.visit_cbg);
+                _tm->insert(i, x_idx, *y_idx, value.visits, value.distance);
+//                Insert into the graph
+                _graphs->insert(i, value);
+            });
+        });
+        results.push_back(std::move(f));
+    }
+
+    return hpx::wait_all(results);
 }
 
 void SafegraphCBGTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const {
@@ -171,10 +195,10 @@ SafegraphCBGTiler::reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coor
     // Iterate over all the dates and compute the values for the dates
     const auto date_range = boost::irange(0, static_cast<int>(_tc._time_count));
     return par::transform_reduce(par::execution::par_unseq, date_range.begin(), date_range.end(),
-                          reduce_type(),
-                          [](reduce_type acc, reduce_type v) {
-                              acc.reserve(acc.size() + v.size());
-                              move(v.begin(), v.end(), back_inserter(acc));
-                              return acc;
-                          }, CentralityComputation{_graphs.get(), _start_date});
+                                 reduce_type(),
+                                 [](reduce_type acc, reduce_type v) {
+                                     acc.reserve(acc.size() + v.size());
+                                     move(v.begin(), v.end(), back_inserter(acc));
+                                     return acc;
+                                 }, CentralityComputation{_graphs.get(), _start_date});
 }

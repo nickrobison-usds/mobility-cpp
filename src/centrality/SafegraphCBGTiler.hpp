@@ -12,6 +12,7 @@
 #include <components/CBGShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <shared/data.hpp>
+#include <mutex>
 
 class SafegraphCBGTiler {
 
@@ -28,6 +29,7 @@ public:
     reduce(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
 private:
+    void populate_graph(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx);
     void write_parquet(const mt::ctx::ReduceContext<v2, mt::coordinates::Coordinate3D> &ctx) const;
 
     std::unique_ptr<components::detail::CBGOffsetCalculator> _oc;
@@ -36,6 +38,8 @@ private:
     std::unique_ptr<components::TemporalGraphs> _graphs;
     components::TileConfiguration _tc;
     date::sys_days _start_date;
+    std::vector<std::vector<v2>> _staging;
+    std::mutex _m;
 };
 
 
