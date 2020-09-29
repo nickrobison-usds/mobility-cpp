@@ -15,7 +15,6 @@ set(HPX_WITH_MALLOC "jemalloc" CACHE STRING "")
 set(DEFAULT_MALLOC "jemalloc" CACHE STRING "")
 
 # Compile/link flags
-
 set(CMAKE_C_FLAGS_INIT
         ""
         CACHE STRING ""
