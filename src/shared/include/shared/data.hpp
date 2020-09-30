@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <map>
 #include <utility>
 #include "serializers.hpp"
 #include "ogr_geometry.h"
@@ -64,8 +65,10 @@ struct weekly_pattern {
     uint32_t raw_visitor_counts;
     string visits_by_day;
     string visits_by_each_hour;
-    uint64_t poi_cbg;
+    std::string poi_cbg;
     string visitor_home_cbgs;
+    float median_dwell_times;
+    std::map<std::string, std::uint16_t>  bucketed_dwell_times;
 };
 
 struct visit_row {
@@ -195,5 +198,7 @@ struct safegraph_location {
         & cbg;
     }
 };
+
+
 
 #endif //MOBILITY_CPP_DATA_HPP

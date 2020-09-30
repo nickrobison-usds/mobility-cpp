@@ -40,4 +40,15 @@ namespace shared {
         }
         return v;
     }
+
+    template <>
+    float ConversionUtils::convert_empty(const std::string &val) {
+        float v = 0.0;
+        try {
+            v = std::stof(val);
+        } catch (std::invalid_argument &e) {
+            spdlog::error("Cannot convert {}", val);
+        }
+        return v;
+    }
 }

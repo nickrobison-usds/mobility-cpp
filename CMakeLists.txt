@@ -46,6 +46,7 @@ set(USE_INTERNAL_HPX OFF CACHE BOOL "Build the bundled version of HPX")
 set(USE_INTERNAL_HDF5 OFF CACHE BOOL "Build the bundled version of HDF5")
 set(USE_INTERNAL_ARROW OFF CACHE BOOL "Build the bundled version of Apache Arrow")
 set(CI OFF CACHE BOOL "Run using CI configuration")
+set(JSON_BuildTests OFF CACHE INTERNAL "")
 
 if (${CI})
     set(USE_INTERNAL_HPX ON)
@@ -81,6 +82,11 @@ add_subdirectory(extern/abseil)
 add_subdirectory(extern/date)
 add_subdirectory(extern/yaml-cpp)
 add_subdirectory(extern/range-v3)
+add_subdirectory(extern/pybind11)
+add_subdirectory(extern/xtl)
+add_subdirectory(extern/xtensor)
+add_subdirectory(extern/xtensor-python)
+add_subdirectory(extern/jsoon)
 
 if (${USE_INTERNAL_HPX})
     message("Using internal HPX")
@@ -110,7 +116,7 @@ if (${USE_INTERNAL_ARROW})
     message("Using internal Apache Arrow")
     set(ARROW_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/arrow")
     set(ARROW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/arrow")
-    set(ARROW_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARROW_INSTALL_DIR} -DARROW_PARQUET=ON -DARROW_JEMALLOC=OFF -DARROW_BUILD_STATIC=ON)
+    set(ARROW_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARROW_INSTALL_DIR} -DARROW_PARQUET=ON -DARROW_JEMALLOC=OFF -DARROW_BUILD_STATIC=ON -DARROW_DEPENDENCY_SOURCE=AUTO)
     ExternalProject_Add(arrow_ep
             PREFIX ${ARROW_PREFIX}
             URL "https://www.apache.org/dist/arrow/arrow-0.17.1/apache-arrow-0.17.1.tar.gz"

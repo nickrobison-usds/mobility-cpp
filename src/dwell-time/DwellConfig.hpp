@@ -1,12 +1,16 @@
 //
-// Created by Nicholas Robison on 9/14/20.
+// Created by Nicholas Robison on 9/17/20.
 //
+
+#ifndef MOBILITY_CPP_DWELLCONFIG_HPP
+#define MOBILITY_CPP_DWELLCONFIG_HPP
+
 
 #include <yaml-cpp/yaml.h>
 #include <shared/DateUtils.hpp>
 #include <string>
 
-struct EpiConfig {
+struct DwellConfig {
 
     std::chrono::system_clock::time_point start_date;
     std::chrono::system_clock::time_point end_date;
@@ -23,14 +27,14 @@ struct EpiConfig {
 namespace YAML {
 
     template<>
-    struct convert<EpiConfig> {
+    struct convert<DwellConfig> {
 
-        static Node encode(const EpiConfig &rhs) {
+        static Node encode(const DwellConfig &rhs) {
             Node node;
             return node;
         }
 
-        static bool decode(const Node &node, EpiConfig &rhs) {
+        static bool decode(const Node &node, DwellConfig &rhs) {
             if(!node.IsMap()) {
                 return false;
             }
@@ -71,3 +75,8 @@ namespace YAML {
         }
     };
 }
+
+
+
+
+#endif //MOBILITY_CPP_DWELLCONFIG_HPP

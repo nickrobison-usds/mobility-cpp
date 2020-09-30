@@ -37,13 +37,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev
+          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9
 
-      - name: (Linux) Install dependencies
-        if: runner.os == 'Linux'
+      - name: Install Python dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-9 g++-9
+          pip3 install pandas
 
       - name: (Linux) Set GCC9 as default compiler
         uses: lukka/set-shell-env@master
