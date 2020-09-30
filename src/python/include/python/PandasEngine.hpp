@@ -28,18 +28,18 @@ namespace mcpp::python {
     template<typename T>
     class PandasEngine {
     public:
-        explicit PandasEngine(std::string import_path, const std::size_t length = 1): _import_path(std::move(import_path)) {
+        explicit PandasEngine(std::string import_path, const std::size_t length = 1): _import_path(std::move(import_path)), _guard({}) {
             spdlog::info("Creating Pandas Engine");
+            py::module sys = py::module::import("sys");
+            py::print(sys.attr("path"));
+
+            // Check for Pandas
             try {
-                py::scoped_interpreter guard{};
-            } catch(const std::exception &e) {
-                spdlog::error("Error: {}", e.what());
+                auto pandas = py::module::import("pandas");
+            } catch (const std::exception &e) {
+                spdlog::error("Cannot find installed Pandas");
+                throw e;
             }
-            // Initialize xtensor and pandas support
-//            std::call_once(imported, []() {
-//                spdlog::debug("Initializing XT Numpy");
-//                xt::import_numpy();
-//            });
 
             if (length > 0) {
                 hana::for_each(hana::values(_data), [&length](auto vec) {
@@ -57,14 +57,6 @@ namespace mcpp::python {
         }
 
         std::string evaluate() const {
-            try {
-                py::scoped_interpreter guard{};
-            } catch(const std::exception &e) {
-                spdlog::error("Error: {}", e.what());
-            }
-            py::module sys = py::module::import("sys");
-            py::print(sys.attr("path"));
-
             // Try to import the file
             spdlog::info("Loading Python module: {}", _import_path);
             auto pkg = py::module::import(_import_path.data());
@@ -93,6 +85,7 @@ namespace mcpp::python {
         using A = decltype(detail::type_map<T>());
         A _data;
         const std::string _import_path;
+        py::scoped_interpreter _guard;
     };
 }
 
