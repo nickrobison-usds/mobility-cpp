@@ -38,3 +38,5 @@ def compute(df):
     df['contact_sim'] = df.raw_visit_counts * df.sampled
     df['contact_median'] = df.raw_visit_counts * df.median_dwell
     df.head()
+    # Currently, this needs to be set manually in each environment
+    df.to_parquet("simulated.parquet", engine="pyarrow")

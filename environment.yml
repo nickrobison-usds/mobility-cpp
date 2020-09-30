@@ -1,0 +1,6 @@
+name: mcpp
+dependencies:
+  - numpy
+  - pandas
+  - scipy
+  - fastparquet
