@@ -57,17 +57,17 @@ jobs:
           vcpkgDirectory: '${{ github.workspace }}/extern/vcpkg'
           # Ensure the cache key changes any time the content of the response file changes.
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
-
-      - name: Run CMake with Ninja
-        uses: lukka/run-cmake@v2
-        id: runcmake
-        with:
-          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
-          useVcpkgToolchainFile: true
-          buildDirectory: '${{ github.workspace }}/build/'
-          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
-
-      - name: Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/
-          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
+#
+#      - name: Run CMake with Ninja
+#        uses: lukka/run-cmake@v2
+#        id: runcmake
+#        with:
+#          cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
+#          useVcpkgToolchainFile: true
+#          buildDirectory: '${{ github.workspace }}/build/'
+#          cmakeAppendedArgs: '-GNinja -DCI=ON ${{ env.CMAKE_EXTRA_ARGS }}'
+#
+#      - name: Unit Tests
+#        run: |
+#          cd ${{ github.workspace }}/build/
+#          ctest --output-on-failure ${{ env.CTEST_EXTRA_ARGS }}
