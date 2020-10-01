@@ -38,9 +38,9 @@ namespace mcpp::python {
             // Create the result value
             R tmp_result{};
             hana::for_each(hana::keys(tmp_result), [&tmp_result, &dict](auto key) {
-                auto& member = hana::at_key(tmp_result, key);
+                auto &member = hana::at_key(tmp_result, key);
                 using Member = std::remove_reference_t<decltype(member)>;
-                const Member v = dict[hana::to<char const*>(key)].template cast<Member>();
+                const Member v = dict[hana::to<char const *>(key)].template cast<Member>();
                 member = v;
             });
             results.push_back(std::move(tmp_result));
@@ -101,14 +101,12 @@ namespace mcpp::python {
             auto args = py::make_tuple(input_dict);
 
             auto df = pandas.attr("DataFrame").attr("from_records")(*args);
-
-
             pkg.attr("compute")(df);
         }
 
         template<typename Q = R>
         [[nodiscard]]
-        std::enable_if_t<!std::is_same_v<Q, void>, Q>
+        std::enable_if_t<!std::is_same_v<Q, void>, std::vector<Q>>
         evaluate() const {
             // Try to import the file
             spdlog::info("Loading Python module: {}", _import_path);
@@ -127,20 +125,16 @@ namespace mcpp::python {
             auto args = py::make_tuple(input_dict);
 
             auto df = pandas.attr("DataFrame").attr("from_records")(*args);
-
-
+            // Convert the result from a py:array of py::dict to a vector of the given result type
             auto return_df = pkg.attr("compute")(df);
-
-            auto results = unwrap_pandas<R>(return_df);
-
-            return results.at(0);
+            return unwrap_pandas<R>(return_df);
         }
 
     private:
         using A = decltype(detail::type_map<T>());
         A _data;
         const std::string _import_path;
-        py::scoped_interpreter _guard;
+        [[maybe_unused]] py::scoped_interpreter _guard;
     };
 }
 
