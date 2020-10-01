@@ -7,7 +7,7 @@ add_library(mcpp-arrow INTERFACE)
 if (${USE_INTERNAL_ARROW})
     add_dependencies(mcpp-arrow arrow_ep)
     # Gross, but for some reason, we need this to make sure the parquet lib is found correctly
-    target_link_directories(mcpp-arrow INTERFACE ${CMAKE_BINARY_DIR}/arrow/lib64)
+    target_link_directories(mcpp-arrow INTERFACE ${CMAKE_BINARY_DIR}/arrow/lib64 ${CMAKE_BINARY_DIR}/arrow/lib)
     target_include_directories(mcpp-arrow INTERFACE ${CMAKE_BINARY_DIR}/arrow/include)
 else ()
     find_package(Arrow CONFIG REQUIRED)
