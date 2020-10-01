@@ -6,7 +6,6 @@
 #define MOBILITY_CPP_PANDASENGINE_HPP
 
 #include "helpers.hpp"
-#include <absl/strings/str_split.h>
 #include <boost/hana.hpp>
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
