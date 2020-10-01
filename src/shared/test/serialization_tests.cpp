@@ -7,7 +7,7 @@
 #include "catch2/catch.hpp"
 #include <shared/data.hpp>
 #include <date/date.h>
-#include <libs/serialization/include/hpx/serialization/output_archive.hpp>
+#include <hpx/serialization/output_archive.hpp>
 
 TEST_CASE("V2 serialization", "[serialization]") {
     const v2 orig{"hello", date::sys_days{} + date::days{1000}, "loc", "cbg", 1, 1.5, 3.1};
