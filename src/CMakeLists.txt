@@ -13,6 +13,15 @@ CHECK_FOR_AVX()
 find_package(Eigen3 3.3 NO_MODULE)
 find_package(GDAL REQUIRED)
 
+# Create a custom GDAL target if one isn't already defined
+if (NOT TARGET GDAL::GDAL)
+    message("Creating custom GDAL target")
+    add_library(mcpp-gdal INTERFACE)
+    target_include_directories(mcpp-gdal INTERFACE ${GDAL_INCLUDE_DIR})
+    target_link_libraries(mcpp-gdal INTERFACE ${GDAL_LIBRARY})
+    add_library(GDAL::GDAL ALIAS mcpp-gdal)
+endif ()
+
 # Create a custom target that defines the allocator
 string(TOUPPER "${DEFAULT_MALLOC}" MALLOC_UPPER)
 add_library(mcpp-malloc INTERFACE IMPORTED)
