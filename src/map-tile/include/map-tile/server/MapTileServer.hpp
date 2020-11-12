@@ -88,6 +88,7 @@ namespace mt::server {
             if constexpr(has_setup<Mapper, MapKey, Coordinate>::value) {
                 mapper.setup(ctx);
             }
+            spdlog::info("Iterating through {} files", _files.size());
             for_each(_files.begin(), _files.end(), [&ctx, &mapper, this](const string &filename) {
                 spdlog::info("Reading {}", filename);
                 Provider<InputKey> provider(filename);

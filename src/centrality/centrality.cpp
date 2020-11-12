@@ -100,7 +100,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
     // Now, compute
     vector<hpx::future<void>> compute_results = engine.compute();
     hpx::wait_all(compute_results);
-    spdlog::debug("Computing completed");
+    spdlog::info("Computing completed");
 
     // And, reduce
     vector<hpx::future<reduce_type>> reduce_results = engine.reduce();
@@ -113,7 +113,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
         std::move(v.begin(), v.end(),
                   std::back_inserter(unwrapped));
     }
-    spdlog::debug("Reducing completed");
+    spdlog::info("Reducing completed");
 
     // Write out the CBGs by rank
     const auto rank_file = shared::DirectoryUtils::build_path(output_path, "cbg-ranks.parquet");
@@ -144,7 +144,7 @@ int hpx_main(hpx::program_options::variables_map &vm) {
 
     auto table = arrow::Table::Make(schema, {cbg_array, date_array, rank_array});
     status = p.write(*table);
-    spdlog::debug("All done");
+    spdlog::info("All done");
 
     return hpx::finalize();
 }

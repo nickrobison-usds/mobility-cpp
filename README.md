@@ -5,6 +5,10 @@ Try to fix some issues with our python analysis and make it more performant.
 git submodule update --init --recursive
 vcpkg install geos tbb arrow range-v3 gdal
 
+```bash
+brew install cmake ninja gdal apache-arrow jemalloc boost openssl eigen
+```
+
 ### Cluster
 
 #### CADES
