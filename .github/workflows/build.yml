@@ -37,7 +37,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9
+          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev
 
       - name: Install Python dependencies
         run: |

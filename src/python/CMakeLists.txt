@@ -6,6 +6,6 @@ target_include_directories(mcpp-python PUBLIC
 
 add_library(MCPP::python ALIAS mcpp-python)
 
-add_executable(python-tests test/interpreter_test.cpp test/pandas_test.cpp test/person.hpp)
+add_executable(python-tests test/interpreter_test.cpp test/pandas_test.cpp test/person.hpp test/person_diff.hpp)
 target_link_libraries(python-tests Catch2::Catch2 MCPP::python)
 add_test(python-tests python-tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/python/test)

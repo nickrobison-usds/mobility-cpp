@@ -13,6 +13,15 @@ CHECK_FOR_AVX()
 find_package(Eigen3 3.3 NO_MODULE)
 find_package(GDAL REQUIRED)
 
+# Create a custom GDAL target if one isn't already defined
+if (NOT TARGET GDAL::GDAL)
+    message("Creating custom GDAL target")
+    add_library(mcpp-gdal INTERFACE)
+    target_include_directories(mcpp-gdal INTERFACE ${GDAL_INCLUDE_DIR})
+    target_link_libraries(mcpp-gdal INTERFACE ${GDAL_LIBRARY})
+    add_library(GDAL::GDAL ALIAS mcpp-gdal)
+endif ()
+
 # Create a custom target that defines the allocator
 string(TOUPPER "${DEFAULT_MALLOC}" MALLOC_UPPER)
 add_library(mcpp-malloc INTERFACE IMPORTED)
@@ -36,6 +45,21 @@ if (NOT "${MALLOC_UPPER}" STREQUAL "SYSTEM")
         message(FATAL_ERROR "Unsupported allocator: ${MALLOC_UPPER}")
     endif ()
 endif ()
+
+# Create a custom target for Arrow
+add_library(mcpp-arrow INTERFACE)
+# If we're building arrow locally, make sure we build it first
+if (${USE_INTERNAL_ARROW})
+    add_dependencies(mcpp-arrow arrow_ep)
+    # Gross, but for some reason, we need this to make sure the parquet lib is found correctly
+    target_link_directories(mcpp-arrow INTERFACE ${CMAKE_BINARY_DIR}/arrow/lib64 ${CMAKE_BINARY_DIR}/arrow/lib)
+    target_include_directories(mcpp-arrow INTERFACE ${CMAKE_BINARY_DIR}/arrow/include)
+else ()
+    find_package(Arrow CONFIG REQUIRED)
+    target_link_directories(mcpp-arrow INTERFACE ${ARROW_LIB_DIR} ${PARQUET_LIB_DIR})
+    target_include_directories(mcpp-arrow INTERFACE ${ARROW_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR})
+endif ()
+target_link_libraries(mcpp-arrow INTERFACE arrow parquet)
 
 add_subdirectory(io)
 add_subdirectory(components)
