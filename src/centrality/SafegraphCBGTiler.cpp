@@ -92,8 +92,6 @@ void SafegraphCBGTiler::receive(const mt::ctx::ReduceContext<v2, mt::coordinates
     const auto y_idx = _oc->to_global_offset(value.visit_cbg);
     const auto l_time_count = local_temporal.time_since_epoch().count();
     if (y_idx.has_value()) {
-        // Insert into the staging array
-        std::lock_guard<std::mutex> l(_m);
         _staging.at(l_time_count).push_back(value);
     } else {
         spdlog::error("Visitor CBG {} is not in map, skipping insert", value.visit_cbg);

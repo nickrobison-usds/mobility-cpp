@@ -91,18 +91,18 @@ spack:
           modules:
             - cmake
   specs:
-    - hwloc
     - cmake
-    - openssl@1.0.2
+    - hwloc@1.11.11
+    - openssl@1.0.2u
     - boost cxxstd=17
     - geos@3.6.2
     - gdal+geos
-    - gperftools
     - hdf5
     - thrift ~python
     - mpi
     - eigen
     - arrow +parquet
     - jemalloc
+    - ncurses~termlib+symlinks # We need to disable termlib on CORI
   view: true
   concretization: together
