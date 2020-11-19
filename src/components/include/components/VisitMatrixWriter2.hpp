@@ -1,20 +1,22 @@
 //
-// Created by Nicholas Robison on 6/17/20.
+// Created by Nick Robison on 11/19/20.
 //
 
-#ifndef MOBILITY_CPP_VISITMATRIXWRITER_HPP
-#define MOBILITY_CPP_VISITMATRIXWRITER_HPP
+#pragma once
 
 #include "components/detail/CBGOffsetCalculator.hpp"
 #include "components/TemporalMatricies.hpp"
 #include <io/parquet.hpp>
 #include <date/date.h>
+#include <mutex>
 
 namespace components {
-    class VisitMatrixWriter {
+    class VisitMatrixWriter2 {
     public:
-        VisitMatrixWriter(const std::string &filename, detail::CBGOffsetCalculator oc);
+        VisitMatrixWriter2(const std::string &filename, detail::CBGOffsetCalculator oc);
+
         arrow::Status writeResults(const date::sys_days &result_date, const visit_matrix &matrix);
+        arrow::Status writeToDisk();
 
     private:
         const io::Parquet _p;
@@ -23,8 +25,6 @@ namespace components {
         arrow::StringBuilder _visitor_cbg_builder;
         arrow::Date32Builder _date_builder;
         arrow::UInt32Builder _visit_builder;
+        std::mutex _mtx;
     };
 }
-
-
-#endif //MOBILITY_CPP_VISITMATRIXWRITER_HPP

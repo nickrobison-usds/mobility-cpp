@@ -9,8 +9,8 @@
 #include <blaze/math/DynamicVector.h>
 #include <hpx/parallel/algorithms/transform_reduce.hpp>
 #include <hpx/parallel/algorithms/for_each.hpp>
-#include <components/TileWriter.hpp>
-#include <components/VisitMatrixWriter.hpp>
+#include <components/TileWriter2.hpp>
+#include <components/VisitMatrixWriter2.hpp>
 #include <shared/DateUtils.hpp>
 #include <shared/ConversionUtils.hpp>
 #include <spdlog/fmt/fmt.h>
@@ -133,28 +133,35 @@ void SafegraphCBGTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coord
 
     // Figure out my temporal start date
     const date::sys_days start_date = date::sys_days{} + date::days(_tc._time_offset);
+    const date::sys_days end_date = start_date + date::days(_tc._time_count);
     const auto date_range = boost::irange(0, static_cast<int>(_tc._time_count));
+
+
+    const auto parquet_filename = fmt::format("{}-{}-{}-{}-{}.parquet",
+                                              *output_name,
+                                              *(_oc->from_global_offset(_tc._tile_min)),
+                                              *(_oc->from_global_offset(_tc._tile_max)),
+                                              date::format("%F", start_date),
+                                              date::format("%F", end_date));
+    const auto p_file = fs::path(*output_dir) /= fs::path(parquet_filename);
+
+    components::TileWriter2 tw(std::string(p_file.string()), *_oc);
+
+    const auto visit_filename = fmt::format("{}-visits-{}-{}-{}-{}.parquet",
+                                            *output_name,
+                                            *(_oc->from_global_offset(_tc._tile_min)),
+                                            *(_oc->from_global_offset(_tc._tile_max)),
+                                            date::format("%F", start_date),
+                                            date::format("%F", end_date));
+
+    const auto v_file = fs::path(*output_dir) /= fs::path(visit_filename);
+
+
+    components::VisitMatrixWriter2 vw(std::string(v_file.string()), *_oc);
 
     par::for_each(par::execution::par_unseq, date_range.begin(), date_range.end(), [&](const std::size_t i) {
         // Some nice pretty-printing of the dates
         const date::sys_days matrix_date = start_date + date::days{i};
-        const auto parquet_filename = fmt::format("{}-{}-{}-{}.parquet",
-                                                  *output_name,
-                                                  *(_oc->from_global_offset(_tc._tile_min)),
-                                                  *(_oc->from_global_offset(_tc._tile_max)),
-                                                  date::format("%F", matrix_date));
-        const auto p_file = fs::path(*output_dir) /= fs::path(parquet_filename);
-
-        const auto visit_filename = fmt::format("{}-visits-{}-{}-{}.parquet",
-                                                *output_name,
-                                                *(_oc->from_global_offset(_tc._tile_min)),
-                                                *(_oc->from_global_offset(_tc._tile_max)),
-                                                date::format("%F", matrix_date));
-
-        const auto v_file = fs::path(*output_dir) /= fs::path(visit_filename);
-
-        components::TileWriter tw(std::string(p_file.string()), *_oc);
-        components::VisitMatrixWriter vw(std::string(v_file.string()), *_oc);
 
         const auto multiply_start = hpx::util::high_resolution_clock::now();
         const auto matrix_pair = _tm->get_matrix_pair(i);
@@ -171,9 +178,6 @@ void SafegraphCBGTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coord
         spdlog::info("Performing multiplication for {}", date::format("%F", matrix_date));
         const auto multiply_elapsed = hpx::util::high_resolution_clock::now() - multiply_start;
         print_timing("Multiply", multiply_elapsed);
-
-        spdlog::info("Beginning tile write");
-        const auto write_start = hpx::util::high_resolution_clock::now();
         arrow::Status status = tw.writeResults(matrix_date, cbg_risk_score, {}, visit_sum);
         if (!status.ok()) {
             spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
@@ -182,9 +186,22 @@ void SafegraphCBGTiler::write_parquet(const mt::ctx::ReduceContext<v2, mt::coord
         if (!status.ok()) {
             spdlog::critical("Could not write parquet file: {}", status.CodeAsString());
         }
-        const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
-        print_timing("File Write", write_elapsed);
+
     });
+    const auto write_start = hpx::util::high_resolution_clock::now();
+    spdlog::info("Beginning tile write");
+    const auto write_elapsed = hpx::util::high_resolution_clock::now() - write_start;
+    print_timing("File Write", write_elapsed);
+    // Write the files
+    arrow::Status status;
+    status = tw.writeToDisk();
+    if (!status.ok()) {
+        spdlog::error("Error writing tiles");
+    }
+    status = vw.writeToDisk();
+    if (!status.ok()) {
+        spdlog::error("Error visit patterns");
+    }
 
 }
 
