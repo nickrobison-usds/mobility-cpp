@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <mutex>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -109,12 +110,15 @@ namespace mt::server {
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, tile);
 
         void receive(const Coordinate &key, const MapKey &value) {
+            std::lock_guard<std::mutex> l(_receive_m);
             _tiler.receive(_ctx, key, value);
         }
 
         HPX_DEFINE_COMPONENT_ACTION(MapTileServer, receive);
 
         void receive_array(const std::vector<std::pair<const Coordinate, const MapKey>> &values) {
+//            FIXME: This is incredibly inefficient, we should migrate to something like channels in order to avoid having to go single-threaded on the insertion
+            std::lock_guard<std::mutex> l(_receive_m);
             std::for_each(values.begin(), values.end(), [this](const auto v) {
                 _tiler.receive(_ctx, v.first, v.second);
             });
@@ -145,6 +149,8 @@ namespace mt::server {
         const ctx::Context<MapKey, Coordinate> _ctx;
         Tiler _tiler;
         io::EmitHandler<mt::server::MapTileServer<MapKey, Coordinate, Mapper, Tiler, ReduceValue>, Coordinate, MapKey> _emitter;
+        std::mutex _receive_m;
+
 
         void handle_emit(const Coordinate &key, const MapKey &value) {
             std::pair<const Coordinate, const MapKey> pair = std::make_pair(key, value);

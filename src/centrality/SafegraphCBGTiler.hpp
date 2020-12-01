@@ -12,7 +12,6 @@
 #include <components/CBGShapefileWrapper.hpp>
 #include <map-tile/ctx/Context.hpp>
 #include <shared/data.hpp>
-#include <mutex>
 
 class SafegraphCBGTiler {
 
@@ -39,7 +38,6 @@ private:
     components::TileConfiguration _tc;
     date::sys_days _start_date;
     std::vector<std::vector<v2>> _staging;
-    std::mutex _m;
 };
 
 
