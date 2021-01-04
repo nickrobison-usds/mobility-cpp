@@ -20,24 +20,24 @@ jobs:
         with:
           submodules: true
 
-      - uses: lukka/get-cmake@v3.17.1
+      - uses: lukka/get-cmake@latest
         name: Install cmake
 
       - name: Set vcpkg's response file path used as part of cache's key.
-        uses: lukka/set-shell-env@master
+        uses: lukka/set-shell-env@latest
         with:
           VCPKGRESPONSEFILE: ${{ github.workspace }}/cmake/vcpkg_${{ matrix.triplet }}.txt
 
       - name: (macOS) Install dependencies
         if: runner.os == 'macOS'
         run: |
-          brew install hwloc bison flex gdal pkg-config
+          brew install hwloc bison flex gdal pkg-config ccache
 
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev
+          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev ccache
 
       - name: Install Python dependencies
         run: |
@@ -50,7 +50,7 @@ jobs:
           CMAKE_EXTRA_ARGS: '-DCMAKE_C_COMPILER=/usr/bin/gcc-9 -DCMAKE_CXX_COMPILER=/usr/bin/g++-9'
 
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@v3
+        uses: lukka/run-vcpkg@latest
         id: runvcpkg
         with:
           vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
@@ -59,7 +59,7 @@ jobs:
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
 
       - name: Run CMake with Ninja
-        uses: lukka/run-cmake@v2
+        uses: lukka/run-cmake@latest
         id: runcmake
         with:
           cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
