@@ -28,7 +28,7 @@ jobs:
           message("::set-output name=timestamp::${current_date}")
 
       - name: Cache ccache builds
-        uses: action/cache@v2
+        uses: actions/cache@v2
         with:
           path: |
             .ccache
@@ -60,13 +60,13 @@ jobs:
           pip3 install pandas
 
       - name: (Linux) Set GCC9 as default compiler
-        uses: lukka/set-shell-env@master
+        uses: lukka/set-shell-env@v1
         if: runner.os == 'Linux'
         with:
           CMAKE_EXTRA_ARGS: '-DCMAKE_C_COMPILER=/usr/bin/gcc-9 -DCMAKE_CXX_COMPILER=/usr/bin/g++-9'
 
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@v6.1
+        uses: lukka/run-vcpkg@v6
         id: runvcpkg
         with:
           vcpkgArguments: '@${{ env.VCPKGRESPONSEFILE }}'
