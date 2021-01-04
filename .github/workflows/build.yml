@@ -59,7 +59,7 @@ jobs:
           appendedCacheKey: ${{ hashFiles( env.VCPKGRESPONSEFILE ) }}
 
       - name: Run CMake with Ninja
-        uses: lukka/run-cmake@latest
+        uses: lukka/run-cmake@v3.3
         id: runcmake
         with:
           cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
