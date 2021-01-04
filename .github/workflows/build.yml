@@ -40,7 +40,7 @@ jobs:
         name: Install cmake
 
       - name: Set vcpkg's response file path used as part of cache's key.
-        uses: lukka/set-shell-env@latest
+        uses: lukka/set-shell-env@v1
         with:
           VCPKGRESPONSEFILE: ${{ github.workspace }}/cmake/vcpkg_${{ matrix.triplet }}.txt
 
