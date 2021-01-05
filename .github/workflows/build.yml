@@ -52,8 +52,9 @@ jobs:
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'
         run: |
+          sudo add-apt-repository ppa:ubuntugis/ppa
           sudo apt-get update
-          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev ccache
+          sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev ccache libgdal-dev
 
       - name: Install Python dependencies
         run: |
@@ -81,7 +82,7 @@ jobs:
           cmakeListsOrSettingsJson: "CMakeListsTxtAdvanced"
           useVcpkgToolchainFile: true
           buildDirectory: '${{ github.workspace }}/build/'
-          cmakeAppendedArgs: '-GNinja -DCI=ON -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ env.CMAKE_EXTRA_ARGS }}'
+          cmakeAppendedArgs: '-GNinja -DCI=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ env.CMAKE_EXTRA_ARGS }}'
 
       - name: Unit Tests
         run: |
