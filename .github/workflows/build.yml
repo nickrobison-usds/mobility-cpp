@@ -52,7 +52,6 @@ jobs:
       - name: (Linux) Install dependencies
         if: runner.os == 'Linux'
         run: |
-          sudo add-apt-repository ppa:ubuntugis/ppa
           sudo apt-get update
           sudo apt-get install libxml2-dev libnuma-dev gcc-9 g++-9 libhwloc-dev ccache libgdal-dev
 
